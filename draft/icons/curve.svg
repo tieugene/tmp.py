@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+    <!-- path d="M 1 1 H 19 V 19 H 1 Z" stroke-width="1" stroke="black" fill="white"/ -->
+    <path
+            d="M1,10 Q5,0 10,10 T19,10"
+            stroke-width="1" stroke="black"
+    />
+</svg>

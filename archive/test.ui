@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>598</width>
+    <height>608</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <widget class="QSlider" name="bottomHSlider">
+    <property name="geometry">
+     <rect>
+      <x>99</x>
+      <y>540</y>
+      <width>391</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Horizontal</enum>
+    </property>
+   </widget>
+   <widget class="QWidget" name="bottomStatusWidget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>99</x>
+      <y>479</y>
+      <width>391</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QScrollArea" name="scrollArea">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>30</y>
+      <width>291</width>
+      <height>281</height>
+     </rect>
+    </property>
+    <property name="widgetResizable">
+     <bool>true</bool>
+    </property>
+    <widget class="QWidget" name="scrollAreaWidgetContents">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>287</width>
+       <height>277</height>
+      </rect>
+     </property>
+     <widget class="QWidget" name="layoutWidget">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>20</y>
+        <width>211</width>
+        <height>271</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="vTR">
+       <item>
+        <widget class="QWidget" name="wTR0" native="true"/>
+       </item>
+       <item>
+        <widget class="QWidget" name="wTR1" native="true"/>
+       </item>
+       <item>
+        <widget class="QWidget" name="wTR2" native="true"/>
+       </item>
+       <item>
+        <widget class="QWidget" name="wTR3" native="true"/>
+       </item>
+       <item>
+        <widget class="QWidget" name="wTR4" native="true"/>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>30</y>
+      <width>91</width>
+      <height>291</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="vTL">
+     <item>
+      <widget class="QWidget" name="wTL0" native="true"/>
+     </item>
+     <item>
+      <widget class="QWidget" name="wTL1" native="true"/>
+     </item>
+     <item>
+      <widget class="QWidget" name="wTL2" native="true"/>
+     </item>
+     <item>
+      <widget class="QWidget" name="wTL3" native="true"/>
+     </item>
+     <item>
+      <widget class="QWidget" name="wTL4" native="true"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>598</width>
+     <height>28</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

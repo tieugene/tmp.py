@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+    <style>.main {font: 20px mono;}</style>
+    <path d="M 1 1 H 19 V 19 H 1 Z" stroke-width="1" stroke="black" fill="white"/>
+    <text x="3" y="17" class="main">П</text>
+</svg>
