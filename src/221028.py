@@ -1,19 +1,45 @@
 #!/usr/bin/env python3
 """Sample QTableWidget:
 Лента: ribbon, band, lane, strip, set, bar
+TODO:
+- [ ] TopBar
+- [ ] BottomBar
+- [ ] HScroller
+- [ ] Signal join/move/unjoin (DnD)
+- [ ] Signal hide/unhide
+- [ ] Rerange:
+  - [ ] x-scale
+  - [ ] x-move
+  - [ ] y-scale
+  - [ ] y-stretch
+  - [ ] y-move
 """
+import math
 import random
 # 1. std
 import sys
 # 2. 3rd
-from PyQt5.QtCore import Qt, QObject, QMargins
+from PyQt5.QtCore import Qt, QObject, QMargins, QRect
+from PyQt5.QtGui import QMouseEvent, QPen
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView
 from QCustomPlot2 import QCustomPlot, QCPGraph
 #  x. const
 COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray)
-BARS = 3
+BARS = 3  # Signal bars number (each table)
 SIN_SAMPLES = 72  # 5°
+SIG_WIDTH = 1.0  # signal width, s
+LINE_CELL_SIZE = 3  # width ow VLine column / height of HLine row
+X_COORDS = [SIG_WIDTH / SIN_SAMPLES * i - SIG_WIDTH / 2 for i in range(SIN_SAMPLES+1)]
+
+
+def y_coords(pnum: int = 1, off: int = 0) -> list[float]:
+    """Create sinusoide.
+    :param pnum: Periods number
+    :param off: Offset (samples)
+    :return: Y-coords
+    """
+    return [round(math.sin((i + off) / SIN_SAMPLES * 2 * math.pi * pnum), 3) for i in range(SIN_SAMPLES + 1)]
 
 
 class TopBar(QWidget):
@@ -26,34 +52,37 @@ class SignalLabel(QListWidgetItem):
         super().__init__(parent)
 
 
-class SignalPlot(QCustomPlot):
-    def __init__(self, parent: 'SignalPlotWidget'):
+class BarPlot(QCustomPlot):
+    __bnum: int
+
+    def __init__(self, bnum: int, parent):
         super().__init__(parent)
+        self.__bnum = bnum
+        self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
+        self.yAxis.setRange(-1.1, 1.1)
 
 
-class SignalSet(QObject):
-    __bar: 'SignalBar'
-    __name: str
-    __num: int
-    __off: int
+class SignalSuit(QObject):
+    __name: str  # Label
+    __pnum: int  # Periods number
+    __off: int  # Offset
     __color: Qt.GlobalColor
     __label: SignalLabel
-    __graph: SignalPlot
+    __plot: BarPlot
 
-    def __init__(self, name: str, num: int, off: int, color: Qt.GlobalColor, parent: 'SignalBar'):
+    def __init__(self, name: str, pnum: int, off: int, color: Qt.GlobalColor):
         super().__init__()
-        self.__bar = parent
         self.__name = name
-        self.__num = num
+        self.__pnum = pnum
         self.__off = off
         self.__color = color
-        self.__label = SignalLabel(self.__bar.ctrl.lst)
-        self.__label.setText(name)
+        # self.__label = SignalLabel(self.__bar.ctrl.lst)
+        # self.__label.setText(name)
 
 
 class SignalLabelList(QListWidget):
 
-    def __init__(self, parent: 'SignalCtrlWidget'):
+    def __init__(self, parent: 'BarCtrl'):
         super().__init__(parent)
 
 
@@ -71,7 +100,7 @@ class ZoomButtonBox(QWidget):
     _b_zoom_0: ZoomButton
     _b_zoom_out: ZoomButton
 
-    def __init__(self, parent: 'SignalCtrlWidget'):
+    def __init__(self, parent: 'BarCtrl'):
         super().__init__(parent)
         self._b_zoom_in = ZoomButton("+", self)
         self._b_zoom_0 = ZoomButton("=", self)
@@ -84,71 +113,108 @@ class ZoomButtonBox(QWidget):
         self.layout().addWidget(self._b_zoom_out)
 
 
-class SignalCtrlWidget(QWidget):
+class BarCtrl(QWidget):
+    __bnum: int
     lst: SignalLabelList
     zbx: ZoomButtonBox
 
-    def __init__(self, parent: 'SignalBar'):
+    def __init__(self, bnum: int, parent):
         super().__init__(parent)
+        self.__bnum = bnum
         self.lst = SignalLabelList(self)
         self.zbx = ZoomButtonBox(self)
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(self.lst)
         self.layout().addWidget(self.zbx)
+        self.layout().setContentsMargins(QMargins())
 
 
-class SignalPlotWidget(QWidget):
-    def __init__(self, parent: 'SignalBar'):
+class HLine(QFrame):
+    __bnum: int
+
+    def __init__(self, bnum: int, parent=None):
+        """Parents: QWidget<MainWidget"""
         super().__init__(parent)
+        self.__bnum = bnum
+        self.setGeometry(QRect(0, 0, 0, 0))  # size is not the matter
+        self.setFrameShape(QFrame.HLine)
+        self.setCursor(Qt.SplitVCursor)
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """accepted() == True, y() = Δy"""
+        (tbl := self.parent().parent()).setRowHeight(self.__bnum * 2, tbl.rowHeight(self.__bnum * 2) + event.y())
 
 
-class SignalBar(QWidget):
-    sig: set[SignalSet]
-    ctrl: SignalCtrlWidget
-    plot_w: SignalPlotWidget
-    plot: SignalPlot
-    splitter: QSplitter
-
-    def __init__(self, parent: 'SignalBarList'):
+class VLine(QFrame):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.sig = set()
-        self.__mk_widgets()
-        self.__mk_layout()
+        self.setGeometry(QRect(0, 0, 0, 0))  # size is not the matter
+        self.setFrameShape(QFrame.VLine)
+        self.setCursor(Qt.SplitHCursor)
 
-    def __mk_widgets(self):
-        self.ctrl = SignalCtrlWidget(self)
-        self.plot_w = SignalPlotWidget(self)
-        self.plot = SignalPlot(self.plot_w)
-
-    def __mk_layout(self):
-        self.setLayout(QVBoxLayout())
-        self.splitter = QSplitter(Qt.Vertical, self)
-        self.splitter.addWidget(self.ctrl)
-        self.splitter.addWidget(self.plot_w)
-        self.layout().addWidget(self.splitter)
-
-    def add_sig(self, name: str, num: int, off: int, color: Qt.GlobalColor):
-        sigset = SignalSet(name, num, off, color, self)
-        self.sig.add(sigset)
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """accepted() == True, x() = Δx"""
+        (tbl := self.parent().parent()).setColumnWidth(0, tbl.columnWidth(0) + event.x())
 
 
-class SignalBarList(QListWidget):
+class SignalBarTable(QTableWidget):
     def __init__(self, parent: QWidget):
         super().__init__(parent)
-        self.setSelectionMode(self.SingleSelection)
+        self.setColumnCount(3)
+        self.horizontalHeader().setMinimumSectionSize(1)
+        self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Interactive)
+        self.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.horizontalHeader().hide()
+        self.setColumnWidth(1, LINE_CELL_SIZE)
+        self.verticalHeader().setMinimumSectionSize(1)
+        self.verticalHeader().hide()
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # not helps
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)  # not helps
+        self.setShowGrid(False)
         self.setDragEnabled(True)
 
-    def add_bar(self) -> SignalBar:
-        # Note: QListWidgetItem cannot be parent
-        self.setItemWidget(QListWidgetItem(self), bar := SignalBar(self))
-        return bar
+    def bar_insert(self, bnum: int = -1):
+        if bnum < 0 or bnum > (self.rowCount() // 2):
+            bnum = self.rowCount() // 2
+        row_sig = bnum * 2
+        row_spl = row_sig + 1
+        # signal
+        self.insertRow(row_sig)
+        self.setCellWidget(row_sig, 0, BarCtrl(bnum, self))
+        self.setCellWidget(row_sig, 1, VLine(self))
+        self.setCellWidget(row_sig, 2, BarPlot(bnum, self))
+        # h-splitter
+        self.insertRow(row_spl)
+        self.setCellWidget(row_spl, 0, HLine(bnum, self))
+        self.setCellWidget(row_spl, 1, HLine(bnum, self))
+        self.setCellWidget(row_spl, 2, HLine(bnum, self))
+        self.setRowHeight(row_spl, LINE_CELL_SIZE)
+
+    def sig_add(self, bnum: int, name: str, pnum: int, off: int, color: Qt.GlobalColor):
+        sigsuit = SignalSuit(name, pnum, off, color)
+        ctrl = self.cellWidget(bnum * 2, 0)
+        lbl = SignalLabel(ctrl.lst)
+        lbl.setText(f"{name}\n{pnum}/{off}")
+        plot = self.cellWidget(bnum * 2, 2)
+        grf = plot.addGraph()
+        grf.setData(X_COORDS, y_coords(pnum, off), True)
+        grf.setPen(QPen(color))
+        # self.sig.add(sigset)
+        self.setRowHeight(bnum * 2, 80)
+
+    def sig_del(self):
+        """Remove signal from bar.
+        """
+        ...
 
 
 class MainWidget(QWidget):
     tb: TopBar
     cb: QWidget
-    lst1: SignalBarList
-    lst2: SignalBarList
+    lst1: SignalBarTable
+    lst2: SignalBarTable
 
     def __init__(self, parent: QMainWindow):
         super().__init__(parent)
@@ -158,14 +224,13 @@ class MainWidget(QWidget):
 
     def __mk_widgets(self):
         self.tb = TopBar(self)
-        self.lst1 = SignalBarList(self)
-        self.lst2 = SignalBarList(self)
+        self.lst1 = SignalBarTable(self)
+        self.lst2 = SignalBarTable(self)
 
     def __mk_layout(self):
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.tb)
         splitter = QSplitter(Qt.Vertical, self)
-        splitter.setStyleSheet("QSplitter::handle{background: grey;}")
         splitter.addWidget(self.lst1)
         splitter.addWidget(self.lst2)
         self.layout().addWidget(splitter)
@@ -173,9 +238,9 @@ class MainWidget(QWidget):
     def __set_data(self):
         for i, lst in enumerate((self.lst1, self.lst2)):
             for j in range(BARS):
-                bar = lst.add_bar()
-                continue
-                bar.add_sig(
+                lst.bar_insert(j)
+                lst.sig_add(
+                    j,
                     f"sig{i}/{j}",
                     random.randint(1, 5),
                     random.randint(0, SIN_SAMPLES - 1),
