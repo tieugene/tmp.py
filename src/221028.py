@@ -2,8 +2,8 @@
 """Sample QTableWidget:
 Лента: ribbon, band, lane, strip, set, bar
 TODO:
-- [ ] TopBar
-- [ ] BottomBar
+- [x] TopBar
+- [ ] Col0 resize sync
 - [ ] HScroller
 - [ ] Signal join/move/unjoin (DnD)
 - [ ] Signal hide/unhide
@@ -13,6 +13,7 @@ TODO:
   - [ ] y-scale
   - [ ] y-stretch
   - [ ] y-move
+- [ ] xPtr
 IDEA: store signal pointer into Signal
 """
 import math
@@ -23,16 +24,21 @@ from dataclasses import dataclass
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView
-from QCustomPlot2 import QCustomPlot, QCPGraph
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QCommonStyle
+from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
+
 # x. const
-COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray)
 BARS = 6  # Signal bars number (each table)
 SIN_SAMPLES = 72  # 5°
 SIG_WIDTH = 1.0  # signal width, s
 LINE_CELL_SIZE = 3  # width ow VLine column / height of HLine row
+BAR_HEIGHT = 48
+COL0_INIT_WIDTH = 100
+PEN_NONE = QPen(QColor(255, 255, 255, 0))
+PEN_ZERO = QPen(Qt.black)
+COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray)
 X_COORDS = [SIG_WIDTH / SIN_SAMPLES * i - SIG_WIDTH / 2 for i in range(SIN_SAMPLES+1)]
 
 
@@ -55,8 +61,51 @@ class Signal:
 
 
 class TopBar(QWidget):
+
+    class TopPlot(QCustomPlot):
+        def __init__(self, parent: QWidget):
+            super().__init__(parent)
+            ar = self.axisRect(0)  # QCPAxisRect
+            ar.setMinimumMargins(QMargins())  # the best
+            ar.removeAxis(self.yAxis)
+            ar.removeAxis(self.xAxis2)
+            ar.removeAxis(self.yAxis2)
+            self.xAxis.setTickLabelSide(QCPAxis.lsInside)
+            self.xAxis.grid().setVisible(False)
+            # self.xAxis.setTickLabels(True)
+            # self.xAxis.setTicks(True)
+            self.xAxis.setPadding(0)
+            self.setFixedHeight(24)
+            self.xAxis.setTickLabelFont(QFont('mono', 8))
+            # data
+            self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
+
+    __label: QLabel
+    __scale: TopPlot
+    __stub: QScrollBar
+
     def __init__(self, parent: 'MainWidget'):
         super().__init__(parent)
+        # widgets
+        self.__label = QLabel("ms", self)
+        self.__scale = self.TopPlot(self)
+        self.__stub = QScrollBar(Qt.Vertical)
+        # print(self.__stub.width())
+        # layout
+        self.setLayout(QHBoxLayout())
+        self.layout().addWidget(self.__label)
+        self.layout().addWidget(self.__scale)
+        self.layout().addWidget(self.__stub)
+        # decorate
+        self.__label.setFixedWidth(COL0_INIT_WIDTH + LINE_CELL_SIZE)
+        self.__label.setFrameShape(QFrame.Box)
+        self.__stub.setStyle(QCommonStyle())
+        # squeeze
+        self.__stub.setFixedHeight(0)
+        # self.setContentsMargins(QMargins())
+        self.layout().setContentsMargins(QMargins())
+        self.layout().setSpacing(0)
+        self.__label.setContentsMargins(QMargins())
 
 
 class SignalLabel(QListWidgetItem):
@@ -65,13 +114,31 @@ class SignalLabel(QListWidgetItem):
 
 
 class BarPlot(QCustomPlot):
-    __bnum: int
+    __bnum: int  # Bar number
 
     def __init__(self, bnum: int, parent):
         super().__init__(parent)
         self.__bnum = bnum
+        self.__squeeze()
+        self.yAxis.setBasePen(PEN_NONE)  # hack
+        self.yAxis.grid().setZeroLinePen(PEN_ZERO)
+        self.xAxis.grid().setZeroLinePen(PEN_ZERO)
         self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
         self.yAxis.setRange(-1.1, 1.1)
+
+    def __squeeze(self):
+        ar = self.axisRect(0)  # QCPAxisRect
+        ar.setMinimumMargins(QMargins())  # the best
+        ar.removeAxis(self.xAxis2)
+        ar.removeAxis(self.yAxis2)
+        # self.yAxis.setVisible(False)  # or cp.graph().valueAxis()
+        self.yAxis.setTickLabels(False)
+        self.yAxis.setTicks(False)
+        self.yAxis.setPadding(0)
+        self.yAxis.ticker().setTickCount(1)  # the only z-line
+        self.xAxis.setTickLabels(False)
+        self.xAxis.setTicks(False)
+        self.xAxis.setPadding(0)
 
 
 class SignalSuit(QObject):
@@ -159,7 +226,9 @@ class VLine(QFrame):
         self.setCursor(Qt.SplitHCursor)
 
     def mouseMoveEvent(self, event: QMouseEvent):
-        """accepted() == True, x() = Δx"""
+        """accepted() == True, x() = Δx.
+        TODO: signal to MainWidget => TopBar, Table[], BottomBar
+        """
         (tbl := self.parent().parent()).setColumnWidth(0, tbl.columnWidth(0) + event.x())
 
 
@@ -173,6 +242,7 @@ class SignalBarTable(QTableWidget):
         self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().hide()
+        self.setColumnWidth(0, COL0_INIT_WIDTH)
         self.setColumnWidth(1, LINE_CELL_SIZE)
         self.verticalHeader().setMinimumSectionSize(1)
         self.verticalHeader().hide()
@@ -191,6 +261,7 @@ class SignalBarTable(QTableWidget):
         self.setCellWidget(row_sig, 0, BarCtrl(bnum, self))
         self.setCellWidget(row_sig, 1, VLine(self))
         self.setCellWidget(row_sig, 2, BarPlot(bnum, self))
+        self.setRowHeight(row_sig, BAR_HEIGHT)
         # h-splitter
         self.insertRow(row_spl)
         self.setCellWidget(row_spl, 0, HLine(bnum, self))
@@ -208,7 +279,6 @@ class SignalBarTable(QTableWidget):
         grf.setData(X_COORDS, y_coords(signal.pnum, signal.off), True)
         grf.setPen(QPen(signal.color))
         # self.sig.add(sigset)
-        self.setRowHeight(bnum * 2, 80)
 
     def sig_del(self):
         """Remove signal from bar.
@@ -240,6 +310,8 @@ class MainWidget(QWidget):
         splitter.addWidget(self.lst1)
         splitter.addWidget(self.lst2)
         self.layout().addWidget(splitter)
+        self.layout().setContentsMargins(QMargins())
+        self.layout().setSpacing(0)
 
     def __set_data(self, data: list[Signal]):
         def __set_data_one(__tbl: SignalBarTable, __data: list[Signal]):
