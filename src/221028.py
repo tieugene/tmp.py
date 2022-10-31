@@ -150,13 +150,16 @@ class BarPlot(QCustomPlot):
 class SignalSuit(QObject):
     __signal: Signal
     __label: SignalLabel
-    __plot: BarPlot
+    __graph: QCPGraph
 
-    def __init__(self, signal: Signal):
+    def __init__(self, signal: Signal, ctrl: 'BarCtrl', plot: BarPlot):
         super().__init__()
         self.__signal = signal
-        # self.__label = SignalLabel(self.__bar.ctrl.lst)
-        # self.__label.setText(name)
+        self.__label = SignalLabel(ctrl.lst)
+        self.__label.setText(f"{signal.name}\n{signal.pnum}/{signal.off}")
+        self.__graph = plot.addGraph()
+        self.__graph.setData(X_COORDS, y_coords(signal.pnum, signal.off), True)
+        self.__graph.setPen(QPen(signal.color))
 
 
 class SignalLabelList(QListWidget):
@@ -288,15 +291,7 @@ class SignalBarTable(QTableWidget):
         self.setRowHeight(row_spl, LINE_CELL_SIZE)
 
     def sig_add(self, bnum: int, signal: Signal):
-        sigsuit = SignalSuit(signal)
-        ctrl = self.cellWidget(bnum * 2, 0)
-        lbl = SignalLabel(ctrl.lst)
-        lbl.setText(f"{signal.name}\n{signal.pnum}/{signal.off}")
-        plot = self.cellWidget(bnum * 2, 2)
-        grf = plot.addGraph()
-        grf.setData(X_COORDS, y_coords(signal.pnum, signal.off), True)
-        grf.setPen(QPen(signal.color))
-        # self.sig.add(sigset)
+        sigsuit = SignalSuit(signal, self.cellWidget(bnum * 2, 0), self.cellWidget(bnum * 2, 2))
 
     def sig_del(self):
         """Remove signal from bar.
