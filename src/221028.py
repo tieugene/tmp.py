@@ -35,8 +35,8 @@ SIN_SAMPLES = 72  # 5°
 SIG_WIDTH = 1.0  # signal width, s
 LINE_CELL_SIZE = 3  # width ow VLine column / height of HLine row
 BAR_HEIGHT = 48
-COL0_WIDTH_INIT = 100
-COL0_WIDTH_MIN = 50
+COL_CTRL_WIDTH_INIT = 100
+COL_CTRL_WIDTH_MIN = 50
 PEN_NONE = QPen(QColor(255, 255, 255, 0))
 PEN_ZERO = QPen(Qt.black)
 COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray)
@@ -106,11 +106,10 @@ class TopBar(QWidget):
         self.layout().setSpacing(0)
         self.__label.setContentsMargins(QMargins())
         # init sizes
-        self.__label.setFixedWidth(parent.col0_width + LINE_CELL_SIZE)
-        # print(self.parent().metaObject().className())
-        self.parent().signal_resize_col0.connect(self.__slot_resize_col0)
+        self.__slot_resize_col_ctrl(parent.col_ctrl_width)
+        self.parent().signal_resize_col_ctrl.connect(self.__slot_resize_col_ctrl)
 
-    def __slot_resize_col0(self, x: int):
+    def __slot_resize_col_ctrl(self, x: int):
         self.__label.setFixedWidth(x + LINE_CELL_SIZE)
 
 
@@ -242,7 +241,7 @@ class VLine(QFrame):  # TODO: incapsulate into SignalBarTable
         :note: parents: QWidget.SignalBarTable.QSplitter.OscWindow
         """
         # (tbl := self.parent().parent()).setColumnWidth(0, tbl.columnWidth(0) + event.x())
-        self.__oscwin.resize_col0(event.x())
+        self.__oscwin.resize_col_ctrl(event.x())
 
 
 class SignalBarTable(QTableWidget):
@@ -253,12 +252,12 @@ class SignalBarTable(QTableWidget):
         self.__oscwin = oscwin
         self.setColumnCount(3)
         self.horizontalHeader().setMinimumSectionSize(1)
-        self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Interactive)
+        self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
         self.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
         self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().hide()
-        self.setColumnWidth(0, self.__oscwin.col0_width)
+        self.__slot_resize_col_ctrl(self.__oscwin.col_ctrl_width)
         self.setColumnWidth(1, LINE_CELL_SIZE)
         self.verticalHeader().setMinimumSectionSize(1)
         self.verticalHeader().hide()
@@ -267,9 +266,9 @@ class SignalBarTable(QTableWidget):
         self.setShowGrid(False)
         self.setDragEnabled(True)
         # signal/slot
-        self.__oscwin.signal_resize_col0.connect(self.__slot_resize_col0)
+        self.__oscwin.signal_resize_col_ctrl.connect(self.__slot_resize_col_ctrl)
 
-    def __slot_resize_col0(self, x: int):
+    def __slot_resize_col_ctrl(self, x: int):
         self.setColumnWidth(0, x)
 
     def bar_insert(self, bnum: int = -1):
@@ -304,8 +303,8 @@ class OscWindow(QWidget):
     cb: QWidget
     lst1: SignalBarTable
     lst2: SignalBarTable
-    col0_width = COL0_WIDTH_INIT
-    signal_resize_col0 = pyqtSignal(int)
+    col_ctrl_width = COL_CTRL_WIDTH_INIT
+    signal_resize_col_ctrl = pyqtSignal(int)
 
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
@@ -337,10 +336,10 @@ class OscWindow(QWidget):
         __set_data_one(self.lst1, data[:n0])
         __set_data_one(self.lst2, data[n0:])
 
-    def resize_col0(self, dx: int):
-        if self.col0_width + dx > COL0_WIDTH_MIN:
-            self.col0_width += dx
-            self.signal_resize_col0.emit(self.col0_width)
+    def resize_col_ctrl(self, dx: int):
+        if self.col_ctrl_width + dx > COL_CTRL_WIDTH_MIN:
+            self.col_ctrl_width += dx
+            self.signal_resize_col_ctrl.emit(self.col_ctrl_width)
 
 
 class MainWindow(QMainWindow):
