@@ -205,9 +205,11 @@ class BarCtrl(QWidget):
         self.lst = SignalLabelList(self)
         self.zbx = ZoomButtonBox(self)
         self.setLayout(QHBoxLayout())
+        self.layout().addWidget(QLabel('↕', self))
         self.layout().addWidget(self.lst)
         self.layout().addWidget(self.zbx)
         self.layout().setContentsMargins(QMargins())
+        self.layout().setSpacing(0)
 
 
 class HLine(QFrame):  # TODO: incapsulate into SignalBarTable
