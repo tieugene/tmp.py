@@ -5,7 +5,10 @@ TODO:
 - [x] TopBar
 - [x] Col0 resize sync
 - [ ] Signal join/move/unjoin (DnD)
-- [ ] Signal hide/unhide
+  - [ ] Drop enable/disable on the fly
+- [ ] Hide/unhide
+  - [ ] Bar
+  - [ ] Signal
 - [ ] HScroller
 - [ ] Rerange:
   - [ ] x-scale
@@ -24,7 +27,7 @@ from dataclasses import dataclass
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
     QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
@@ -33,7 +36,7 @@ from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
 BARS = 8  # Signal bars number (each table)
 SIN_SAMPLES = 72  # 5°
 SIG_WIDTH = 1.0  # signal width, s
-LINE_CELL_SIZE = 3  # width ow VLine column / height of HLine row
+LINE_CELL_SIZE = 7  # width ow VLine column / height of HLine row
 BAR_HEIGHT = 48
 COL_CTRL_WIDTH_INIT = 100
 COL_CTRL_WIDTH_MIN = 50
@@ -150,7 +153,7 @@ class SignalSuit(QObject):
     __label: SignalLabel
     __graph: QCPGraph
 
-    def __init__(self, signal: Signal, ctrl: 'BarCtrl', plot: BarPlot):
+    def __init__(self, signal: Signal, ctrl: 'BarCtrlWidget', plot: BarPlot):
         super().__init__()
         self.__signal = signal
         self.__label = SignalLabel(ctrl.lst)
@@ -162,7 +165,7 @@ class SignalSuit(QObject):
 
 class SignalLabelList(QListWidget):
 
-    def __init__(self, parent: 'BarCtrl'):
+    def __init__(self, parent: 'BarCtrlWidget'):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.itemClicked.connect(self.__slot_item_clicked)
@@ -187,7 +190,7 @@ class ZoomButtonBox(QWidget):
     _b_zoom_0: ZoomButton
     _b_zoom_out: ZoomButton
 
-    def __init__(self, parent: 'BarCtrl'):
+    def __init__(self, parent: 'BarCtrlWidget'):
         super().__init__(parent)
         self._b_zoom_in = ZoomButton("+", self)
         self._b_zoom_0 = ZoomButton("=", self)
@@ -200,7 +203,7 @@ class ZoomButtonBox(QWidget):
         self.layout().addWidget(self._b_zoom_out)
 
 
-class BarCtrl(QWidget):
+class BarCtrlWidget(QWidget):
     __bnum: int  # Bar order number in parent table
     lst: SignalLabelList
     zbx: ZoomButtonBox
@@ -235,7 +238,9 @@ class HLine(QFrame):  # TODO: incapsulate into SignalBarTable
         self.setCursor(Qt.SplitVCursor)
 
     def mouseMoveEvent(self, event: QMouseEvent):
-        """accepted() == True, y() = Δy"""
+        """accepted() == True, y() = Δy.
+        :fixme: bad way (2x parent)
+        """
         (tbl := self.parent().parent()).setRowHeight(self.__bnum * 2, tbl.rowHeight(self.__bnum * 2) + event.y())
 
 
@@ -288,13 +293,19 @@ class SignalBarTable(QTableWidget):
         # self.setDropIndicatorShown(True)  # default
         # self.setDragDropMode(self.DragDrop)  # was self.InternalMove
         # signal/slot
-        self.itemClicked.connect(self.__slot_item_clicked)
         self.__oscwin.signal_resize_col_ctrl.connect(self.__slot_resize_col_ctrl)
 
-    def __slot_item_clicked(self, _):
-        """Deselect item on mouse up"""
-        print("Deselect table")
-        self.clearSelection()
+    def dropEvent(self, event: QDropEvent):
+        # RTFM drag{Enter,Move,Leave}Event
+        if event.isAccepted():
+            super().dropEvent(event)
+            return
+        event.accept()
+        event.setDropAction(Qt.IgnoreAction)
+        __dip = self.dropIndicatorPosition()  # 0: on row, 3: out
+        __index = self.indexAt(event.pos())  # isValid: T: on row, F: out
+        # if not __index.isValid():  # below last; TODO: self.OnViewport?
+        # print(__dip, __index.isValid())
 
     def __slot_resize_col_ctrl(self, x: int):
         self.setColumnWidth(0, x)
@@ -306,7 +317,7 @@ class SignalBarTable(QTableWidget):
         row_spl = row_sig + 1
         # signal
         self.insertRow(row_sig)
-        self.setCellWidget(row_sig, 0, BarCtrl(bnum))
+        self.setCellWidget(row_sig, 0, BarCtrlWidget(bnum))
         self.setCellWidget(row_sig, 1, VLine(self.__oscwin))
         self.setCellWidget(row_sig, 2, BarPlot(bnum))
         self.setRowHeight(row_sig, BAR_HEIGHT)
