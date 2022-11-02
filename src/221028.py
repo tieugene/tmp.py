@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Sample QTableWidget:
-Лента: ribbon, band, lane, strip, set, bar
+Лента: ribbon, band, lane, strip, set, bars
 TODO:
 - [x] TopBar
 - [x] Col0 resize sync
@@ -17,13 +17,14 @@ TODO:
   - [ ] y-stretch
   - [ ] y-move
 - [ ] xPtr
-IDEA: store signal pointer into Signal
+IDEA: store signals pointer into Signal
 """
-import math
-import random
 # 1. std
+from typing import Tuple, Optional
 import sys
 from dataclasses import dataclass
+import math
+import random
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal
@@ -35,7 +36,7 @@ from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
 # x. const
 BARS = 8  # Signal bars number (each table)
 SIN_SAMPLES = 72  # 5°
-SIG_WIDTH = 1.0  # signal width, s
+SIG_WIDTH = 1.0  # signals width, s
 LINE_CELL_SIZE = 3  # width ow VLine column / height of HLine row
 BAR_HEIGHT = 48
 COL_CTRL_WIDTH_INIT = 100
@@ -126,7 +127,6 @@ class SignalLabelList(QListWidget):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.itemClicked.connect(self.__slot_item_clicked)
-        # TODO: deselect on DnD finished
 
     def __slot_item_clicked(self, _):
         """Deselect item on mouse up"""
@@ -187,19 +187,17 @@ class HLine(QFrame):  # TODO: hide into SignalBarTable
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """accepted() == True, y() = Δy."""
-        (p := self.__parent).table.setRowHeight(p.row, p.table.rowHeight(p.row) + event.y())
+        (b := self.__parent.bar).table.setRowHeight(b.row, b.table.rowHeight(b.row) + event.y())
 
 
 class BarCtrlWidget(QWidget):
-    row: int  # Bar order number in parent table
-    table: 'SignalBarTable'
+    bar: 'SignalBar'
     lst: SignalLabelList
     zbx: ZoomButtonBox
 
-    def __init__(self, row: int, table: 'SignalBarTable'):
+    def __init__(self, bar: 'SignalBar'):
         super().__init__()  # parent will be QWidget
-        self.row = row
-        self.table = table
+        self.bar = bar
         self.lst = SignalLabelList(self)
         self.zbx = ZoomButtonBox(self)
         # layout
@@ -207,7 +205,7 @@ class BarCtrlWidget(QWidget):
         layout.addWidget(QLabel('↕', self), 0, 0)
         layout.addWidget(self.lst, 0, 1)
         layout.addWidget(self.zbx, 0, 2)
-        layout.addWidget(VLine(self.table.oscwin), 0, 3)
+        layout.addWidget(VLine(self.bar.table.oscwin), 0, 3)
         layout.addWidget(HLine(self), 1, 0, 1, -1)
         self.setLayout(layout)
         self.layout().setContentsMargins(QMargins())
@@ -216,7 +214,14 @@ class BarCtrlWidget(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Deselect item on mouse up"""
         super().mouseReleaseEvent(event)
-        self.table.clearSelection()  # FIXME: bad way (x2 parent)
+        self.bar.table.clearSelection()
+
+    def sig_add(self) -> SignalLabel:
+        return SignalLabel(self.lst)
+
+    def sig_del(self, i: int):
+        label = self.lst.takeItem(i)
+        del label
 
 
 class BarPlot(QCustomPlot):
@@ -245,14 +250,13 @@ class BarPlot(QCustomPlot):
 
 
 class BarPlotWidget(QWidget):
-    row: int  # Bar number
-    table: 'SignalBarTable'
+    # TODO: add_signal
+    bar: 'SignalBar'
     plot: BarPlot
 
-    def __init__(self, row: int, table: 'SignalBarTable'):
+    def __init__(self, bar: 'SignalBar'):
         super().__init__()
-        self.row = row
-        self.table = table
+        self.bar = bar
         self.plot = BarPlot(self)
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.plot)
@@ -263,31 +267,102 @@ class BarPlotWidget(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Deselect item on mouse up"""
         super().mouseReleaseEvent(event)
-        self.table.clearSelection()
+        self.bar.table.clearSelection()
+
+    def sig_add(self) -> QCPGraph:
+        return self.plot.addGraph()
+
+    def sig_del(self, gr: QCPGraph):
+        self.plot.removeGraph(gr)
 
 
 class SignalSuit(QObject):
     __signal: Signal
+    __bar: Optional['SignalBar']
+    num: Optional[int]
     __label: SignalLabel
     __graph: QCPGraph
 
-    def __init__(self, signal: Signal, ctrl: 'BarCtrlWidget', plot: BarPlot):
+    def __init__(self, signal: Signal):
         super().__init__()
         self.__signal = signal
-        self.__label = SignalLabel(ctrl.lst)
-        self.__label.setText(f"{signal.name}\n{signal.pnum}/{signal.off}")
-        self.__graph = plot.addGraph()
-        self.__graph.setData(X_COORDS, y_coords(signal.pnum, signal.off), True)
-        self.__graph.setPen(QPen(signal.color))
+        self.__bar = None
+        self.num = None
+
+    def embed(self, bar: 'SignalBar', num: int):
+        self.__bar = bar
+        self.num = num
+        self.__label = self.__bar.ctrl.sig_add()
+        self.__label.setText(f"{self.__signal.name}\n{self.__signal.pnum}/{self.__signal.off}")
+        self.__graph = self.__bar.gfx.sig_add()
+        self.__graph.setData(X_COORDS, y_coords(self.__signal.pnum, self.__signal.off), True)
+        self.__graph.setPen(QPen(self.__signal.color))
+
+    def detach(self):
+        self.__bar.ctrl.sig_del(self.num)
+        self.__bar.gfx.sig_del(self.__graph)
+        self.num = None
+        self.__bar = None
+
+
+class SignalBar(QObject):
+    table: 'SignalBarTable'
+    row: int
+    signals: list[SignalSuit]
+    ctrl: BarCtrlWidget
+    gfx: BarPlotWidget
+
+    def __init__(self, table: 'SignalBarTable', row: int = -1):
+        super().__init__()
+        if not (0 <= row < table.rowCount()):
+            row = table.rowCount()
+        self.table = table
+        self.row = row
+        self.signals = list()
+        self.ctrl = BarCtrlWidget(self)
+        self.gfx = BarPlotWidget(self)
+        self.table.bars.insert(self.row, self)
+        self.table.insertRow(self.row)
+        self.table.setCellWidget(self.row, 0, self.ctrl)
+        self.table.setCellWidget(self.row, 1, self.gfx)
+
+    def suicide(self):
+        del self.table.bars[self.row]
+        self.table.removeCellWidget(self.row, 0)
+        self.table.removeCellWidget(self.row, 1)
+        self.table.removeRow(self.row)
+        self.ctrl.close()
+        self.gfx.close()
+        self.deleteLater()
+
+    def sig_add(self, ss: SignalSuit):
+        ss.embed(self, len(self.signals))
+        self.signals.append(ss)
+
+    def sig_move(self, i: int, other_bar: 'SignalBar'):
+        ss = self.signals[i]
+        del self.signals[i]
+        ss.detach()
+        other_bar.sig_add(ss)
+        if self.signals:
+            for i, ss in enumerate(self.signals):
+                ss.num = i
+        else:
+            self.suicide()
+
+    def move(self, other_table: 'SignalBarTable', other_row: int):  # TODO:
+        ...
 
 
 class SignalBarTable(QTableWidget):
     oscwin: 'OscWindow'
+    bars: list[SignalBar]
 
     def __init__(self, oscwin: 'OscWindow'):
         super().__init__()  # Parent will be QSplitter
         self.oscwin = oscwin
         self.setColumnCount(2)
+        self.bars = list()
         # self.horizontalHeader().setMinimumSectionSize(1)
         self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Fixed)
         self.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
@@ -305,43 +380,103 @@ class SignalBarTable(QTableWidget):
         # DnD
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
-        self.setDragDropOverwriteMode(False)  # default
-        # self.setDragDropMode(self.DragDrop)  # was self.InternalMove
-        # signal/slot
+        self.setDragDropOverwriteMode(False)
+        # self.setDragDropMode(self.DragDrop)
+        # signals/slot
         self.oscwin.signal_resize_col_ctrl.connect(self.__slot_resize_col_ctrl)
+
+    def insertRow(self, row: int):
+        super().insertRow(row)
+        for i in range(row + 1, len(self.bars)):
+            self.bars[i].row = i
+
+    def removeRow(self, row: int):
+        super().removeRow(row)
+        for i in range(row, len(self.bars)):
+            self.bars[i].row = i
 
     def dropEvent(self, event: QDropEvent):
         # RTFM drag{Enter,Move,Leave}Event
+        def _drop_on(__evt: QDropEvent) -> Tuple[int, bool]:
+            __dip = self.dropIndicatorPosition()  # 0: on row, 3: out
+            __index = self.indexAt(__evt.pos())  # isValid: T: on row, F: out
+            if not __index.isValid():  # below last
+                return self.rowCount(), False
+            if __dip == self.AboveItem:
+                return __index.row(), False
+            elif __dip == self.BelowItem:
+                return __index.row() + 1, False
+            elif __dip == self.OnItem:
+                return __index.row(), True
+            else:
+                return -1, False
+
+        def _t_ins_i(__src_row_num: int, __dst_row_num: int):
+            """In-table row move"""
+            self.insertRow(__dst_row_num)  # FIXME: bar_add
+            self.setRowHeight(__dst_row_num, self.rowHeight(__src_row_num))
+            if __src_row_num > __dst_row_num:
+                __src_row_num += 1
+            # copy widgets
+            self.setCellWidget(__dst_row_num, 0, self.cellWidget(__src_row_num, 0))
+            self.setCellWidget(__dst_row_num, 1, self.cellWidget(__src_row_num, 1))
+
+        def _s_ovr(__src_list: SignalLabelList, __src_row_num: int, __dst_row_num: int):
+            __src_list.parent().bar.sig_move(__src_row_num, self.bars[__dst_row_num])
+
         if event.isAccepted():
             super().dropEvent(event)
             return
         event.accept()
-        event.setDropAction(Qt.IgnoreAction)
-        __dip = self.dropIndicatorPosition()  # 0: on row, 3: out
-        __index = self.indexAt(event.pos())  # isValid: T: on row, F: out
-        # if not __index.isValid():  # below last; TODO: self.OnViewport?
-        # print(__dip, __index.isValid())
+        event.setDropAction(Qt.IgnoreAction)  # default action
+        dst_row_num, over = _drop_on(event)
+        if dst_row_num < 0:
+            print("DnD: unknown dest row")
+            return
+        src_object = event.source()  # SignalBarTable/SignalLabelList
+        if isinstance(src_object, SignalBarTable):  # Bar.
+            if over:  # Bar.Ovr
+                print("Bar join not supported", file=sys.stderr)
+            else:  # Bar.Ins
+                src_row_num: int = src_object.selectedIndexes()[0].row()
+                if src_object == self:  # Bar.Ins.i
+                    if (dst_row_num - src_row_num) in {0, 1}:
+                        print("Moving bars nearby doesn't make sense", file=sys.stderr)
+                    else:
+                        # print("Bar.Ins.i", dst_row_num)
+                        _t_ins_i(src_row_num, dst_row_num)
+                        event.setDropAction(Qt.MoveAction)
+                else:  # Bar.Ins.x
+                    print("Bar.Ins.x", dst_row_num)
+                    # _t_b2n_x(src_object, src_row_num, dst_row_num)
+                    # event.setDropAction(Qt.MoveAction)
+            src_object.clearSelection()
+        elif isinstance(src_object, SignalLabelList):  # Sig.
+            # Note: MoveAction clears all of listwidget on sig move
+            src_row_num: int = src_object.selectedIndexes()[0].row()
+            if over:  # Sig.Ovr
+                if src_object.parent().bar.table == self and src_object.parent().bar.row == dst_row_num:
+                    print("Join signals to itself doesn't make sense", file=sys.stderr)
+                else:
+                    # print("Sig.Ovr", dst_row_num)
+                    _s_ovr(src_object, src_row_num, dst_row_num)
+                    # event.setDropAction(Qt.MoveAction)
+            else:  # sig.Ins
+                if src_object.count() == 1:
+                    print("Unjoin single signals doesn't make sense", file=sys.stderr)
+                else:
+                    print("Sig.Ins", dst_row_num)
+                    # _s_b2n(src_object, src_row_num, dst_row_num)
+                    # #event.setDropAction(Qt.MoveAction)
+            src_object.clearSelection()
+        else:
+            print("Unknown src object: %s" % src_object.metaObject().className(), file=sys.stderr)
 
     def __slot_resize_col_ctrl(self, x: int):
         self.setColumnWidth(0, x)
 
-    def bar_insert(self, row: int = -1):
-        if not (0 <= row < self.rowCount()):
-            row = self.rowCount()
-        # signal
-        self.insertRow(row)
-        self.setRowHeight(row, BAR_HEIGHT)
-        self.setCellWidget(row, 0, BarCtrlWidget(row, self))
-        self.setCellWidget(row, 1, BarPlotWidget(row, self))
-
-    def sig_add(self, row: int, signal: Signal):
-        ...
-        sigsuit = SignalSuit(signal, self.cellWidget(row, 0), self.cellWidget(row, 1).plot)
-
-    def sig_del(self):
-        """Remove signal from bar.
-        """
-        ...
+    def bar_insert(self, row: int = -1) -> SignalBar:
+        return SignalBar(self, row)
 
 
 class OscWindow(QWidget):
@@ -376,8 +511,9 @@ class OscWindow(QWidget):
     def __set_data(self, data: list[Signal]):
         def __set_data_one(__tbl: SignalBarTable, __data: list[Signal]):
             for __j, __sig in enumerate(__data):
-                __tbl.bar_insert(__j)
-                __tbl.sig_add(__j, __sig)
+                bar = __tbl.bar_insert(__j)
+                __tbl.setRowHeight(bar.row, BAR_HEIGHT)
+                bar.sig_add(SignalSuit(__sig))
 
         n0 = len(data) // 2
         __set_data_one(self.lst1, data[:n0])
