@@ -4,7 +4,7 @@
 TODO:
 - [x] TopBar
 - [x] Col0 resize sync
-- [ ] Signal join/move/unjoin (DnD)
+- [x] Bar/Signal join/move/unjoin (DnD)
   - [ ] Drop enable/disable on the fly
 - [ ] Hide/unhide
   - [ ] Bar
@@ -335,6 +335,10 @@ class SignalBar(QObject):
         self.gfx.close()
         self.deleteLater()
 
+    @property
+    def sig_count(self) -> int:
+        return len(self.signals)
+
     def sig_add(self, ss: SignalSuit):
         ss.embed(self, len(self.signals))
         self.signals.append(ss)
@@ -349,9 +353,6 @@ class SignalBar(QObject):
                 ss.num = i
         else:
             self.suicide()
-
-    def move(self, other_table: 'SignalBarTable', other_row: int):  # TODO:
-        ...
 
 
 class SignalBarTable(QTableWidget):
@@ -411,18 +412,17 @@ class SignalBarTable(QTableWidget):
             else:
                 return -1, False
 
-        def _t_ins_i(__src_row_num: int, __dst_row_num: int):
-            """In-table row move"""
-            self.insertRow(__dst_row_num)  # FIXME: bar_add
-            self.setRowHeight(__dst_row_num, self.rowHeight(__src_row_num))
-            if __src_row_num > __dst_row_num:
-                __src_row_num += 1
-            # copy widgets
-            self.setCellWidget(__dst_row_num, 0, self.cellWidget(__src_row_num, 0))
-            self.setCellWidget(__dst_row_num, 1, self.cellWidget(__src_row_num, 1))
+        def _t_ins(__src_list: SignalBarTable, __src_row_num: int, __dst_row_num: int):
+            # print("Bar.Ins.x", dst_row_num)
+            __src_list.bar_move(__src_row_num, self.bar_insert(__dst_row_num))
 
         def _s_ovr(__src_list: SignalLabelList, __src_row_num: int, __dst_row_num: int):
+            # print("Sig.Ovr", dst_row_num)
             __src_list.parent().bar.sig_move(__src_row_num, self.bars[__dst_row_num])
+
+        def _s_ins(__src_list: SignalLabelList, __src_row_num: int, __dst_row_num: int):
+            # print("Sig.Ins", dst_row_num)
+            __src_list.parent().bar.sig_move(__src_row_num, self.bar_insert(__dst_row_num))
 
         if event.isAccepted():
             super().dropEvent(event)
@@ -443,12 +443,10 @@ class SignalBarTable(QTableWidget):
                     if (dst_row_num - src_row_num) in {0, 1}:
                         print("Moving bars nearby doesn't make sense", file=sys.stderr)
                     else:
-                        # print("Bar.Ins.i", dst_row_num)
-                        _t_ins_i(src_row_num, dst_row_num)
-                        event.setDropAction(Qt.MoveAction)
+                        _t_ins(self, src_row_num, dst_row_num)
+                        # event.setDropAction(Qt.MoveAction)
                 else:  # Bar.Ins.x
-                    print("Bar.Ins.x", dst_row_num)
-                    # _t_b2n_x(src_object, src_row_num, dst_row_num)
+                    _t_ins(src_object, src_row_num, dst_row_num)
                     # event.setDropAction(Qt.MoveAction)
             src_object.clearSelection()
         elif isinstance(src_object, SignalLabelList):  # Sig.
@@ -458,16 +456,12 @@ class SignalBarTable(QTableWidget):
                 if src_object.parent().bar.table == self and src_object.parent().bar.row == dst_row_num:
                     print("Join signals to itself doesn't make sense", file=sys.stderr)
                 else:
-                    # print("Sig.Ovr", dst_row_num)
                     _s_ovr(src_object, src_row_num, dst_row_num)
-                    # event.setDropAction(Qt.MoveAction)
             else:  # sig.Ins
                 if src_object.count() == 1:
                     print("Unjoin single signals doesn't make sense", file=sys.stderr)
                 else:
-                    print("Sig.Ins", dst_row_num)
-                    # _s_b2n(src_object, src_row_num, dst_row_num)
-                    # #event.setDropAction(Qt.MoveAction)
+                    _s_ins(src_object, src_row_num, dst_row_num)
             src_object.clearSelection()
         else:
             print("Unknown src object: %s" % src_object.metaObject().className(), file=sys.stderr)
@@ -476,7 +470,16 @@ class SignalBarTable(QTableWidget):
         self.setColumnWidth(0, x)
 
     def bar_insert(self, row: int = -1) -> SignalBar:
-        return SignalBar(self, row)
+        bar = SignalBar(self, row)
+        self.setRowHeight(bar.row, BAR_HEIGHT)
+        return bar
+
+    def bar_move(self, row: int, other_bar: SignalBar):
+        """Move self bar content to other"""
+        bar = self.bars[row]
+        for i in range(bar.sig_count):
+            bar.sig_move(0, other_bar)
+        other_bar.gfx.plot.replot()
 
 
 class OscWindow(QWidget):
@@ -511,9 +514,7 @@ class OscWindow(QWidget):
     def __set_data(self, data: list[Signal]):
         def __set_data_one(__tbl: SignalBarTable, __data: list[Signal]):
             for __j, __sig in enumerate(__data):
-                bar = __tbl.bar_insert(__j)
-                __tbl.setRowHeight(bar.row, BAR_HEIGHT)
-                bar.sig_add(SignalSuit(__sig))
+                __tbl.bar_insert(__j).sig_add(SignalSuit(__sig))
 
         n0 = len(data) // 2
         __set_data_one(self.lst1, data[:n0])
