@@ -6,16 +6,15 @@ TODO:
 - [x] Bar/Signal join/move/unjoin (DnD)
 - [x] DnD enable/disable on the fly
 - [x] Hide/unhide signal
-- [ ] HScroller
 - [ ] Rerange:
   - [ ] x-scale
   - [ ] x-move
   - [ ] y-scale
   - [ ] y-stretch
   - [ ] y-move
-- [ ] xPtr
-- [ ] FIXME: DnD: replot src and dst plots
-IDEA: store signals pointer into Signal
+- [ ] xPtr (?)
+- [ ] FIXME: DnD: replot src and dst after ...
+- IDEA: store signals pointer into Signal
 """
 # 1. std
 from typing import Tuple, Optional
@@ -26,7 +25,7 @@ import random
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QIcon
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
     QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
@@ -112,6 +111,15 @@ class TopBar(QWidget):
 
     def __slot_resize_col_ctrl(self, x: int):
         self.__label.setFixedWidth(x + LINE_CELL_SIZE)
+
+
+class HScroller(QScrollBar):
+    def __init__(self, parent: QWidget):
+        """
+        :param parent:
+        :type parent: ComtradeWidget
+        """
+        super().__init__(Qt.Horizontal, parent)
 
 
 class SignalLabel(QListWidgetItem):
@@ -526,9 +534,10 @@ class SignalBarTable(QTableWidget):
 
 class OscWindow(QWidget):
     tb: TopBar
-    cb: QWidget
+    # cb: QWidget
     lst1: SignalBarTable
     lst2: SignalBarTable
+    hs: HScroller
     col_ctrl_width = COL_CTRL_WIDTH_INIT
     signal_resize_col_ctrl = pyqtSignal(int)
     signal_unhide_all = pyqtSignal()
@@ -537,12 +546,14 @@ class OscWindow(QWidget):
         super().__init__(parent)
         self.__mk_widgets()
         self.__mk_layout()
+        self.__mk_menu(parent)
         self.__set_data(data)
 
     def __mk_widgets(self):
         self.tb = TopBar(self)
         self.lst1 = SignalBarTable(self)
         self.lst2 = SignalBarTable(self)
+        self.hs = HScroller(self)
 
     def __mk_layout(self):
         self.setLayout(QVBoxLayout())
@@ -551,8 +562,16 @@ class OscWindow(QWidget):
         splitter.addWidget(self.lst1)
         splitter.addWidget(self.lst2)
         self.layout().addWidget(splitter)
+        self.layout().addWidget(self.hs)
+        # decoration
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
+
+    def __mk_menu(self, parent: QMainWindow):
+        menu_view = parent.menuBar().addMenu("&View")
+        menu_view.addAction(QAction("&Unhide all", self, triggered=self.__do_unhide_all))
+        menu_view.addAction(QAction("X-zoom &In", self, shortcut='Ctrl+I', triggered=self.__do_xzoom_in))
+        menu_view.addAction(QAction("X-zoom &Out", self, shortcut='Ctrl+O', triggered=self.__do_xzoom_out))
 
     def __set_data(self, data: list[Signal]):
         def __set_data_one(__tbl: SignalBarTable, __data: list[Signal]):
@@ -568,8 +587,14 @@ class OscWindow(QWidget):
             self.col_ctrl_width += dx
             self.signal_resize_col_ctrl.emit(self.col_ctrl_width)
 
-    def do_unhide_all(self):
+    def __do_unhide_all(self):
         self.signal_unhide_all.emit()
+
+    def __do_xzoom_in(self):
+        print("X-zoom In")
+
+    def __do_xzoom_out(self):
+        print("X-zoom Out")
 
 
 class MainWindow(QMainWindow):
@@ -586,8 +611,6 @@ class MainWindow(QMainWindow):
         ) for i in range(BARS)]
         self.cw = OscWindow(data, self)
         self.setCentralWidget(self.cw)
-        menu_view = self.menuBar().addMenu("&View")
-        menu_view.addAction(QAction(QIcon(), "&Unhide all", self, triggered=self.cw.do_unhide_all))
 
 
 def main() -> int:

@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.cw = MainWidget(self)
         self.setCentralWidget(self.cw)
-        self.menuBar().addMenu("&File").addAction(QAction(QIcon(), "&Test", self, shortcut="Ctrl+T", triggered=self.__do_test))
+        self.menuBar().addMenu("&File").addAction("&Test", self, shortcut="Ctrl+T", triggered=self.__do_test))
 
     def __do_test(self):
         print("Before:", self.cw.count())
