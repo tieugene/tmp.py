@@ -25,10 +25,10 @@ import math
 import random
 
 # 2. 3rd
-from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal
+from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint
 from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
 
 # x. const
@@ -115,8 +115,11 @@ class TopBar(QWidget):
 
 
 class SignalLabel(QListWidgetItem):
-    def __init__(self, parent: 'SignalLabelList' = None):
+    ss: 'SignalSuit'
+
+    def __init__(self, ss: 'SignalSuit', parent: 'SignalLabelList'):
         super().__init__(parent)
+        self.ss = ss
         # self.setCursor(Qt.PointingHandCursor)  # n/a
 
 
@@ -125,11 +128,23 @@ class SignalLabelList(QListWidget):
     def __init__(self, parent: 'BarCtrlWidget'):
         super().__init__(parent)
         self.setDragEnabled(True)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.__slot_context_menu)
         self.itemClicked.connect(self.__slot_item_clicked)
 
     def __slot_item_clicked(self, _):
         """Deselect item on mouse up"""
         self.clearSelection()
+
+    def __slot_context_menu(self, point: QPoint):
+        item: SignalLabel = self.itemAt(point)
+        if not item:
+            return
+        context_menu = QMenu()
+        action_sig_hide = context_menu.addAction("Hide")
+        chosen_action = context_menu.exec_(self.mapToGlobal(point))
+        if chosen_action == action_sig_hide:
+            item.ss.set_hidden(True)
 
     @property
     def selected_row(self) -> int:
@@ -221,8 +236,8 @@ class BarCtrlWidget(QWidget):
         super().mouseReleaseEvent(event)
         self.bar.table.clearSelection()
 
-    def sig_add(self) -> SignalLabel:
-        return SignalLabel(self.lst)
+    def sig_add(self, ss: 'SignalSuit') -> SignalLabel:
+        return SignalLabel(ss, self.lst)
 
     def sig_del(self, i: int):
         self.lst.takeItem(i)
@@ -286,17 +301,19 @@ class SignalSuit(QObject):
     num: Optional[int]
     __label: SignalLabel
     __graph: QCPGraph
+    hidden: bool
 
     def __init__(self, signal: Signal):
         super().__init__()
         self.__signal = signal
         self.__bar = None
         self.num = None
+        self.hidden = False
 
     def embed(self, bar: 'SignalBar', num: int):
         self.__bar = bar
         self.num = num
-        self.__label = self.__bar.ctrl.sig_add()
+        self.__label = self.__bar.ctrl.sig_add(self)
         self.__label.setText(f"{self.__signal.name}\n{self.__signal.pnum}/{self.__signal.off}")
         self.__graph = self.__bar.gfx.sig_add()
         self.__graph.setData(X_COORDS, y_coords(self.__signal.pnum, self.__signal.off), True)
@@ -307,6 +324,13 @@ class SignalSuit(QObject):
         self.__bar.gfx.sig_del(self.__graph)
         self.num = None
         self.__bar = None
+
+    def set_hidden(self, hide: bool):
+        if self.hidden != hide:
+            self.__label.setHidden(hide)
+            self.__graph.setVisible(not hide)
+            self.hidden = hide
+            self.__bar.update_stealth()
 
 
 class SignalBar(QObject):
@@ -346,6 +370,7 @@ class SignalBar(QObject):
     def sig_add(self, ss: SignalSuit):
         ss.embed(self, len(self.signals))
         self.signals.append(ss)
+        self.update_stealth()
 
     def sig_move(self, i: int, other_bar: 'SignalBar'):
         ss = self.signals[i]
@@ -355,8 +380,17 @@ class SignalBar(QObject):
         if self.signals:
             for i, ss in enumerate(self.signals):
                 ss.num = i
+            self.update_stealth()
         else:
             self.suicide()
+
+    def update_stealth(self):
+        """Update visibility according to children"""
+        hide_me = True
+        for ss in self.signals:
+            hide_me &= ss.hidden
+        if hide_me != self.table.isRowHidden(self.row):
+            self.table.setRowHidden(self.row, hide_me)
 
 
 class SignalBarTable(QTableWidget):
