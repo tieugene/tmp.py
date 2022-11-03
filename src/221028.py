@@ -5,7 +5,7 @@ TODO:
 - [x] Col0 resize sync
 - [x] Bar/Signal join/move/unjoin (DnD)
 - [x] DnD enable/disable on the fly
-- [ ] Hide/unhide signal
+- [x] Hide/unhide signal
 - [ ] HScroller
 - [ ] Rerange:
   - [ ] x-scale
@@ -26,9 +26,9 @@ import random
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QIcon
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
 
 # x. const
@@ -353,6 +353,7 @@ class SignalBar(QObject):
         self.table.insertRow(self.row)
         self.table.setCellWidget(self.row, 0, self.ctrl)
         self.table.setCellWidget(self.row, 1, self.gfx)
+        self.table.oscwin.signal_unhide_all.connect(self.__slot_unhide_all)
 
     def suicide(self):
         del self.table.bars[self.row]
@@ -391,6 +392,12 @@ class SignalBar(QObject):
             hide_me &= ss.hidden
         if hide_me != self.table.isRowHidden(self.row):
             self.table.setRowHidden(self.row, hide_me)
+
+    def __slot_unhide_all(self):
+        for ss in self.signals:
+            ss.set_hidden(False)
+        if self.table.isRowHidden(self.row):
+            self.table.setRowHidden(self.row, False)
 
 
 class SignalBarTable(QTableWidget):
@@ -524,6 +531,7 @@ class OscWindow(QWidget):
     lst2: SignalBarTable
     col_ctrl_width = COL_CTRL_WIDTH_INIT
     signal_resize_col_ctrl = pyqtSignal(int)
+    signal_unhide_all = pyqtSignal()
 
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
@@ -560,8 +568,13 @@ class OscWindow(QWidget):
             self.col_ctrl_width += dx
             self.signal_resize_col_ctrl.emit(self.col_ctrl_width)
 
+    def do_unhide_all(self):
+        self.signal_unhide_all.emit()
+
 
 class MainWindow(QMainWindow):
+    cw: OscWindow
+
     def __init__(self):
         super().__init__()
         data = [Signal(
@@ -571,7 +584,10 @@ class MainWindow(QMainWindow):
             off=random.randint(0, SIN_SAMPLES - 1),
             color=COLORS[random.randint(0, len(COLORS) - 1)]
         ) for i in range(BARS)]
-        self.setCentralWidget(OscWindow(data, self))
+        self.cw = OscWindow(data, self)
+        self.setCentralWidget(self.cw)
+        menu_view = self.menuBar().addMenu("&View")
+        menu_view.addAction(QAction(QIcon(), "&Unhide all", self, triggered=self.cw.do_unhide_all))
 
 
 def main() -> int:
