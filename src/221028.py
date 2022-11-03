@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Sample QTableWidget:
-Лента: ribbon, band, lane, strip, set, bars
 TODO:
 - [x] TopBar
 - [x] Col0 resize sync
 - [x] Bar/Signal join/move/unjoin (DnD)
   - [x] Drop enable/disable on the fly
+  - [ ] FIXME: replot src and dst plots
 - [ ] Hide/unhide
   - [ ] Bar
   - [ ] Signal
@@ -131,6 +131,10 @@ class SignalLabelList(QListWidget):
     def __slot_item_clicked(self, _):
         """Deselect item on mouse up"""
         self.clearSelection()
+
+    @property
+    def selected_row(self) -> int:
+        return self.selectedIndexes()[0].row()
 
 
 class ZoomButton(QPushButton):
@@ -410,86 +414,59 @@ class SignalBarTable(QTableWidget):
         else:
             return -1, False
 
-    def __chk_drag_event(self, event: QDropEvent) -> bool:
-        """Check whether drop event acceptable"""
-        dst_row_num, over = self.__drop_on(event)
+    def __chk_dnd_event(self, src_object, dst_row_num: int, over: bool) -> int:
+        """Check whether drop event acceptable.
+        :param event: Event to check
+        :return:
+        - 0: n/a
+        - 1: bar move
+        - 2: signal join/move
+        - 3: signal unjoin
+        """
         if dst_row_num >= 0:
-            src_object = event.source()
             if isinstance(src_object, SignalBarTable):
                 if not over:
-                    return src_object != self or (dst_row_num - src_object.selectedIndexes()[0].row()) not in {0, 1}
+                    return int(src_object != self or (dst_row_num - src_object.selected_row) not in {0, 1})
             elif isinstance(src_object, SignalLabelList):
                 if over:
-                    return src_object.parent().bar.table != self or src_object.parent().bar.row != dst_row_num
+                    return 2 * int(src_object.parent().bar.table != self or src_object.parent().bar.row != dst_row_num)
                 else:  # sig.Ins
-                    return src_object.count() > 1
-        return False
+                    return 3 * int(src_object.count() > 1)
+        return 0
 
     def dragMoveEvent(self, event: QDragMoveEvent):
         super().dragMoveEvent(event)  # paint decoration
-        if self.__chk_drag_event(event):
+        src_object = event.source()
+        dst_row_num, over = self.__drop_on(event)  # SignalBarTable/SignalLabelList
+        if self.__chk_dnd_event(src_object, dst_row_num, over):
             event.setDropAction(Qt.MoveAction)
             event.accept()
         else:
             event.ignore()
 
     def dropEvent(self, event: QDropEvent):
-        # RTFM drag{Enter,Move,Leave}Event
-
-        def _t_ins(__src_list: SignalBarTable, __src_row_num: int, __dst_row_num: int):
-            # print("Bar.Ins.x", dst_row_num)
-            __src_list.bar_move(__src_row_num, self.bar_insert(__dst_row_num))
-
-        def _s_ovr(__src_list: SignalLabelList, __src_row_num: int, __dst_row_num: int):
-            # print("Sig.Ovr", dst_row_num)
-            __src_list.parent().bar.sig_move(__src_row_num, self.bars[__dst_row_num])
-
-        def _s_ins(__src_list: SignalLabelList, __src_row_num: int, __dst_row_num: int):
-            # print("Sig.Ins", dst_row_num)
-            __src_list.parent().bar.sig_move(__src_row_num, self.bar_insert(__dst_row_num))
-
         if event.isAccepted():
             super().dropEvent(event)
             return
+        src_object = event.source()
+        dst_row_num, over = self.__drop_on(event)  # SignalBarTable/SignalLabelList
+        todo = self.__chk_dnd_event(src_object, dst_row_num, over)
+        if todo == 1:  # Bar.Ins
+            src_object.bar_move(src_object.selected_row, self.bar_insert(dst_row_num))
+        elif todo == 2:  # Sig.Ovr (join, move)
+            src_object.parent().bar.sig_move(src_object.selected_row, self.bars[dst_row_num])
+        elif todo == 3:  # Sig.Ins (unjoin)
+            src_object.parent().bar.sig_move(src_object.selected_row, self.bar_insert(dst_row_num))
+        src_object.clearSelection()
         event.accept()
-        event.setDropAction(Qt.IgnoreAction)  # default action
-        dst_row_num, over = self.__drop_on(event)
-        if dst_row_num < 0:
-            print("DnD: unknown dest row")
-            return
-        src_object = event.source()  # SignalBarTable/SignalLabelList
-        if isinstance(src_object, SignalBarTable):  # Bar.
-            if not over:  # Bar.Ins
-                src_row_num: int = src_object.selectedIndexes()[0].row()
-                if src_object != self:  # Bar.Ins.x
-                    _t_ins(src_object, src_row_num, dst_row_num)
-                else:  # Bar.Ins.i
-                    if (dst_row_num - src_row_num) not in {0, 1}:
-                        _t_ins(src_object, src_row_num, dst_row_num)  # src_object == self
-                    else:
-                        print("Moving bars nearby doesn't make sense", file=sys.stderr)
-            else:  # Bar.Ovr
-                print("Bar join not supported", file=sys.stderr)
-            src_object.clearSelection()
-        elif isinstance(src_object, SignalLabelList):  # Sig.
-            # Note: MoveAction clears all of listwidget on sig move
-            src_row_num: int = src_object.selectedIndexes()[0].row()
-            if over:  # Sig.Ovr
-                if src_object.parent().bar.table != self or src_object.parent().bar.row != dst_row_num:
-                    _s_ovr(src_object, src_row_num, dst_row_num)
-                else:
-                    print("Join signals to itself doesn't make sense", file=sys.stderr)
-            else:  # sig.Ins
-                if src_object.count() > 1:
-                    _s_ins(src_object, src_row_num, dst_row_num)
-                else:
-                    print("Unjoin single signals doesn't make sense", file=sys.stderr)
-            src_object.clearSelection()
-        else:
-            print("Unknown src object: %s" % src_object.metaObject().className(), file=sys.stderr)
+        event.setDropAction(Qt.IgnoreAction)
 
     def __slot_resize_col_ctrl(self, x: int):
         self.setColumnWidth(0, x)
+
+    @property
+    def selected_row(self) -> int:
+        return self.selectedIndexes()[0].row()
 
     def bar_insert(self, row: int = -1) -> SignalBar:
         bar = SignalBar(self, row)
