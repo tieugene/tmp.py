@@ -5,7 +5,7 @@ TODO:
 - [x] TopBar
 - [x] Col0 resize sync
 - [x] Bar/Signal join/move/unjoin (DnD)
-  - [ ] Drop enable/disable on the fly
+  - [x] Drop enable/disable on the fly
 - [ ] Hide/unhide
   - [ ] Bar
   - [ ] Signal
@@ -28,7 +28,7 @@ import random
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragEnterEvent, QDragMoveEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
     QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
@@ -396,21 +396,45 @@ class SignalBarTable(QTableWidget):
         for i in range(row, len(self.bars)):
             self.bars[i].row = i
 
+    def __drop_on(self, __evt: QDropEvent) -> Tuple[int, bool]:
+        __dip = self.dropIndicatorPosition()  # 0: on row, 3: out
+        __index = self.indexAt(__evt.pos())  # isValid: T: on row, F: out
+        if not __index.isValid():  # below last
+            return self.rowCount(), False
+        if __dip == self.AboveItem:
+            return __index.row(), False
+        elif __dip == self.BelowItem:
+            return __index.row() + 1, False
+        elif __dip == self.OnItem:
+            return __index.row(), True
+        else:
+            return -1, False
+
+    def __chk_drag_event(self, event: QDropEvent) -> bool:
+        """Check whether drop event acceptable"""
+        dst_row_num, over = self.__drop_on(event)
+        if dst_row_num >= 0:
+            src_object = event.source()
+            if isinstance(src_object, SignalBarTable):
+                if not over:
+                    return src_object != self or (dst_row_num - src_object.selectedIndexes()[0].row()) not in {0, 1}
+            elif isinstance(src_object, SignalLabelList):
+                if over:
+                    return src_object.parent().bar.table != self or src_object.parent().bar.row != dst_row_num
+                else:  # sig.Ins
+                    return src_object.count() > 1
+        return False
+
+    def dragMoveEvent(self, event: QDragMoveEvent):
+        super().dragMoveEvent(event)  # paint decoration
+        if self.__chk_drag_event(event):
+            event.setDropAction(Qt.MoveAction)
+            event.accept()
+        else:
+            event.ignore()
+
     def dropEvent(self, event: QDropEvent):
         # RTFM drag{Enter,Move,Leave}Event
-        def _drop_on(__evt: QDropEvent) -> Tuple[int, bool]:
-            __dip = self.dropIndicatorPosition()  # 0: on row, 3: out
-            __index = self.indexAt(__evt.pos())  # isValid: T: on row, F: out
-            if not __index.isValid():  # below last
-                return self.rowCount(), False
-            if __dip == self.AboveItem:
-                return __index.row(), False
-            elif __dip == self.BelowItem:
-                return __index.row() + 1, False
-            elif __dip == self.OnItem:
-                return __index.row(), True
-            else:
-                return -1, False
 
         def _t_ins(__src_list: SignalBarTable, __src_row_num: int, __dst_row_num: int):
             # print("Bar.Ins.x", dst_row_num)
@@ -429,39 +453,37 @@ class SignalBarTable(QTableWidget):
             return
         event.accept()
         event.setDropAction(Qt.IgnoreAction)  # default action
-        dst_row_num, over = _drop_on(event)
+        dst_row_num, over = self.__drop_on(event)
         if dst_row_num < 0:
             print("DnD: unknown dest row")
             return
         src_object = event.source()  # SignalBarTable/SignalLabelList
         if isinstance(src_object, SignalBarTable):  # Bar.
-            if over:  # Bar.Ovr
-                print("Bar join not supported", file=sys.stderr)
-            else:  # Bar.Ins
+            if not over:  # Bar.Ins
                 src_row_num: int = src_object.selectedIndexes()[0].row()
-                if src_object == self:  # Bar.Ins.i
-                    if (dst_row_num - src_row_num) in {0, 1}:
-                        print("Moving bars nearby doesn't make sense", file=sys.stderr)
-                    else:
-                        _t_ins(self, src_row_num, dst_row_num)
-                        # event.setDropAction(Qt.MoveAction)
-                else:  # Bar.Ins.x
+                if src_object != self:  # Bar.Ins.x
                     _t_ins(src_object, src_row_num, dst_row_num)
-                    # event.setDropAction(Qt.MoveAction)
+                else:  # Bar.Ins.i
+                    if (dst_row_num - src_row_num) not in {0, 1}:
+                        _t_ins(src_object, src_row_num, dst_row_num)  # src_object == self
+                    else:
+                        print("Moving bars nearby doesn't make sense", file=sys.stderr)
+            else:  # Bar.Ovr
+                print("Bar join not supported", file=sys.stderr)
             src_object.clearSelection()
         elif isinstance(src_object, SignalLabelList):  # Sig.
             # Note: MoveAction clears all of listwidget on sig move
             src_row_num: int = src_object.selectedIndexes()[0].row()
             if over:  # Sig.Ovr
-                if src_object.parent().bar.table == self and src_object.parent().bar.row == dst_row_num:
-                    print("Join signals to itself doesn't make sense", file=sys.stderr)
-                else:
+                if src_object.parent().bar.table != self or src_object.parent().bar.row != dst_row_num:
                     _s_ovr(src_object, src_row_num, dst_row_num)
-            else:  # sig.Ins
-                if src_object.count() == 1:
-                    print("Unjoin single signals doesn't make sense", file=sys.stderr)
                 else:
+                    print("Join signals to itself doesn't make sense", file=sys.stderr)
+            else:  # sig.Ins
+                if src_object.count() > 1:
                     _s_ins(src_object, src_row_num, dst_row_num)
+                else:
+                    print("Unjoin single signals doesn't make sense", file=sys.stderr)
             src_object.clearSelection()
         else:
             print("Unknown src object: %s" % src_object.metaObject().className(), file=sys.stderr)
