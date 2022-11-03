@@ -4,11 +4,8 @@ TODO:
 - [x] TopBar
 - [x] Col0 resize sync
 - [x] Bar/Signal join/move/unjoin (DnD)
-  - [x] Drop enable/disable on the fly
-  - [ ] FIXME: replot src and dst plots
-- [ ] Hide/unhide
-  - [ ] Bar
-  - [ ] Signal
+- [x] DnD enable/disable on the fly
+- [ ] Hide/unhide signal
 - [ ] HScroller
 - [ ] Rerange:
   - [ ] x-scale
@@ -17,6 +14,7 @@ TODO:
   - [ ] y-stretch
   - [ ] y-move
 - [ ] xPtr
+- [ ] FIXME: DnD: replot src and dst plots
 IDEA: store signals pointer into Signal
 """
 # 1. std
@@ -28,7 +26,7 @@ import random
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragEnterEvent, QDragMoveEvent
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
     QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
@@ -119,6 +117,7 @@ class TopBar(QWidget):
 class SignalLabel(QListWidgetItem):
     def __init__(self, parent: 'SignalLabelList' = None):
         super().__init__(parent)
+        # self.setCursor(Qt.PointingHandCursor)  # n/a
 
 
 class SignalLabelList(QListWidget):
@@ -204,9 +203,11 @@ class BarCtrlWidget(QWidget):
         self.bar = bar
         self.lst = SignalLabelList(self)
         self.zbx = ZoomButtonBox(self)
+        anchor = QLabel('↕', self)
+        anchor.setCursor(Qt.PointingHandCursor)
         # layout
         layout = QGridLayout()
-        layout.addWidget(QLabel('↕', self), 0, 0)
+        layout.addWidget(anchor, 0, 0)
         layout.addWidget(self.lst, 0, 1)
         layout.addWidget(self.zbx, 0, 2)
         layout.addWidget(VLine(self.bar.table.oscwin), 0, 3)
@@ -224,8 +225,7 @@ class BarCtrlWidget(QWidget):
         return SignalLabel(self.lst)
 
     def sig_del(self, i: int):
-        label = self.lst.takeItem(i)
-        del label
+        self.lst.takeItem(i)
 
 
 class BarPlot(QCustomPlot):
@@ -416,7 +416,9 @@ class SignalBarTable(QTableWidget):
 
     def __chk_dnd_event(self, src_object, dst_row_num: int, over: bool) -> int:
         """Check whether drop event acceptable.
-        :param event: Event to check
+        :param src_object: Source object
+        :param dst_row_num: Destination object row number
+        :param over: Source object overlaps (True) or insert before (False) destination object
         :return:
         - 0: n/a
         - 1: bar move
