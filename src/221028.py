@@ -7,10 +7,10 @@ TODO:
 - [x] DnD enable/disable on the fly
 - [x] Hide/unhide signal
 - [ ] Rerange:
-  + [ ] Y: *(idea: ×1 == 100 units)
-    * [ ] y-zoom
-    * [ ] y-stretch
-    * [ ] y-scroll
+  + [x] Y: *(idea: ×1 == 100 units)
+    * [x] y-zoom
+    * [x] y-stretch
+    * [x] y-scroll
   + [ ] X:
     * [ ] x-zoom
     * [ ] x-expand
@@ -295,6 +295,10 @@ class BarPlot(QCustomPlot):
         self.yAxis.setRange(self.__y_min, self.__y_max)
         self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
 
+    @property
+    def __y_width(self) -> int:
+        return self.__y_max - self.__y_min
+
     def __squeeze(self):
         ar = self.axisRect(0)  # QCPAxisRect
         ar.setMinimumMargins(QMargins())  # the best
@@ -317,18 +321,31 @@ class BarPlot(QCustomPlot):
     def slot_scroll(self, dy: int):
         """Refresh plot on YScroller move"""
         ys: QScrollBar = self.parent().ys
-        y_min = self.__y_min + (self.__y_max - self.__y_min) * (ys.value() / YSCROLL_WIDTH)
-        y_max = self.__y_min + (self.__y_max - self.__y_min) * ((ys.value() + ys.pageStep()) / YSCROLL_WIDTH)
+        y_min = self.__y_min + self.__y_width * ys.y_norm_min
+        y_max = self.__y_min + self.__y_width * ys.y_norm_max
         self.yAxis.setRange(y_min, y_max)
         self.replot()
-        # print("Y-range: %d..%d/%d => %.2f..%.2f" % (ys.value(), ys.pageStep(), YSCROLL_WIDTH, y_min, y_max))
 
 
 class YScroller(QScrollBar):
+    """Main idea:
+    - Constant width (in units; max)
+    - Dynamic page (max..min for x1..xMax)
+    """
     def __init__(self, parent: 'BarPlotWidget'):
         super().__init__(Qt.Vertical, parent)
         self.__slot_zoom_changed()
         parent.bar.signal_zoom_y_changed.connect(self.__slot_zoom_changed)
+
+    @property
+    def y_norm_min(self) -> float:
+        """Normalized (0..1) minimal window position"""
+        return 1 - (self.value() + self.pageStep()) / YSCROLL_WIDTH
+
+    @property
+    def y_norm_max(self) -> float:
+        """Normalized (0..1) maximal window position"""
+        return 1 - self.value() / YSCROLL_WIDTH
 
     def __slot_zoom_changed(self):
         z = self.parent().bar.zoom_y
