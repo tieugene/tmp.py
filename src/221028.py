@@ -8,14 +8,17 @@ TODO:
 - [x] Hide/unhide signal
 - [ ] Rerange:
   + [ ] Y: *(idea: ×1 == 100 units)
-    * [ ] y-scale
+    * [ ] y-zoom
     * [ ] y-stretch
-    * [ ] y-move
+    * [ ] y-scroll
   + [ ] X:
-    * [ ] x-scale
-    * [ ] x-move
-- [ ] xPtr (?)
+    * [ ] x-zoom
+    * [ ] x-expand
+    * [ ] x-scroll
+- [ ] Add xPtr (?)
 - [ ] FIXME: DnD: replot src and dst after ...
+- [ ] FIXME: row selection (idea: drag anchor only)
+- [ ] FIXME: hide full YScroller, XScroller, RStub
 - IDEA: store signals pointer into Signal
 """
 # 1. std
@@ -44,7 +47,7 @@ PEN_NONE = QPen(QColor(255, 255, 255, 0))
 PEN_ZERO = QPen(Qt.black)
 COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray)
 X_COORDS = [SIG_WIDTH / SIN_SAMPLES * i - SIG_WIDTH / 2 for i in range(SIN_SAMPLES + 1)]
-ZOOM_Y_MAX = 100
+ZOOM_Y_MAX = 100  # Max Y-zoom factor
 YSCROLL_BASE = 100
 YSCROLL_WIDTH = ZOOM_Y_MAX * YSCROLL_BASE
 
@@ -280,13 +283,16 @@ class BarCtrlWidget(QWidget):
 
 
 class BarPlot(QCustomPlot):
+    __y_min: float
+    __y_max: float
+
     def __init__(self, parent: 'BarPlotWidget'):
         super().__init__(parent)
+        self.__y_min = -1.1  # hack
+        self.__y_max = 1.1  # hack
         self.__squeeze()
-        self.yAxis.setBasePen(PEN_NONE)  # hack
-        self.yAxis.grid().setZeroLinePen(PEN_ZERO)
-        self.xAxis.grid().setZeroLinePen(PEN_ZERO)
-        self.yAxis.setRange(-1.1, 1.1)
+        self.__decorate()
+        self.yAxis.setRange(self.__y_min, self.__y_max)
         self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
 
     def __squeeze(self):
@@ -303,6 +309,20 @@ class BarPlot(QCustomPlot):
         self.xAxis.setTicks(False)
         self.xAxis.setPadding(0)
 
+    def __decorate(self):
+        self.yAxis.setBasePen(PEN_NONE)  # hack
+        self.yAxis.grid().setZeroLinePen(PEN_ZERO)
+        self.xAxis.grid().setZeroLinePen(PEN_ZERO)
+
+    def slot_scroll(self, dy: int):
+        """Refresh plot on YScroller move"""
+        ys: QScrollBar = self.parent().ys
+        y_min = self.__y_min + (self.__y_max - self.__y_min) * (ys.value() / YSCROLL_WIDTH)
+        y_max = self.__y_min + (self.__y_max - self.__y_min) * ((ys.value() + ys.pageStep()) / YSCROLL_WIDTH)
+        self.yAxis.setRange(y_min, y_max)
+        self.replot()
+        # print("Y-range: %d..%d/%d => %.2f..%.2f" % (ys.value(), ys.pageStep(), YSCROLL_WIDTH, y_min, y_max))
+
 
 class YScroller(QScrollBar):
     def __init__(self, parent: 'BarPlotWidget'):
@@ -313,9 +333,9 @@ class YScroller(QScrollBar):
     def __slot_zoom_changed(self):
         z = self.parent().bar.zoom_y
         if z == 1:
-            self.setValue(0)
-            self.setMaximum(0)
             self.setPageStep(YSCROLL_WIDTH)
+            self.setMaximum(0)
+            self.setValue(0)  # note: exact in this order
         else:
             v0 = self.value()
             p0 = self.pageStep()
@@ -363,6 +383,7 @@ class BarPlotWidget(QWidget):
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
         # parent.bar.signal_zoom_y_changed.connect(self.__update_buttons)
+        self.ys.valueChanged.connect(self.plot.slot_scroll)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Deselect item on mouse up"""
