@@ -133,6 +133,9 @@ class XScroller(QScrollBar):
         """
         :param parent:
         :type parent: ComtradeWidget
+        :note: An idea:
+        - full width = plot width (px)
+        - page size = current col1 width (px)
         """
         super().__init__(Qt.Horizontal, parent)
 
@@ -323,7 +326,7 @@ class BarPlot(QCustomPlot):
         self.yAxis.grid().setZeroLinePen(PEN_ZERO)
         self.xAxis.grid().setZeroLinePen(PEN_ZERO)
 
-    def slot_y_scroll(self, _: int):
+    def slot_rerange_y(self, _: int):
         """Refresh plot on YScroller move"""
         ys: QScrollBar = self.parent().ys
         y_min = self.__y_min + self.__y_width * ys.y_norm_min
@@ -405,7 +408,7 @@ class BarPlotWidget(QWidget):
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
         # parent.bar.signal_zoom_y_changed.connect(self.__update_buttons)
-        self.ys.valueChanged.connect(self.plot.slot_y_scroll)
+        self.ys.valueChanged.connect(self.plot.slot_rerange_y)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Deselect item on mouse up"""
@@ -687,6 +690,14 @@ class OscWindow(QWidget):
         self.__mk_menu(parent)
         self.__set_data(data)
         self.__update_xzoom_actions()
+
+    @property
+    def x_width_ms(self) -> float:
+        return self.x_coords[-1] - self.x_coords[0]
+
+    @property
+    def x_width_px(self) -> int:
+        return round(self.x_width_ms * 1000 * X_PX_WIDTH_uS[self.x_zoom])
 
     def __mk_widgets(self):
         self.tb = TopBar(self)
