@@ -323,7 +323,7 @@ class BarPlot(QCustomPlot):
         self.yAxis.grid().setZeroLinePen(PEN_ZERO)
         self.xAxis.grid().setZeroLinePen(PEN_ZERO)
 
-    def slot_scroll(self, dy: int):
+    def slot_y_scroll(self, dy: int):
         """Refresh plot on YScroller move"""
         ys: QScrollBar = self.parent().ys
         y_min = self.__y_min + self.__y_width * ys.y_norm_min
@@ -405,7 +405,7 @@ class BarPlotWidget(QWidget):
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
         # parent.bar.signal_zoom_y_changed.connect(self.__update_buttons)
-        self.ys.valueChanged.connect(self.plot.slot_scroll)
+        self.ys.valueChanged.connect(self.plot.slot_y_scroll)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Deselect item on mouse up"""
@@ -674,7 +674,7 @@ class OscWindow(QWidget):
 
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
-        self.x_coords = [SIG_WIDTH / SIN_SAMPLES * i - SIG_WIDTH / 2 for i in range(SIN_SAMPLES + 1)]
+        self.x_coords = [SIG_WIDTH * 1000 / SIN_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIN_SAMPLES + 1)]
         self.__mk_widgets()
         self.__mk_layout()
         self.__mk_menu(parent)
