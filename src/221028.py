@@ -95,7 +95,7 @@ class TopBar(QWidget):
 
     class RStub(QScrollBar):
         def __init__(self, parent: 'TopBar' = None):
-            super().__init__(Qt.Vertical)
+            super().__init__(Qt.Vertical, parent)
             self.setFixedHeight(0)
 
     __label: QLabel
@@ -301,7 +301,7 @@ class BarPlot(QCustomPlot):
         self.yAxis.setRange(self.__y_min, self.__y_max)
 
     @property
-    def __y_width(self) -> int:
+    def __y_width(self) -> float:
         return self.__y_max - self.__y_min
 
     def __squeeze(self):
@@ -323,7 +323,7 @@ class BarPlot(QCustomPlot):
         self.yAxis.grid().setZeroLinePen(PEN_ZERO)
         self.xAxis.grid().setZeroLinePen(PEN_ZERO)
 
-    def slot_y_scroll(self, dy: int):
+    def slot_y_scroll(self, _: int):
         """Refresh plot on YScroller move"""
         ys: QScrollBar = self.parent().ys
         y_min = self.__y_min + self.__y_width * ys.y_norm_min
@@ -662,6 +662,7 @@ class SignalBarTable(QTableWidget):
 
 
 class OscWindow(QWidget):
+    x_zoom: int  # current X_PX_WIDTH_uS index
     x_coords: list[float]
     tb: TopBar
     # cb: QWidget
@@ -669,16 +670,23 @@ class OscWindow(QWidget):
     lst2: SignalBarTable
     hs: XScroller
     col_ctrl_width = COL_CTRL_WIDTH_INIT
+    act_unhide: QAction
+    act_x_zoom_in: QAction
+    act_x_zoom_out: QAction
     signal_resize_col_ctrl = pyqtSignal(int)
     signal_unhide_all = pyqtSignal()
+    signal_x_zoom = pyqtSignal()
 
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
+        self.x_zoom = len(X_PX_WIDTH_uS) - 1  # initial: max
         self.x_coords = [SIG_WIDTH * 1000 / SIN_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIN_SAMPLES + 1)]
         self.__mk_widgets()
         self.__mk_layout()
+        self.__mk_actions()
         self.__mk_menu(parent)
         self.__set_data(data)
+        self.__update_xzoom_actions()
 
     def __mk_widgets(self):
         self.tb = TopBar(self)
@@ -698,11 +706,16 @@ class OscWindow(QWidget):
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
 
+    def __mk_actions(self):
+        self.act_unhide = QAction("&Unhide all", self, triggered=self.__do_unhide_all)
+        self.act_x_zoom_in = QAction("X-zoom &In", self, shortcut='Ctrl+I', triggered=self.__do_xzoom_in)
+        self.act_x_zoom_out = QAction("X-zoom &Out", self, shortcut='Ctrl+O', triggered=self.__do_xzoom_out)
+
     def __mk_menu(self, parent: QMainWindow):
         menu_view = parent.menuBar().addMenu("&View")
-        menu_view.addAction(QAction("&Unhide all", self, triggered=self.__do_unhide_all))
-        menu_view.addAction(QAction("X-zoom &In", self, shortcut='Ctrl+I', triggered=self.__do_xzoom_in))
-        menu_view.addAction(QAction("X-zoom &Out", self, shortcut='Ctrl+O', triggered=self.__do_xzoom_out))
+        menu_view.addAction(self.act_unhide)
+        menu_view.addAction(self.act_x_zoom_in)
+        menu_view.addAction(self.act_x_zoom_out)
 
     def __set_data(self, data: list[Signal]):
         def __set_data_one(__tbl: SignalBarTable, __data: list[Signal]):
@@ -721,11 +734,23 @@ class OscWindow(QWidget):
     def __do_unhide_all(self):
         self.signal_unhide_all.emit()
 
+    def __update_xzoom_actions(self):
+        """Set X-zoom actions availability"""
+        self.act_x_zoom_in.setEnabled(self.x_zoom > 0)
+        self.act_x_zoom_out.setEnabled(self.x_zoom < (len(X_PX_WIDTH_uS) - 1))
+        # print("X-zoom:", self.x_zoom)
+
+    def __do_xzoom(self, dxz: int = 0):
+        if 0 <= self.x_zoom + dxz < len(X_PX_WIDTH_uS):
+            self.x_zoom += dxz
+            self.__update_xzoom_actions()
+            self.signal_x_zoom.emit()
+
     def __do_xzoom_in(self):
-        print("X-zoom In")
+        self.__do_xzoom(-1)
 
     def __do_xzoom_out(self):
-        print("X-zoom Out")
+        self.__do_xzoom(1)
 
 
 class MainWindow(QMainWindow):
