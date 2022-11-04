@@ -7,19 +7,21 @@ TODO:
 - [x] DnD enable/disable on the fly
 - [x] Hide/unhide signal
 - [ ] Rerange:
-  + [x] Y: *(idea: ×1 == 100 units)
+  + [x] Y:
     * [x] y-zoom
-    * [x] y-stretch
-    * [x] y-scroll
+    * [x] y-stretch (built-in)
+    * [x] y-scroll (dynamic range)
   + [ ] X:
     * [ ] x-zoom
-    * [ ] x-expand
-    * [ ] x-scroll
+    * [ ] x-expand (dynamic range)
+    * [ ] x-scroll (dynamic range)
+    * [ ] x-grid
+- [ ] FIXME:
+  + [ ] DnD: replot src and dst after ...
+  + [ ] row selection (idea: drag anchor only)
+  + [ ] hide full YScroller, XScroller, RStub
 - [ ] Add xPtr (?)
-- [ ] FIXME: DnD: replot src and dst after ...
-- [ ] FIXME: row selection (idea: drag anchor only)
-- [ ] FIXME: hide full YScroller, XScroller, RStub
-- IDEA: store signals pointer into Signal
+- IDEA: store signal xPtrs in Signal
 """
 # 1. std
 from typing import Tuple, Optional
@@ -36,20 +38,21 @@ from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, 
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
 
 # x. const
-BARS = 8  # Signal bars number (each table)
-SIN_SAMPLES = 72  # 5°
+# - user defined
+BARS = 8  # Signals number
+SIN_SAMPLES = 72  # Samples per signal (72 = 5°)
 SIG_WIDTH = 1.0  # signals width, s
-LINE_CELL_SIZE = 3  # width ow VLine column / height of HLine row
-BAR_HEIGHT = 48
-COL_CTRL_WIDTH_INIT = 100
-COL_CTRL_WIDTH_MIN = 50
+# - hardcoded
+LINE_CELL_SIZE = 3  # width of VLine column / height of HLine row
+BAR_HEIGHT = 48  # Initial SignalBarTable row height
+COL_CTRL_WIDTH_INIT = 100  # Initial BarCtrlWidget column width
+COL_CTRL_WIDTH_MIN = 50  # Minimal BarCtrlWidget column width
 PEN_NONE = QPen(QColor(255, 255, 255, 0))
 PEN_ZERO = QPen(Qt.black)
 COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray)
-X_COORDS = [SIG_WIDTH / SIN_SAMPLES * i - SIG_WIDTH / 2 for i in range(SIN_SAMPLES + 1)]
 ZOOM_Y_MAX = 100  # Max Y-zoom factor
-YSCROLL_BASE = 100
-YSCROLL_WIDTH = ZOOM_Y_MAX * YSCROLL_BASE
+YSCROLL_WIDTH = ZOOM_Y_MAX * 100  # Constant YScroller width, units
+X_PX_WIDTH_uS = (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000)  # Px widhts, μs
 
 
 def y_coords(pnum: int = 1, off: int = 0) -> list[float]:
@@ -72,7 +75,7 @@ class Signal:
 
 class TopBar(QWidget):
     class TopPlot(QCustomPlot):
-        def __init__(self, parent: QWidget):
+        def __init__(self, parent: 'TopBar'):
             super().__init__(parent)
             ar = self.axisRect(0)  # QCPAxisRect
             ar.setMinimumMargins(QMargins())  # the best
@@ -87,7 +90,8 @@ class TopBar(QWidget):
             self.setFixedHeight(24)
             self.xAxis.setTickLabelFont(QFont('mono', 8))
             # data
-            self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
+            x_coords = parent.parent().x_coords
+            self.xAxis.setRange(x_coords[0], x_coords[-1])
 
     class RStub(QScrollBar):
         def __init__(self, parent: 'TopBar' = None):
@@ -292,8 +296,9 @@ class BarPlot(QCustomPlot):
         self.__y_max = 1.1  # hack
         self.__squeeze()
         self.__decorate()
+        x_coords = parent.bar.table.oscwin.x_coords
+        self.xAxis.setRange(x_coords[0], x_coords[-1])
         self.yAxis.setRange(self.__y_min, self.__y_max)
-        self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
 
     @property
     def __y_width(self) -> int:
@@ -329,7 +334,7 @@ class BarPlot(QCustomPlot):
 
 class YScroller(QScrollBar):
     """Main idea:
-    - Constant width (in units; max)
+    - Constant predefined width (in units; max)
     - Dynamic page (max..min for x1..xMax)
     """
     def __init__(self, parent: 'BarPlotWidget'):
@@ -435,7 +440,7 @@ class SignalSuit(QObject):
         self.__label = self.__bar.ctrl.sig_add(self)
         self.__label.setText(f"{self.__signal.name}\n{self.__signal.pnum}/{self.__signal.off}")
         self.__graph = self.__bar.gfx.sig_add()
-        self.__graph.setData(X_COORDS, y_coords(self.__signal.pnum, self.__signal.off), True)
+        self.__graph.setData(self.__bar.table.oscwin.x_coords, y_coords(self.__signal.pnum, self.__signal.off), True)
         self.__graph.setPen(QPen(self.__signal.color))
 
     def detach(self):
@@ -657,6 +662,7 @@ class SignalBarTable(QTableWidget):
 
 
 class OscWindow(QWidget):
+    x_coords: list[float]
     tb: TopBar
     # cb: QWidget
     lst1: SignalBarTable
@@ -668,6 +674,7 @@ class OscWindow(QWidget):
 
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
+        self.x_coords = [SIG_WIDTH / SIN_SAMPLES * i - SIG_WIDTH / 2 for i in range(SIN_SAMPLES + 1)]
         self.__mk_widgets()
         self.__mk_layout()
         self.__mk_menu(parent)
