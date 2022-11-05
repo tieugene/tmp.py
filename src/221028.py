@@ -11,12 +11,14 @@ TODO:
     * [x] y-zoom
     * [x] y-stretch (built-in)
     * [x] y-scroll (dynamic range)
-  + [ ] X:
-    * [ ] x-zoom
-    * [ ] x-expand (dynamic range)
-    * [ ] x-scroll (dynamic range)
-    * [ ] x-grid
+  + [x] X:
+    * [x] x-zoom
+    * [x] x-expand (dynamic range)
+    * [x] x-scroll (dynamic range)
+    * [x] x-grid
 - [ ] FIXME:
+  + [ ] Glitches
+  + [ ] Symmetric around 0
   + [ ] DnD: replot src and dst after ...
   + [ ] row selection (idea: drag anchor only)
   + [ ] hide full YScroller, XScroller, RStub
@@ -104,8 +106,17 @@ class TopBar(QWidget):
                 self.signal_width_changed.emit(w)
 
         def slot_rerange(self):
-            print("Rerange x tb")
-            ...
+            oscwin = self.parent().parent()
+            x_coords = oscwin.x_coords
+            x_width = x_coords[-1] - x_coords[0]
+            self.xAxis.setRange(
+                x_coords[0] + oscwin.hs.norm_min * x_width,
+                x_coords[0] + oscwin.hs.norm_max * x_width,
+            )
+
+        def slot_rerange_force(self):
+            self.slot_rerange()
+            self.replot()
 
         def __slot_retick(self):
             self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().parent().x_zoom] / 10)
@@ -308,7 +319,7 @@ class BarPlot(QCustomPlot):
         x_coords = parent.bar.table.oscwin.x_coords
         self.xAxis.setRange(x_coords[0], x_coords[-1])
         self.yAxis.setRange(self.__y_min, self.__y_max)
-        parent.bar.table.oscwin.hs.valueChanged.connect(self.__slot_rerange_x)
+        parent.bar.table.oscwin.hs.valueChanged.connect(self.__slot_rerange_x_force)
         parent.bar.table.oscwin.hs.signal_update_plots.connect(self.__slot_rerange_x)
         parent.bar.table.oscwin.signal_x_zoom.connect(self.__slot_retick)
 
@@ -349,7 +360,17 @@ class BarPlot(QCustomPlot):
 
     def __slot_rerange_x(self):
         # print("Rerange x")
-        ...
+        oscwin = self.parent().bar.table.oscwin
+        x_coords = oscwin.x_coords
+        x_width = x_coords[-1] - x_coords[0]
+        self.xAxis.setRange(
+            x_coords[0] + oscwin.hs.norm_min * x_width,
+            x_coords[0] + oscwin.hs.norm_max * x_width,
+        )
+
+    def __slot_rerange_x_force(self):
+        self.__slot_rerange_x()
+        self.replot()
 
     def __slot_retick(self):
         self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().bar.table.oscwin.x_zoom] / 10)
@@ -699,6 +720,16 @@ class XScroller(QScrollBar):
         parent.signal_x_zoom.connect(self.__slot_update_range)
         parent.tb.plot.signal_width_changed.connect(self.__slot_update_page)
 
+    @property
+    def norm_min(self) -> float:
+        """Normalized (0..1) left page position"""
+        return self.value() / (self.maximum() + self.pageStep())
+
+    @property
+    def norm_max(self) -> float:
+        """Normalized (0..1) right page position"""
+        return (self.value() + self.pageStep()) / (self.maximum() + self.pageStep())
+
     def __slot_update_range(self):
         """Update maximum against new x-zoom.
         (x_width_px changed, page (px) - not)"""
@@ -758,7 +789,7 @@ class OscWindow(QWidget):
         self.__set_data(data)
         self.__update_xzoom_actions()
         # special connections
-        self.hs.valueChanged.connect(self.tb.plot.slot_rerange)
+        self.hs.valueChanged.connect(self.tb.plot.slot_rerange_force)
         self.hs.signal_update_plots.connect(self.tb.plot.slot_rerange)
 
     @property
