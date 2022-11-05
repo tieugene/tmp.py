@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 """Sample QTableWidget:
 TODO:
+- [ ] FIXME:
+  + [ ] Glitches
+  + [ ] Symmetric around 0
+  + [ ] DnD: replot src and dst after ...
+  + [ ] row selection (idea: drag anchor only)
+  + [ ] hide full YScroller, XScroller, RStub
+- [ ] Add xPtr (?)
+- IDEA: store signal xPtrs in Signal
+DONE:
 - [x] TopBar
 - [x] Col0 resize sync
 - [x] Bar/Signal join/move/unjoin (DnD)
 - [x] DnD enable/disable on the fly
 - [x] Hide/unhide signal
-- [ ] Rerange:
+- [x] Rerange:
   + [x] Y:
     * [x] y-zoom
     * [x] y-stretch (built-in)
@@ -16,14 +25,6 @@ TODO:
     * [x] x-expand (dynamic range)
     * [x] x-scroll (dynamic range)
     * [x] x-grid
-- [ ] FIXME:
-  + [ ] Glitches
-  + [ ] Symmetric around 0
-  + [ ] DnD: replot src and dst after ...
-  + [ ] row selection (idea: drag anchor only)
-  + [ ] hide full YScroller, XScroller, RStub
-- [ ] Add xPtr (?)
-- IDEA: store signal xPtrs in Signal
 """
 # 1. std
 from typing import Tuple, Optional
