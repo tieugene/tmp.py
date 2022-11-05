@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """Sample QTableWidget:
-TODO:
-- [ ] FIXME:
+FIXME:
   + [ ] Glitches
-  + [ ] Symmetric around 0
   + [ ] DnD: replot src and dst after ...
-  + [ ] row selection (idea: drag anchor only)
-  + [ ] hide full YScroller, XScroller, RStub
-- [ ] Add xPtr (?)
-- IDEA: store signal xPtrs in Signal
+  + [ ] Row selection (idea: drag anchor only)
+  + [ ] Hide full YScroller, XScroller, RStub
+TODO:
+  + [ ] Scatters
 DONE:
 - [x] TopBar
 - [x] Col0 resize sync
@@ -44,7 +42,7 @@ from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed
 # - user defined
 BARS = 8  # Signals number
 SIN_SAMPLES = 72  # Samples per signal (72 = 5°)
-SIG_WIDTH = 1.0  # signals width, s
+SIG_WIDTH = 2.0  # signals width, s
 # - hardcoded
 LINE_CELL_SIZE = 3  # width of VLine column / height of HLine row
 BAR_HEIGHT = 48  # Initial SignalBarTable row height
@@ -782,7 +780,8 @@ class OscWindow(QWidget):
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
         self.x_zoom = len(X_PX_WIDTH_uS) - 1  # initial: max
-        self.x_coords = [SIG_WIDTH * 1000 / SIN_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIN_SAMPLES + 1)]
+        # self.x_coords = [SIG_WIDTH * 1000 / SIN_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIN_SAMPLES + 1)]
+        self.x_coords = [(SIG_WIDTH * i / SIN_SAMPLES - SIG_WIDTH / 2) * 1000 for i in range(SIN_SAMPLES + 1)]
         self.__mk_widgets()
         self.__mk_layout()
         self.__mk_actions()
