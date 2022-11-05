@@ -2,7 +2,6 @@
 """QListWidget + Line"""
 import sys
 
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QListWidgetItem, QAction, QMenuBar
 
 

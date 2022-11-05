@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
 """Sample QTableWidget:
 TODO:
+- [ ] FIXME:
+  + [ ] Glitches
+  + [ ] Symmetric around 0
+  + [ ] DnD: replot src and dst after ...
+  + [ ] row selection (idea: drag anchor only)
+  + [ ] hide full YScroller, XScroller, RStub
+- [ ] Add xPtr (?)
+- IDEA: store signal xPtrs in Signal
+DONE:
 - [x] TopBar
 - [x] Col0 resize sync
 - [x] Bar/Signal join/move/unjoin (DnD)
 - [x] DnD enable/disable on the fly
 - [x] Hide/unhide signal
-- [ ] Rerange:
-  - [ ] x-scale
-  - [ ] x-move
-  - [ ] y-scale
-  - [ ] y-stretch
-  - [ ] y-move
-- [ ] xPtr (?)
-- [ ] FIXME: DnD: replot src and dst after ...
-- IDEA: store signals pointer into Signal
+- [x] Rerange:
+  + [x] Y:
+    * [x] y-zoom
+    * [x] y-stretch (built-in)
+    * [x] y-scroll (dynamic range)
+  + [x] X:
+    * [x] x-zoom
+    * [x] x-expand (dynamic range)
+    * [x] x-scroll (dynamic range)
+    * [x] x-grid
 """
 # 1. std
 from typing import Tuple, Optional
@@ -25,23 +35,27 @@ import random
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QResizeEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
     QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
-from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
+from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed
 
 # x. const
-BARS = 8  # Signal bars number (each table)
-SIN_SAMPLES = 72  # 5°
+# - user defined
+BARS = 8  # Signals number
+SIN_SAMPLES = 72  # Samples per signal (72 = 5°)
 SIG_WIDTH = 1.0  # signals width, s
-LINE_CELL_SIZE = 3  # width ow VLine column / height of HLine row
-BAR_HEIGHT = 48
-COL_CTRL_WIDTH_INIT = 100
-COL_CTRL_WIDTH_MIN = 50
+# - hardcoded
+LINE_CELL_SIZE = 3  # width of VLine column / height of HLine row
+BAR_HEIGHT = 48  # Initial SignalBarTable row height
+COL_CTRL_WIDTH_INIT = 100  # Initial BarCtrlWidget column width
+COL_CTRL_WIDTH_MIN = 50  # Minimal BarCtrlWidget column width
 PEN_NONE = QPen(QColor(255, 255, 255, 0))
 PEN_ZERO = QPen(Qt.black)
 COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Qt.gray)
-X_COORDS = [SIG_WIDTH / SIN_SAMPLES * i - SIG_WIDTH / 2 for i in range(SIN_SAMPLES + 1)]
+ZOOM_Y_MAX = 100  # Max Y-zoom factor
+YSCROLL_WIDTH = ZOOM_Y_MAX * 100  # Constant YScroller width, units
+X_PX_WIDTH_uS = (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000)  # Px widhts, μs
 
 
 def y_coords(pnum: int = 1, off: int = 0) -> list[float]:
@@ -64,7 +78,9 @@ class Signal:
 
 class TopBar(QWidget):
     class TopPlot(QCustomPlot):
-        def __init__(self, parent: QWidget):
+        signal_width_changed = pyqtSignal(int)
+
+        def __init__(self, parent: 'TopBar'):
             super().__init__(parent)
             ar = self.axisRect(0)  # QCPAxisRect
             ar.setMinimumMargins(QMargins())  # the best
@@ -73,34 +89,63 @@ class TopBar(QWidget):
             ar.removeAxis(self.yAxis2)
             self.xAxis.setTickLabelSide(QCPAxis.lsInside)
             self.xAxis.grid().setVisible(False)
-            # self.xAxis.setTickLabels(True)
-            # self.xAxis.setTicks(True)
+            self.xAxis.setTicker(QCPAxisTickerFixed())
+            # self.xAxis.setTickLabels(True)  # default
+            # self.xAxis.setTicks(True)  # default
             self.xAxis.setPadding(0)
-            self.setFixedHeight(24)
             self.xAxis.setTickLabelFont(QFont('mono', 8))
+            self.setFixedHeight(24)
             # data
-            self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
+            x_coords = parent.parent().x_coords
+            self.xAxis.setRange(x_coords[0], x_coords[-1])
+            self.__slot_retick()
+            parent.parent().signal_x_zoom.connect(self.__slot_retick)
+
+        def resizeEvent(self, event: QResizeEvent):
+            super().resizeEvent(event)
+            if event.oldSize().width() != (w := event.size().width()):
+                self.signal_width_changed.emit(w)
+
+        def slot_rerange(self):
+            oscwin = self.parent().parent()
+            x_coords = oscwin.x_coords
+            x_width = x_coords[-1] - x_coords[0]
+            self.xAxis.setRange(
+                x_coords[0] + oscwin.hs.norm_min * x_width,
+                x_coords[0] + oscwin.hs.norm_max * x_width,
+            )
+
+        def slot_rerange_force(self):
+            self.slot_rerange()
+            self.replot()
+
+        def __slot_retick(self):
+            self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().parent().x_zoom] / 10)
+            self.replot()
+
+    class RStub(QScrollBar):
+        def __init__(self, parent: 'TopBar' = None):
+            super().__init__(Qt.Vertical, parent)
+            self.setFixedHeight(0)
 
     __label: QLabel
-    __scale: TopPlot
-    __stub: QScrollBar
+    plot: TopPlot
 
     def __init__(self, parent: 'OscWindow'):
         super().__init__(parent)
         # widgets
         self.__label = QLabel("ms", self)
-        self.__scale = self.TopPlot(self)
-        self.__stub = QScrollBar(Qt.Vertical)
+        self.plot = self.TopPlot(self)
         # layout
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(self.__label)
-        self.layout().addWidget(self.__scale)
-        self.layout().addWidget(self.__stub)
+        self.layout().addWidget(self.plot)
+        self.layout().addWidget(self.RStub())
+        self.layout().addWidget(self.RStub())
         # decorate
         # self.__label.setFrameShape(QFrame.Box)
         # self.__stub.setStyle(QCommonStyle())
         # squeeze
-        self.__stub.setFixedHeight(0)
         # self.setContentsMargins(QMargins())
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
@@ -111,15 +156,6 @@ class TopBar(QWidget):
 
     def __slot_resize_col_ctrl(self, x: int):
         self.__label.setFixedWidth(x + LINE_CELL_SIZE)
-
-
-class HScroller(QScrollBar):
-    def __init__(self, parent: QWidget):
-        """
-        :param parent:
-        :type parent: ComtradeWidget
-        """
-        super().__init__(Qt.Horizontal, parent)
 
 
 class SignalLabel(QListWidgetItem):
@@ -159,48 +195,6 @@ class SignalLabelList(QListWidget):
         return self.selectedIndexes()[0].row()
 
 
-class ZoomButton(QPushButton):
-    def __init__(self, txt: str, parent: 'ZoomButtonBox'):
-        super().__init__(txt, parent)
-        self.setContentsMargins(QMargins())  # not helps
-        self.setFixedWidth(16)
-        # self.setFlat(True)
-        # TODO: squeeze
-
-
-class ZoomButtonBox(QWidget):
-    _b_zoom_in: ZoomButton
-    _b_zoom_0: ZoomButton
-    _b_zoom_out: ZoomButton
-
-    def __init__(self, parent: 'BarCtrlWidget'):
-        super().__init__(parent)
-        self._b_zoom_in = ZoomButton("+", self)
-        self._b_zoom_0 = ZoomButton("=", self)
-        self._b_zoom_out = ZoomButton("-", self)
-        self.setLayout(QVBoxLayout())
-        self.layout().setSpacing(0)
-        self.layout().setContentsMargins(QMargins())
-        self.layout().addWidget(self._b_zoom_in)
-        self.layout().addWidget(self._b_zoom_0)
-        self.layout().addWidget(self._b_zoom_out)
-
-
-class VLine(QFrame):  # TODO: hide into SignalBarTable
-    __oscwin: 'OscWindow'
-
-    def __init__(self, oscwin: 'OscWindow'):
-        super().__init__()
-        self.__oscwin = oscwin
-        self.setGeometry(QRect(0, 0, 0, 0))  # size is not the matter
-        self.setFrameShape(QFrame.VLine)
-        self.setCursor(Qt.SplitHCursor)
-
-    def mouseMoveEvent(self, event: QMouseEvent):
-        """accepted() == True, x() = Δx."""
-        self.__oscwin.resize_col_ctrl(event.x())
-
-
 class HLine(QFrame):  # TODO: hide into SignalBarTable
     __parent: 'BarCtrlWidget'
 
@@ -217,6 +211,68 @@ class HLine(QFrame):  # TODO: hide into SignalBarTable
 
 
 class BarCtrlWidget(QWidget):
+    class ZoomButtonBox(QWidget):
+        class ZoomButton(QPushButton):
+            def __init__(self, txt: str, parent: 'ZoomButtonBox'):
+                super().__init__(txt, parent)
+                self.setContentsMargins(QMargins())  # not helps
+                self.setFixedWidth(16)
+                self.setFlat(True)
+                self.setCursor(Qt.PointingHandCursor)
+
+        __b_zoom_in: ZoomButton
+        __b_zoom_0: ZoomButton
+        __b_zoom_out: ZoomButton
+
+        def __init__(self, parent: 'BarCtrlWidget'):
+            super().__init__(parent)
+            self.__b_zoom_in = self.ZoomButton("+", self)
+            self.__b_zoom_0 = self.ZoomButton("⚬", self)
+            self.__b_zoom_out = self.ZoomButton("-", self)
+            self.setLayout(QVBoxLayout())
+            self.layout().setSpacing(0)
+            self.layout().setContentsMargins(QMargins())
+            self.layout().addWidget(self.__b_zoom_in)
+            self.layout().addWidget(self.__b_zoom_0)
+            self.layout().addWidget(self.__b_zoom_out)
+            self.__update_buttons()
+            self.__b_zoom_in.clicked.connect(self.__slot_zoom_in)
+            self.__b_zoom_0.clicked.connect(self.__slot_zoom_0)
+            self.__b_zoom_out.clicked.connect(self.__slot_zoom_out)
+
+        def __slot_zoom_in(self):
+            self.__slot_zoom(1)
+
+        def __slot_zoom_out(self):
+            self.__slot_zoom(-1)
+
+        def __slot_zoom_0(self):
+            self.__slot_zoom(0)
+
+        def __slot_zoom(self, dy: int):
+            self.parent().bar.zoom_dy(dy)
+            self.__update_buttons()
+
+        def __update_buttons(self):
+            z = self.parent().bar.zoom_y
+            self.__b_zoom_in.setEnabled(z < 1000)
+            self.__b_zoom_0.setEnabled(z > 1)
+            self.__b_zoom_out.setEnabled(z > 1)
+
+    class VLine(QFrame):  # TODO: hide into SignalBarTable
+        __oscwin: 'OscWindow'
+
+        def __init__(self, oscwin: 'OscWindow'):
+            super().__init__()
+            self.__oscwin = oscwin
+            self.setGeometry(QRect(0, 0, 0, 0))  # size is not the matter
+            self.setFrameShape(QFrame.VLine)
+            self.setCursor(Qt.SplitHCursor)
+
+        def mouseMoveEvent(self, event: QMouseEvent):
+            """accepted() == True, x() = Δx."""
+            self.__oscwin.resize_col_ctrl(event.x())
+
     bar: 'SignalBar'
     lst: SignalLabelList
     zbx: ZoomButtonBox
@@ -225,7 +281,7 @@ class BarCtrlWidget(QWidget):
         super().__init__()  # parent will be QWidget
         self.bar = bar
         self.lst = SignalLabelList(self)
-        self.zbx = ZoomButtonBox(self)
+        self.zbx = self.ZoomButtonBox(self)
         anchor = QLabel('↕', self)
         anchor.setCursor(Qt.PointingHandCursor)
         # layout
@@ -233,7 +289,7 @@ class BarCtrlWidget(QWidget):
         layout.addWidget(anchor, 0, 0)
         layout.addWidget(self.lst, 0, 1)
         layout.addWidget(self.zbx, 0, 2)
-        layout.addWidget(VLine(self.bar.table.oscwin), 0, 3)
+        layout.addWidget(self.VLine(self.bar.table.oscwin), 0, 3)
         layout.addWidget(HLine(self), 1, 0, 1, -1)
         self.setLayout(layout)
         self.layout().setContentsMargins(QMargins())
@@ -252,44 +308,149 @@ class BarCtrlWidget(QWidget):
 
 
 class BarPlot(QCustomPlot):
+    __y_min: float
+    __y_max: float
+
     def __init__(self, parent: 'BarPlotWidget'):
         super().__init__(parent)
+        self.__y_min = -1.1  # hack
+        self.__y_max = 1.1  # hack
         self.__squeeze()
-        self.yAxis.setBasePen(PEN_NONE)  # hack
-        self.yAxis.grid().setZeroLinePen(PEN_ZERO)
-        self.xAxis.grid().setZeroLinePen(PEN_ZERO)
-        self.xAxis.setRange(X_COORDS[0], X_COORDS[-1])
-        self.yAxis.setRange(-1.1, 1.1)
+        self.__decorate()
+        x_coords = parent.bar.table.oscwin.x_coords
+        self.xAxis.setRange(x_coords[0], x_coords[-1])
+        self.yAxis.setRange(self.__y_min, self.__y_max)
+        parent.bar.table.oscwin.hs.valueChanged.connect(self.__slot_rerange_x_force)
+        parent.bar.table.oscwin.hs.signal_update_plots.connect(self.__slot_rerange_x)
+        parent.bar.table.oscwin.signal_x_zoom.connect(self.__slot_retick)
+
+    @property
+    def __y_width(self) -> float:
+        return self.__y_max - self.__y_min
 
     def __squeeze(self):
         ar = self.axisRect(0)  # QCPAxisRect
         ar.setMinimumMargins(QMargins())  # the best
         ar.removeAxis(self.xAxis2)
         ar.removeAxis(self.yAxis2)
+        # y
         # self.yAxis.setVisible(False)  # or cp.graph().valueAxis()
         self.yAxis.setTickLabels(False)
         self.yAxis.setTicks(False)
         self.yAxis.setPadding(0)
         self.yAxis.ticker().setTickCount(1)  # the only z-line
+        # x
+        self.xAxis.setTicker(QCPAxisTickerFixed())
         self.xAxis.setTickLabels(False)
         self.xAxis.setTicks(False)
         self.xAxis.setPadding(0)
+        self.__slot_retick()
+
+    def __decorate(self):
+        self.yAxis.setBasePen(PEN_NONE)  # hack
+        self.yAxis.grid().setZeroLinePen(PEN_ZERO)
+        self.xAxis.grid().setZeroLinePen(PEN_ZERO)
+
+    def slot_rerange_y(self, _: int):
+        """Refresh plot on YScroller move"""
+        ys: QScrollBar = self.parent().ys
+        y_min = self.__y_min + self.__y_width * ys.y_norm_min
+        y_max = self.__y_min + self.__y_width * ys.y_norm_max
+        self.yAxis.setRange(y_min, y_max)
+        self.replot()
+
+    def __slot_rerange_x(self):
+        # print("Rerange x")
+        oscwin = self.parent().bar.table.oscwin
+        x_coords = oscwin.x_coords
+        x_width = x_coords[-1] - x_coords[0]
+        self.xAxis.setRange(
+            x_coords[0] + oscwin.hs.norm_min * x_width,
+            x_coords[0] + oscwin.hs.norm_max * x_width,
+        )
+
+    def __slot_rerange_x_force(self):
+        self.__slot_rerange_x()
+        self.replot()
+
+    def __slot_retick(self):
+        self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().bar.table.oscwin.x_zoom] / 10)
+        self.replot()
 
 
 class BarPlotWidget(QWidget):
-    # TODO: add_signal
+    class YZLabel(QLabel):
+        def __init__(self, parent: 'BarPlotWidget'):
+            super().__init__(parent)
+            self.setStyleSheet("QLabel { background-color : red; color : rgba(255,255,255,255) }")
+            self.__slot_zoom_changed()
+            parent.bar.signal_zoom_y_changed.connect(self.__slot_zoom_changed)
+
+        def __slot_zoom_changed(self):
+            z = self.parent().bar.zoom_y
+            if z == 1:
+                self.hide()
+            else:
+                if self.isHidden():
+                    self.show()
+                self.setText(f"×{z}")
+                self.adjustSize()
+
+    class YScroller(QScrollBar):
+        """Main idea:
+        - Constant predefined width (in units; max)
+        - Dynamic page (max..min for x1..xMax)
+        """
+
+        def __init__(self, parent: 'BarPlotWidget'):
+            super().__init__(Qt.Vertical, parent)
+            self.__slot_zoom_changed()
+            parent.bar.signal_zoom_y_changed.connect(self.__slot_zoom_changed)
+
+        @property
+        def y_norm_min(self) -> float:
+            """Normalized (0..1) minimal window position"""
+            return 1 - (self.value() + self.pageStep()) / YSCROLL_WIDTH
+
+        @property
+        def y_norm_max(self) -> float:
+            """Normalized (0..1) maximal window position"""
+            return 1 - self.value() / YSCROLL_WIDTH
+
+        def __slot_zoom_changed(self):
+            z = self.parent().bar.zoom_y
+            if z == 1:
+                self.setPageStep(YSCROLL_WIDTH)
+                self.setMaximum(0)
+                self.setValue(0)  # note: exact in this order
+            else:
+                v0 = self.value()
+                p0 = self.pageStep()
+                p1 = round(YSCROLL_WIDTH / z)
+                self.setPageStep(p1)
+                self.setMaximum(YSCROLL_WIDTH - p1)
+                self.setValue(v0 + round((p0 - p1) / 2))
+
     bar: 'SignalBar'
+    ys: YScroller
     plot: BarPlot
+    yzlabel: YZLabel
 
     def __init__(self, bar: 'SignalBar'):
         super().__init__()
         self.bar = bar
         self.plot = BarPlot(self)
-        self.setLayout(QVBoxLayout())
-        self.layout().addWidget(self.plot)
-        self.layout().addWidget(HLine(self))
+        self.ys = self.YScroller(self)
+        self.yzlabel = self.YZLabel(self)
+        layout = QGridLayout()
+        layout.addWidget(self.plot, 0, 0)
+        layout.addWidget(self.ys, 0, 1)
+        layout.addWidget(HLine(self), 1, 0, 1, -1)
+        self.setLayout(layout)
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
+        # parent.bar.signal_zoom_y_changed.connect(self.__update_buttons)
+        self.ys.valueChanged.connect(self.plot.slot_rerange_y)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Deselect item on mouse up"""
@@ -324,7 +485,7 @@ class SignalSuit(QObject):
         self.__label = self.__bar.ctrl.sig_add(self)
         self.__label.setText(f"{self.__signal.name}\n{self.__signal.pnum}/{self.__signal.off}")
         self.__graph = self.__bar.gfx.sig_add()
-        self.__graph.setData(X_COORDS, y_coords(self.__signal.pnum, self.__signal.off), True)
+        self.__graph.setData(self.__bar.table.oscwin.x_coords, y_coords(self.__signal.pnum, self.__signal.off), True)
         self.__graph.setPen(QPen(self.__signal.color))
 
     def detach(self):
@@ -345,8 +506,10 @@ class SignalBar(QObject):
     table: 'SignalBarTable'
     row: int
     signals: list[SignalSuit]
+    zoom_y: int
     ctrl: BarCtrlWidget
     gfx: BarPlotWidget
+    signal_zoom_y_changed = pyqtSignal()
 
     def __init__(self, table: 'SignalBarTable', row: int = -1):
         super().__init__()
@@ -355,6 +518,7 @@ class SignalBar(QObject):
         self.table = table
         self.row = row
         self.signals = list()
+        self.zoom_y = 1
         self.ctrl = BarCtrlWidget(self)
         self.gfx = BarPlotWidget(self)
         self.table.bars.insert(self.row, self)
@@ -406,6 +570,16 @@ class SignalBar(QObject):
             ss.set_hidden(False)
         if self.table.isRowHidden(self.row):
             self.table.setRowHidden(self.row, False)
+
+    def zoom_dy(self, dy: int):
+        """Y-zoom button changed"""
+        if dy:
+            if 1 <= self.zoom_y + dy <= 1000:
+                self.zoom_y += dy
+                self.signal_zoom_y_changed.emit()
+        elif self.zoom_y > 1:
+            self.zoom_y = 1
+            self.signal_zoom_y_changed.emit()
 
 
 class SignalBarTable(QTableWidget):
@@ -532,28 +706,110 @@ class SignalBarTable(QTableWidget):
         other_bar.gfx.plot.replot()
 
 
+class XScroller(QScrollBar):
+    signal_update_plots = pyqtSignal()
+
+    def __init__(self, parent: 'OscWindow'):
+        """
+        :param parent:
+        :type parent: ComtradeWidget
+        :note: An idea:
+        - full width = plot width (px)
+        - page size = current col1 width (px)
+        """
+        super().__init__(Qt.Horizontal, parent)
+        parent.signal_x_zoom.connect(self.__slot_update_range)
+        parent.tb.plot.signal_width_changed.connect(self.__slot_update_page)
+
+    @property
+    def norm_min(self) -> float:
+        """Normalized (0..1) left page position"""
+        return self.value() / (self.maximum() + self.pageStep())
+
+    @property
+    def norm_max(self) -> float:
+        """Normalized (0..1) right page position"""
+        return (self.value() + self.pageStep()) / (self.maximum() + self.pageStep())
+
+    def __slot_update_range(self):
+        """Update maximum against new x-zoom.
+        (x_width_px changed, page (px) - not)"""
+        page = self.pageStep()
+        x_width_px = self.parent().x_width_px
+        max_new = self.parent().x_width_px - self.pageStep()
+        v_new = min(
+            max_new,
+            max(
+                0,
+                round((self.value() + page / 2) / (self.maximum() + page) * x_width_px - (page / 2))
+            )
+        )
+        self.setMaximum(max_new)
+        if v_new != self.value():
+            self.setValue(v_new)  # emit signal
+        else:
+            self.signal_update_plots.emit()
+
+    def __slot_update_page(self, new_page: int):
+        """Update page against new signal windows width"""
+        x_max = self.parent().x_width_px
+        if min(new_page, self.pageStep()) < x_max:
+            if new_page > x_max:
+                new_page = x_max
+            self.setPageStep(new_page)
+            v0 = self.value()
+            self.setMaximum(self.parent().x_width_px - new_page)  # WARN: value changed w/o signal emit
+            if self.value() == v0:
+                self.signal_update_plots.emit()  # Force update plots; plan B: self.valueChanged.emit(self.value())
+
+
 class OscWindow(QWidget):
+    x_zoom: int  # current X_PX_WIDTH_uS index
+    x_coords: list[float]
     tb: TopBar
     # cb: QWidget
     lst1: SignalBarTable
     lst2: SignalBarTable
-    hs: HScroller
+    hs: XScroller
     col_ctrl_width = COL_CTRL_WIDTH_INIT
+    act_unhide: QAction
+    act_x_zoom_in: QAction
+    act_x_zoom_out: QAction
     signal_resize_col_ctrl = pyqtSignal(int)
     signal_unhide_all = pyqtSignal()
+    signal_x_zoom = pyqtSignal()
 
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
+        self.x_zoom = len(X_PX_WIDTH_uS) - 1  # initial: max
+        self.x_coords = [SIG_WIDTH * 1000 / SIN_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIN_SAMPLES + 1)]
         self.__mk_widgets()
         self.__mk_layout()
+        self.__mk_actions()
         self.__mk_menu(parent)
         self.__set_data(data)
+        self.__update_xzoom_actions()
+        # special connections
+        self.hs.valueChanged.connect(self.tb.plot.slot_rerange_force)
+        self.hs.signal_update_plots.connect(self.tb.plot.slot_rerange)
+
+    @property
+    def x_width_ms(self) -> float:
+        retvalue = self.x_coords[-1] - self.x_coords[0]
+        # print("x_width_ms:", retvalue)
+        return retvalue
+
+    @property
+    def x_width_px(self) -> int:
+        retvalue = round(self.x_width_ms * 1000 / X_PX_WIDTH_uS[self.x_zoom])
+        # print("x_width_px:", retvalue)
+        return retvalue
 
     def __mk_widgets(self):
         self.tb = TopBar(self)
         self.lst1 = SignalBarTable(self)
         self.lst2 = SignalBarTable(self)
-        self.hs = HScroller(self)
+        self.hs = XScroller(self)
 
     def __mk_layout(self):
         self.setLayout(QVBoxLayout())
@@ -567,11 +823,16 @@ class OscWindow(QWidget):
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
 
+    def __mk_actions(self):
+        self.act_unhide = QAction("&Unhide all", self, triggered=self.__do_unhide_all)
+        self.act_x_zoom_in = QAction("X-zoom &In", self, shortcut='Ctrl+I', triggered=self.__do_xzoom_in)
+        self.act_x_zoom_out = QAction("X-zoom &Out", self, shortcut='Ctrl+O', triggered=self.__do_xzoom_out)
+
     def __mk_menu(self, parent: QMainWindow):
         menu_view = parent.menuBar().addMenu("&View")
-        menu_view.addAction(QAction("&Unhide all", self, triggered=self.__do_unhide_all))
-        menu_view.addAction(QAction("X-zoom &In", self, shortcut='Ctrl+I', triggered=self.__do_xzoom_in))
-        menu_view.addAction(QAction("X-zoom &Out", self, shortcut='Ctrl+O', triggered=self.__do_xzoom_out))
+        menu_view.addAction(self.act_unhide)
+        menu_view.addAction(self.act_x_zoom_in)
+        menu_view.addAction(self.act_x_zoom_out)
 
     def __set_data(self, data: list[Signal]):
         def __set_data_one(__tbl: SignalBarTable, __data: list[Signal]):
@@ -590,11 +851,23 @@ class OscWindow(QWidget):
     def __do_unhide_all(self):
         self.signal_unhide_all.emit()
 
+    def __update_xzoom_actions(self):
+        """Set X-zoom actions availability"""
+        self.act_x_zoom_in.setEnabled(self.x_zoom > 0)
+        self.act_x_zoom_out.setEnabled(self.x_zoom < (len(X_PX_WIDTH_uS) - 1))
+        # print("X-zoom:", self.x_zoom)
+
+    def __do_xzoom(self, dxz: int = 0):
+        if 0 <= self.x_zoom + dxz < len(X_PX_WIDTH_uS):
+            self.x_zoom += dxz
+            self.__update_xzoom_actions()
+            self.signal_x_zoom.emit()
+
     def __do_xzoom_in(self):
-        print("X-zoom In")
+        self.__do_xzoom(-1)
 
     def __do_xzoom_out(self):
-        print("X-zoom Out")
+        self.__do_xzoom(1)
 
 
 class MainWindow(QMainWindow):
