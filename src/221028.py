@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Sample QTableWidget:
 FIXME:
+  + [ ] Row selection (idea: drag anchor only)
   + [ ] Glitches
   + [ ] DnD: replot src and dst after ...
-  + [ ] Row selection (idea: drag anchor only)
   + [ ] Hide full YScroller, XScroller, RStub
 TODO:
   + [ ] Scatters
+  + [ ] Incapsulate classes
 DONE:
 - [x] TopBar
 - [x] Col0 resize sync
@@ -257,7 +258,7 @@ class BarCtrlWidget(QWidget):
             self.__b_zoom_0.setEnabled(z > 1)
             self.__b_zoom_out.setEnabled(z > 1)
 
-    class VLine(QFrame):  # TODO: hide into SignalBarTable
+    class VLine(QFrame):
         __oscwin: 'OscWindow'
 
         def __init__(self, oscwin: 'OscWindow'):
