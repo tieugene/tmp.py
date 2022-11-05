@@ -1,29 +1,11 @@
 #!/usr/bin/env python3
-"""Sample QTableWidget:
-FIXME:
-  + [ ] Row selection (idea: drag anchor only)
-  + [ ] Glitches
-  + [ ] DnD: replot src and dst after ...
-  + [ ] Hide full YScroller, XScroller, RStub
-TODO:
-  + [ ] Scatters
-  + [ ] Incapsulate classes
-DONE:
-- [x] TopBar
-- [x] Col0 resize sync
-- [x] Bar/Signal join/move/unjoin (DnD)
-- [x] DnD enable/disable on the fly
-- [x] Hide/unhide signal
-- [x] Rerange:
-  + [x] Y:
-    * [x] y-zoom
-    * [x] y-stretch (built-in)
-    * [x] y-scroll (dynamic range)
-  + [x] X:
-    * [x] x-zoom
-    * [x] x-expand (dynamic range)
-    * [x] x-scroll (dynamic range)
-    * [x] x-grid
+"""Sample iOsc.py prototype (new style):
+- [ ] FIXME: Row selection (idea: drag anchor only)
+- [ ] FIXME: Glitches
+- [ ] FIXME: DnD: replot src and dst after ...
+- [ ] FIXME: Hide full YScroller, XScroller, RStub
+- [ ] TODO: Scatters
+- [ ] TODO: Incapsulate classes
 """
 # 1. std
 from typing import Tuple, Optional
