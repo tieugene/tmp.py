@@ -32,10 +32,10 @@ import random
 
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint
-from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent
+from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QResizeEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
     QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
-from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis
+from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed
 
 # x. const
 # - user defined
@@ -75,6 +75,8 @@ class Signal:
 
 class TopBar(QWidget):
     class TopPlot(QCustomPlot):
+        signal_width_changed = pyqtSignal(int)
+
         def __init__(self, parent: 'TopBar'):
             super().__init__(parent)
             ar = self.axisRect(0)  # QCPAxisRect
@@ -84,14 +86,30 @@ class TopBar(QWidget):
             ar.removeAxis(self.yAxis2)
             self.xAxis.setTickLabelSide(QCPAxis.lsInside)
             self.xAxis.grid().setVisible(False)
-            # self.xAxis.setTickLabels(True)
-            # self.xAxis.setTicks(True)
+            self.xAxis.setTicker(QCPAxisTickerFixed())
+            # self.xAxis.setTickLabels(True)  # default
+            # self.xAxis.setTicks(True)  # default
             self.xAxis.setPadding(0)
-            self.setFixedHeight(24)
             self.xAxis.setTickLabelFont(QFont('mono', 8))
+            self.setFixedHeight(24)
             # data
             x_coords = parent.parent().x_coords
             self.xAxis.setRange(x_coords[0], x_coords[-1])
+            self.__slot_retick()
+            parent.parent().signal_x_zoom.connect(self.__slot_retick)
+
+        def resizeEvent(self, event: QResizeEvent):
+            super().resizeEvent(event)
+            if event.oldSize().width() != (w := event.size().width()):
+                self.signal_width_changed.emit(w)
+
+        def slot_rerange(self):
+            print("Rerange x tb")
+            ...
+
+        def __slot_retick(self):
+            self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().parent().x_zoom] / 10)
+            self.replot()
 
     class RStub(QScrollBar):
         def __init__(self, parent: 'TopBar' = None):
@@ -99,17 +117,17 @@ class TopBar(QWidget):
             self.setFixedHeight(0)
 
     __label: QLabel
-    __scale: TopPlot
+    plot: TopPlot
 
     def __init__(self, parent: 'OscWindow'):
         super().__init__(parent)
         # widgets
         self.__label = QLabel("ms", self)
-        self.__scale = self.TopPlot(self)
+        self.plot = self.TopPlot(self)
         # layout
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(self.__label)
-        self.layout().addWidget(self.__scale)
+        self.layout().addWidget(self.plot)
         self.layout().addWidget(self.RStub())
         self.layout().addWidget(self.RStub())
         # decorate
@@ -126,18 +144,6 @@ class TopBar(QWidget):
 
     def __slot_resize_col_ctrl(self, x: int):
         self.__label.setFixedWidth(x + LINE_CELL_SIZE)
-
-
-class XScroller(QScrollBar):
-    def __init__(self, parent: QWidget):
-        """
-        :param parent:
-        :type parent: ComtradeWidget
-        :note: An idea:
-        - full width = plot width (px)
-        - page size = current col1 width (px)
-        """
-        super().__init__(Qt.Horizontal, parent)
 
 
 class SignalLabel(QListWidgetItem):
@@ -302,6 +308,9 @@ class BarPlot(QCustomPlot):
         x_coords = parent.bar.table.oscwin.x_coords
         self.xAxis.setRange(x_coords[0], x_coords[-1])
         self.yAxis.setRange(self.__y_min, self.__y_max)
+        parent.bar.table.oscwin.hs.valueChanged.connect(self.__slot_rerange_x)
+        parent.bar.table.oscwin.hs.signal_update_plots.connect(self.__slot_rerange_x)
+        parent.bar.table.oscwin.signal_x_zoom.connect(self.__slot_retick)
 
     @property
     def __y_width(self) -> float:
@@ -312,14 +321,18 @@ class BarPlot(QCustomPlot):
         ar.setMinimumMargins(QMargins())  # the best
         ar.removeAxis(self.xAxis2)
         ar.removeAxis(self.yAxis2)
+        # y
         # self.yAxis.setVisible(False)  # or cp.graph().valueAxis()
         self.yAxis.setTickLabels(False)
         self.yAxis.setTicks(False)
         self.yAxis.setPadding(0)
         self.yAxis.ticker().setTickCount(1)  # the only z-line
+        # x
+        self.xAxis.setTicker(QCPAxisTickerFixed())
         self.xAxis.setTickLabels(False)
         self.xAxis.setTicks(False)
         self.xAxis.setPadding(0)
+        self.__slot_retick()
 
     def __decorate(self):
         self.yAxis.setBasePen(PEN_NONE)  # hack
@@ -334,40 +347,13 @@ class BarPlot(QCustomPlot):
         self.yAxis.setRange(y_min, y_max)
         self.replot()
 
+    def __slot_rerange_x(self):
+        # print("Rerange x")
+        ...
 
-class YScroller(QScrollBar):
-    """Main idea:
-    - Constant predefined width (in units; max)
-    - Dynamic page (max..min for x1..xMax)
-    """
-    def __init__(self, parent: 'BarPlotWidget'):
-        super().__init__(Qt.Vertical, parent)
-        self.__slot_zoom_changed()
-        parent.bar.signal_zoom_y_changed.connect(self.__slot_zoom_changed)
-
-    @property
-    def y_norm_min(self) -> float:
-        """Normalized (0..1) minimal window position"""
-        return 1 - (self.value() + self.pageStep()) / YSCROLL_WIDTH
-
-    @property
-    def y_norm_max(self) -> float:
-        """Normalized (0..1) maximal window position"""
-        return 1 - self.value() / YSCROLL_WIDTH
-
-    def __slot_zoom_changed(self):
-        z = self.parent().bar.zoom_y
-        if z == 1:
-            self.setPageStep(YSCROLL_WIDTH)
-            self.setMaximum(0)
-            self.setValue(0)  # note: exact in this order
-        else:
-            v0 = self.value()
-            p0 = self.pageStep()
-            p1 = round(YSCROLL_WIDTH / z)
-            self.setPageStep(p1)
-            self.setMaximum(YSCROLL_WIDTH - p1)
-            self.setValue(v0 + round((p0 - p1) / 2))
+    def __slot_retick(self):
+        self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().bar.table.oscwin.x_zoom] / 10)
+        self.replot()
 
 
 class BarPlotWidget(QWidget):
@@ -388,7 +374,41 @@ class BarPlotWidget(QWidget):
                 self.setText(f"×{z}")
                 self.adjustSize()
 
-    # TODO: add_signal
+    class YScroller(QScrollBar):
+        """Main idea:
+        - Constant predefined width (in units; max)
+        - Dynamic page (max..min for x1..xMax)
+        """
+
+        def __init__(self, parent: 'BarPlotWidget'):
+            super().__init__(Qt.Vertical, parent)
+            self.__slot_zoom_changed()
+            parent.bar.signal_zoom_y_changed.connect(self.__slot_zoom_changed)
+
+        @property
+        def y_norm_min(self) -> float:
+            """Normalized (0..1) minimal window position"""
+            return 1 - (self.value() + self.pageStep()) / YSCROLL_WIDTH
+
+        @property
+        def y_norm_max(self) -> float:
+            """Normalized (0..1) maximal window position"""
+            return 1 - self.value() / YSCROLL_WIDTH
+
+        def __slot_zoom_changed(self):
+            z = self.parent().bar.zoom_y
+            if z == 1:
+                self.setPageStep(YSCROLL_WIDTH)
+                self.setMaximum(0)
+                self.setValue(0)  # note: exact in this order
+            else:
+                v0 = self.value()
+                p0 = self.pageStep()
+                p1 = round(YSCROLL_WIDTH / z)
+                self.setPageStep(p1)
+                self.setMaximum(YSCROLL_WIDTH - p1)
+                self.setValue(v0 + round((p0 - p1) / 2))
+
     bar: 'SignalBar'
     ys: YScroller
     plot: BarPlot
@@ -398,7 +418,7 @@ class BarPlotWidget(QWidget):
         super().__init__()
         self.bar = bar
         self.plot = BarPlot(self)
-        self.ys = YScroller(self)
+        self.ys = self.YScroller(self)
         self.yzlabel = self.YZLabel(self)
         layout = QGridLayout()
         layout.addWidget(self.plot, 0, 0)
@@ -664,6 +684,53 @@ class SignalBarTable(QTableWidget):
         other_bar.gfx.plot.replot()
 
 
+class XScroller(QScrollBar):
+    signal_update_plots = pyqtSignal()
+
+    def __init__(self, parent: 'OscWindow'):
+        """
+        :param parent:
+        :type parent: ComtradeWidget
+        :note: An idea:
+        - full width = plot width (px)
+        - page size = current col1 width (px)
+        """
+        super().__init__(Qt.Horizontal, parent)
+        parent.signal_x_zoom.connect(self.__slot_update_range)
+        parent.tb.plot.signal_width_changed.connect(self.__slot_update_page)
+
+    def __slot_update_range(self):
+        """Update maximum against new x-zoom.
+        (x_width_px changed, page (px) - not)"""
+        page = self.pageStep()
+        x_width_px = self.parent().x_width_px
+        max_new = self.parent().x_width_px - self.pageStep()
+        v_new = min(
+            max_new,
+            max(
+                0,
+                round((self.value() + page / 2) / (self.maximum() + page) * x_width_px - (page / 2))
+            )
+        )
+        self.setMaximum(max_new)
+        if v_new != self.value():
+            self.setValue(v_new)  # emit signal
+        else:
+            self.signal_update_plots.emit()
+
+    def __slot_update_page(self, new_page: int):
+        """Update page against new signal windows width"""
+        x_max = self.parent().x_width_px
+        if min(new_page, self.pageStep()) < x_max:
+            if new_page > x_max:
+                new_page = x_max
+            self.setPageStep(new_page)
+            v0 = self.value()
+            self.setMaximum(self.parent().x_width_px - new_page)  # WARN: value changed w/o signal emit
+            if self.value() == v0:
+                self.signal_update_plots.emit()  # Force update plots; plan B: self.valueChanged.emit(self.value())
+
+
 class OscWindow(QWidget):
     x_zoom: int  # current X_PX_WIDTH_uS index
     x_coords: list[float]
@@ -690,14 +757,21 @@ class OscWindow(QWidget):
         self.__mk_menu(parent)
         self.__set_data(data)
         self.__update_xzoom_actions()
+        # special connections
+        self.hs.valueChanged.connect(self.tb.plot.slot_rerange)
+        self.hs.signal_update_plots.connect(self.tb.plot.slot_rerange)
 
     @property
     def x_width_ms(self) -> float:
-        return self.x_coords[-1] - self.x_coords[0]
+        retvalue = self.x_coords[-1] - self.x_coords[0]
+        # print("x_width_ms:", retvalue)
+        return retvalue
 
     @property
     def x_width_px(self) -> int:
-        return round(self.x_width_ms * 1000 * X_PX_WIDTH_uS[self.x_zoom])
+        retvalue = round(self.x_width_ms * 1000 / X_PX_WIDTH_uS[self.x_zoom])
+        # print("x_width_px:", retvalue)
+        return retvalue
 
     def __mk_widgets(self):
         self.tb = TopBar(self)
