@@ -1,31 +1,29 @@
 #!/usr/bin/env python3
-"""Sample iOsc.py prototype (new style):
+"""Sample iOsc.py prototype (new style, started 20221028):
 - [ ] FIXME: Row selection (idea: drag anchor only)
 - [ ] FIXME: Glitches
 - [ ] FIXME: DnD: replot src and dst after ...
 - [ ] FIXME: Hide full YScroller, XScroller, RStub
-- [ ] TODO: Scatters
 - [ ] TODO: Incapsulate classes
 """
 # 1. std
 from typing import Tuple, Optional
-import sys
 from dataclasses import dataclass
+import sys
 import math
 import random
-
 # 2. 3rd
 from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint
 from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QResizeEvent
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
     QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
-from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed
+from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed, QCPScatterStyle
 
 # x. const
 # - user defined
 BARS = 8  # Signals number
-SIN_SAMPLES = 72  # Samples per signal (72 = 5°)
-SIG_WIDTH = 2.0  # signals width, s
+SIN_SAMPLES = 360  # Samples per signal (72 = 5°)
+SIG_WIDTH = 1.0  # Signals width, s
 # - hardcoded
 LINE_CELL_SIZE = 3  # width of VLine column / height of HLine row
 BAR_HEIGHT = 48  # Initial SignalBarTable row height
@@ -37,6 +35,7 @@ COLORS = (Qt.black, Qt.red, Qt.green, Qt.blue, Qt.cyan, Qt.magenta, Qt.yellow, Q
 ZOOM_Y_MAX = 100  # Max Y-zoom factor
 YSCROLL_WIDTH = ZOOM_Y_MAX * 100  # Constant YScroller width, units
 X_PX_WIDTH_uS = (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000)  # Px widhts, μs
+SCATTER_BOUND_PX = 10  # limit of sample interval (px) to switch scatter style
 
 
 def y_coords(pnum: int = 1, off: int = 0) -> list[float]:
@@ -298,9 +297,9 @@ class BarPlot(QCustomPlot):
         self.__y_max = 1.1  # hack
         self.__squeeze()
         self.__decorate()
-        x_coords = parent.bar.table.oscwin.x_coords
-        self.xAxis.setRange(x_coords[0], x_coords[-1])
         self.yAxis.setRange(self.__y_min, self.__y_max)
+        # x_coords = parent.bar.table.oscwin.x_coords
+        # self.xAxis.setRange(x_coords[0], x_coords[-1])
         parent.bar.table.oscwin.hs.valueChanged.connect(self.__slot_rerange_x_force)
         parent.bar.table.oscwin.hs.signal_update_plots.connect(self.__slot_rerange_x)
         parent.bar.table.oscwin.signal_x_zoom.connect(self.__slot_retick)
@@ -341,7 +340,6 @@ class BarPlot(QCustomPlot):
         self.replot()
 
     def __slot_rerange_x(self):
-        # print("Rerange x")
         oscwin = self.parent().bar.table.oscwin
         x_coords = oscwin.x_coords
         x_width = x_coords[-1] - x_coords[0]
@@ -446,19 +444,24 @@ class BarPlotWidget(QWidget):
 
 
 class SignalSuit(QObject):
+    __oscwin: 'OscWindow'
     __signal: Signal
     __bar: Optional['SignalBar']
     num: Optional[int]
-    __label: SignalLabel
-    __graph: QCPGraph
+    __label: Optional[SignalLabel]
+    __graph: Optional[QCPGraph]
     hidden: bool
 
-    def __init__(self, signal: Signal):
+    def __init__(self, signal: Signal, oscwin: 'OscWindow'):
         super().__init__()
+        self.__oscwin = oscwin
         self.__signal = signal
         self.__bar = None
         self.num = None
+        self.__label = None
+        self.__graph = None
         self.hidden = False
+        oscwin.signal_x_zoom.connect(self.__slot_retick)
 
     def embed(self, bar: 'SignalBar', num: int):
         self.__bar = bar
@@ -481,6 +484,17 @@ class SignalSuit(QObject):
             self.__graph.setVisible(not hide)
             self.hidden = hide
             self.__bar.update_stealth()
+
+    def __slot_retick(self):
+        """Update scatter style on x-zoom change"""
+        if self.__graph:
+            now = self.__graph.scatterStyle().shape() != QCPScatterStyle.ssNone
+            need = self.__oscwin.x_sample_width_px >= SCATTER_BOUND_PX
+            if now != need:
+                self.__graph.setScatterStyle(QCPScatterStyle(
+                    QCPScatterStyle.ssPlus if need else QCPScatterStyle.ssNone
+                ))
+                self.__graph.parentPlot().replot()  # bad solution but ...
 
 
 class SignalBar(QObject):
@@ -787,6 +801,11 @@ class OscWindow(QWidget):
         # print("x_width_px:", retvalue)
         return retvalue
 
+    @property
+    def x_sample_width_px(self) -> int:
+        """Current width of samples interval in px"""
+        return round(self.x_width_px / SIN_SAMPLES)
+
     def __mk_widgets(self):
         self.tb = TopBar(self)
         self.lst1 = SignalBarTable(self)
@@ -819,7 +838,7 @@ class OscWindow(QWidget):
     def __set_data(self, data: list[Signal]):
         def __set_data_one(__tbl: SignalBarTable, __data: list[Signal]):
             for __j, __sig in enumerate(__data):
-                __tbl.bar_insert(__j).sig_add(SignalSuit(__sig))
+                __tbl.bar_insert(__j).sig_add(SignalSuit(__sig, self))
 
         n0 = len(data) // 2
         __set_data_one(self.lst1, data[:n0])
