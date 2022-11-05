@@ -4,7 +4,6 @@
 - [ ] FIXME: Glitches
 - [ ] FIXME: DnD: replot src and dst after ...
 - [ ] FIXME: Hide full YScroller, XScroller, RStub
-- [ ] TODO: Incapsulate classes
 """
 # 1. std
 from typing import Tuple, Optional
@@ -138,43 +137,6 @@ class TopBar(QWidget):
         self.__label.setFixedWidth(x + LINE_CELL_SIZE)
 
 
-class SignalLabel(QListWidgetItem):
-    ss: 'SignalSuit'
-
-    def __init__(self, ss: 'SignalSuit', parent: 'SignalLabelList'):
-        super().__init__(parent)
-        self.ss = ss
-        # self.setCursor(Qt.PointingHandCursor)  # n/a
-
-
-class SignalLabelList(QListWidget):
-
-    def __init__(self, parent: 'BarCtrlWidget'):
-        super().__init__(parent)
-        self.setDragEnabled(True)
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.__slot_context_menu)
-        self.itemClicked.connect(self.__slot_item_clicked)
-
-    def __slot_item_clicked(self, _):
-        """Deselect item on mouse up"""
-        self.clearSelection()
-
-    def __slot_context_menu(self, point: QPoint):
-        item: SignalLabel = self.itemAt(point)
-        if not item:
-            return
-        context_menu = QMenu()
-        action_sig_hide = context_menu.addAction("Hide")
-        chosen_action = context_menu.exec_(self.mapToGlobal(point))
-        if chosen_action == action_sig_hide:
-            item.ss.set_hidden(True)
-
-    @property
-    def selected_row(self) -> int:
-        return self.selectedIndexes()[0].row()
-
-
 class HLine(QFrame):  # TODO: hide into SignalBarTable
     __parent: 'BarCtrlWidget'
 
@@ -191,6 +153,40 @@ class HLine(QFrame):  # TODO: hide into SignalBarTable
 
 
 class BarCtrlWidget(QWidget):
+    class SignalLabelList(QListWidget):
+        class Item(QListWidgetItem):
+            ss: 'SignalSuit'
+
+            def __init__(self, ss: 'SignalSuit', parent: 'BarCtrlWidget.SignalLabelList'):
+                super().__init__(parent)
+                self.ss = ss
+                # self.setCursor(Qt.PointingHandCursor)  # n/a
+
+        def __init__(self, parent: 'BarCtrlWidget'):
+            super().__init__(parent)
+            self.setDragEnabled(True)
+            self.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.customContextMenuRequested.connect(self.__slot_context_menu)
+            self.itemClicked.connect(self.__slot_item_clicked)
+
+        def __slot_item_clicked(self, _):
+            """Deselect item on mouse up"""
+            self.clearSelection()
+
+        def __slot_context_menu(self, point: QPoint):
+            item: BarCtrlWidget.SignalLabelList.Item = self.itemAt(point)
+            if not item:
+                return
+            context_menu = QMenu()
+            action_sig_hide = context_menu.addAction("Hide")
+            chosen_action = context_menu.exec_(self.mapToGlobal(point))
+            if chosen_action == action_sig_hide:
+                item.ss.set_hidden(True)
+
+        @property
+        def selected_row(self) -> int:
+            return self.selectedIndexes()[0].row()
+
     class ZoomButtonBox(QWidget):
         class ZoomButton(QPushButton):
             def __init__(self, txt: str, parent: 'ZoomButtonBox'):
@@ -260,7 +256,7 @@ class BarCtrlWidget(QWidget):
     def __init__(self, bar: 'SignalBar'):
         super().__init__()  # parent will be QWidget
         self.bar = bar
-        self.lst = SignalLabelList(self)
+        self.lst = BarCtrlWidget.SignalLabelList(self)
         self.zbx = self.ZoomButtonBox(self)
         anchor = QLabel('↕', self)
         anchor.setCursor(Qt.PointingHandCursor)
@@ -280,81 +276,11 @@ class BarCtrlWidget(QWidget):
         super().mouseReleaseEvent(event)
         self.bar.table.clearSelection()
 
-    def sig_add(self, ss: 'SignalSuit') -> SignalLabel:
-        return SignalLabel(ss, self.lst)
+    def sig_add(self, ss: 'SignalSuit') -> SignalLabelList.Item:
+        return self.SignalLabelList.Item(ss, self.lst)
 
     def sig_del(self, i: int):
         self.lst.takeItem(i)
-
-
-class BarPlot(QCustomPlot):
-    __y_min: float
-    __y_max: float
-
-    def __init__(self, parent: 'BarPlotWidget'):
-        super().__init__(parent)
-        self.__y_min = -1.1  # hack
-        self.__y_max = 1.1  # hack
-        self.__squeeze()
-        self.__decorate()
-        self.yAxis.setRange(self.__y_min, self.__y_max)
-        # x_coords = parent.bar.table.oscwin.x_coords
-        # self.xAxis.setRange(x_coords[0], x_coords[-1])
-        parent.bar.table.oscwin.hs.valueChanged.connect(self.__slot_rerange_x_force)
-        parent.bar.table.oscwin.hs.signal_update_plots.connect(self.__slot_rerange_x)
-        parent.bar.table.oscwin.signal_x_zoom.connect(self.__slot_retick)
-
-    @property
-    def __y_width(self) -> float:
-        return self.__y_max - self.__y_min
-
-    def __squeeze(self):
-        ar = self.axisRect(0)  # QCPAxisRect
-        ar.setMinimumMargins(QMargins())  # the best
-        ar.removeAxis(self.xAxis2)
-        ar.removeAxis(self.yAxis2)
-        # y
-        # self.yAxis.setVisible(False)  # or cp.graph().valueAxis()
-        self.yAxis.setTickLabels(False)
-        self.yAxis.setTicks(False)
-        self.yAxis.setPadding(0)
-        self.yAxis.ticker().setTickCount(1)  # the only z-line
-        # x
-        self.xAxis.setTicker(QCPAxisTickerFixed())
-        self.xAxis.setTickLabels(False)
-        self.xAxis.setTicks(False)
-        self.xAxis.setPadding(0)
-        self.__slot_retick()
-
-    def __decorate(self):
-        self.yAxis.setBasePen(PEN_NONE)  # hack
-        self.yAxis.grid().setZeroLinePen(PEN_ZERO)
-        self.xAxis.grid().setZeroLinePen(PEN_ZERO)
-
-    def slot_rerange_y(self, _: int):
-        """Refresh plot on YScroller move"""
-        ys: QScrollBar = self.parent().ys
-        y_min = self.__y_min + self.__y_width * ys.y_norm_min
-        y_max = self.__y_min + self.__y_width * ys.y_norm_max
-        self.yAxis.setRange(y_min, y_max)
-        self.replot()
-
-    def __slot_rerange_x(self):
-        oscwin = self.parent().bar.table.oscwin
-        x_coords = oscwin.x_coords
-        x_width = x_coords[-1] - x_coords[0]
-        self.xAxis.setRange(
-            x_coords[0] + oscwin.hs.norm_min * x_width,
-            x_coords[0] + oscwin.hs.norm_max * x_width,
-        )
-
-    def __slot_rerange_x_force(self):
-        self.__slot_rerange_x()
-        self.replot()
-
-    def __slot_retick(self):
-        self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().bar.table.oscwin.x_zoom] / 10)
-        self.replot()
 
 
 class BarPlotWidget(QWidget):
@@ -374,6 +300,75 @@ class BarPlotWidget(QWidget):
                     self.show()
                 self.setText(f"×{z}")
                 self.adjustSize()
+
+    class BarPlot(QCustomPlot):
+        __y_min: float
+        __y_max: float
+
+        def __init__(self, parent: 'BarPlotWidget'):
+            super().__init__(parent)
+            self.__y_min = -1.1  # hack
+            self.__y_max = 1.1  # hack
+            self.__squeeze()
+            self.__decorate()
+            self.yAxis.setRange(self.__y_min, self.__y_max)
+            # x_coords = parent.bar.table.oscwin.x_coords
+            # self.xAxis.setRange(x_coords[0], x_coords[-1])
+            parent.bar.table.oscwin.hs.valueChanged.connect(self.__slot_rerange_x_force)
+            parent.bar.table.oscwin.hs.signal_update_plots.connect(self.__slot_rerange_x)
+            parent.bar.table.oscwin.signal_x_zoom.connect(self.__slot_retick)
+
+        @property
+        def __y_width(self) -> float:
+            return self.__y_max - self.__y_min
+
+        def __squeeze(self):
+            ar = self.axisRect(0)  # QCPAxisRect
+            ar.setMinimumMargins(QMargins())  # the best
+            ar.removeAxis(self.xAxis2)
+            ar.removeAxis(self.yAxis2)
+            # y
+            # self.yAxis.setVisible(False)  # or cp.graph().valueAxis()
+            self.yAxis.setTickLabels(False)
+            self.yAxis.setTicks(False)
+            self.yAxis.setPadding(0)
+            self.yAxis.ticker().setTickCount(1)  # the only z-line
+            # x
+            self.xAxis.setTicker(QCPAxisTickerFixed())
+            self.xAxis.setTickLabels(False)
+            self.xAxis.setTicks(False)
+            self.xAxis.setPadding(0)
+            self.__slot_retick()
+
+        def __decorate(self):
+            self.yAxis.setBasePen(PEN_NONE)  # hack
+            self.yAxis.grid().setZeroLinePen(PEN_ZERO)
+            self.xAxis.grid().setZeroLinePen(PEN_ZERO)
+
+        def slot_rerange_y(self, _: int):
+            """Refresh plot on YScroller move"""
+            ys: QScrollBar = self.parent().ys
+            y_min = self.__y_min + self.__y_width * ys.y_norm_min
+            y_max = self.__y_min + self.__y_width * ys.y_norm_max
+            self.yAxis.setRange(y_min, y_max)
+            self.replot()
+
+        def __slot_rerange_x(self):
+            oscwin = self.parent().bar.table.oscwin
+            x_coords = oscwin.x_coords
+            x_width = x_coords[-1] - x_coords[0]
+            self.xAxis.setRange(
+                x_coords[0] + oscwin.hs.norm_min * x_width,
+                x_coords[0] + oscwin.hs.norm_max * x_width,
+            )
+
+        def __slot_rerange_x_force(self):
+            self.__slot_rerange_x()
+            self.replot()
+
+        def __slot_retick(self):
+            self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().bar.table.oscwin.x_zoom] / 10)
+            self.replot()
 
     class YScroller(QScrollBar):
         """Main idea:
@@ -411,14 +406,14 @@ class BarPlotWidget(QWidget):
                 self.setValue(v0 + round((p0 - p1) / 2))
 
     bar: 'SignalBar'
-    ys: YScroller
-    plot: BarPlot
     yzlabel: YZLabel
+    plot: BarPlot
+    ys: YScroller
 
     def __init__(self, bar: 'SignalBar'):
         super().__init__()
         self.bar = bar
-        self.plot = BarPlot(self)
+        self.plot = BarPlotWidget.BarPlot(self)
         self.ys = self.YScroller(self)
         self.yzlabel = self.YZLabel(self)
         layout = QGridLayout()
@@ -448,7 +443,7 @@ class SignalSuit(QObject):
     __signal: Signal
     __bar: Optional['SignalBar']
     num: Optional[int]
-    __label: Optional[SignalLabel]
+    __label: Optional[BarCtrlWidget.SignalLabelList.Item]
     __graph: Optional[QCPGraph]
     hidden: bool
 
@@ -647,7 +642,7 @@ class SignalBarTable(QTableWidget):
             if isinstance(src_object, SignalBarTable):
                 if not over:
                     return int(src_object != self or (dst_row_num - src_object.selected_row) not in {0, 1})
-            elif isinstance(src_object, SignalLabelList):
+            elif isinstance(src_object, BarCtrlWidget.SignalLabelList):
                 if over:
                     return 2 * int(src_object.parent().bar.table != self or src_object.parent().bar.row != dst_row_num)
                 else:  # sig.Ins
