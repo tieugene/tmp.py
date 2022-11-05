@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
 - [ ] FIXME: Row selection (idea: drag anchor only)
+  + [ ] Highlight (enable drag again?)
 - [ ] FIXME: DnD: replot src and dst after ...
 - [ ] FIXME: Hide full YScroller, XScroller, RStub
 - [ ] FIXME: Glitches (x-scale)
@@ -664,17 +665,17 @@ class SignalBarTable(QTableWidget):
         - 3: signal unjoin
         """
         if dst_row_num >= 0:
-            if isinstance(src_object, SignalBarTable):
+            if isinstance(src_object, BarCtrlWidget.Anchor):
                 if not over:
-                    return int(src_object != self or (dst_row_num - src_object.selected_row) not in {0, 1})
+                    return int(
+                        src_object.parent().bar.table != self or
+                        (dst_row_num - src_object.parent().bar.row) not in {0, 1}
+                    )
             elif isinstance(src_object, BarCtrlWidget.SignalLabelList):
                 if over:
                     return 2 * int(src_object.parent().bar.table != self or src_object.parent().bar.row != dst_row_num)
                 else:  # sig.Ins
                     return 3 * int(src_object.count() > 1)
-            else:
-                ...
-                # print(src_object.metaObject().className())
         return 0
 
     def dragEnterEvent(self, event: QDragEnterEvent):
@@ -698,12 +699,13 @@ class SignalBarTable(QTableWidget):
         dst_row_num, over = self.__drop_on(event)  # SignalBarTable/SignalLabelList
         todo = self.__chk_dnd_event(src_object, dst_row_num, over)
         if todo == 1:  # Bar.Ins
-            src_object.bar_move(src_object.selected_row, self.bar_insert(dst_row_num))
+            src_object.parent().bar.table.bar_move(src_object.parent().bar.row, self.bar_insert(dst_row_num))
         elif todo == 2:  # Sig.Ovr (join, move)
             src_object.parent().bar.sig_move(src_object.selected_row, self.bars[dst_row_num])
+            src_object.clearSelection()
         elif todo == 3:  # Sig.Ins (unjoin)
             src_object.parent().bar.sig_move(src_object.selected_row, self.bar_insert(dst_row_num))
-        src_object.clearSelection()
+            src_object.clearSelection()
         event.accept()
         event.setDropAction(Qt.IgnoreAction)
 
