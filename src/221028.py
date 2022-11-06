@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Sample iOsc.py prototype (new style, started 20221028):
-- [ ] FIXME: Glitches (x-scale)
-- idea: item.row/num == item.index().row()
-"""
+"""Sample iOsc.py prototype (new style, started 20221028):"""
 # 1. std
 from typing import Tuple, Optional, Union
 from dataclasses import dataclass
