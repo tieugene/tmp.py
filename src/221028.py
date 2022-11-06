@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
 - [ ] FIXME: Row selection (idea: drag anchor only)
-  + [ ] Highlight: ovr/ins (select?)
+  + [x] Highlight: ovr/ins (mime)
   + [ ] Use QMimeType (table, bar/signal)
   + [ ] Multilevel DragMove: src type > State changed (row, over)
   + [ ] SignalLabelList.Item too
 - [ ] FIXME: DnD: replot src and dst after ...
 - [ ] FIXME: Hide full YScroller, XScroller, RStub
 - [ ] FIXME: Glitches (x-scale)
+- note: item.row/num == item.index().row()
 """
 # 1. std
 from typing import Tuple, Optional
@@ -165,7 +166,11 @@ class BarCtrlWidget(QWidget):
             self.setCursor(Qt.PointingHandCursor)
 
         def mousePressEvent(self, event: QMouseEvent):
-            def _mk_icon(__txt: str) -> QPixmap:
+            self.__start_drag(event.pos())
+
+        def __start_drag(self, pos: QPoint):
+            def _mk_icon() -> QPixmap:
+                __txt = self.parent().bar.signals[0].signal.name
                 __pix = QPixmap(64, 16)  # w, h; TODO: width == current SignalLabelList.width()
                 __pix.fill(Qt.transparent)  # TODO: border
                 __painter = QPainter(__pix)
@@ -174,10 +179,14 @@ class BarCtrlWidget(QWidget):
                 __painter.drawText(0, 8, __txt)  # x, y (baseline)
                 return __pix
 
+            def _mk_mime() -> QMimeData:
+                bar: SignalBar = self.parent().bar
+                return bar.table.mimeData([bar.table.item(bar.row, 0)])
+
             drag = QDrag(self)
-            drag.setPixmap(_mk_icon(self.parent().bar.signals[0].signal.name))
-            drag.setMimeData(QMimeData())
-            drag.setHotSpot(event.pos())
+            drag.setPixmap(_mk_icon())
+            drag.setMimeData(_mk_mime())
+            drag.setHotSpot(pos)
             drag.exec_(Qt.CopyAction | Qt.MoveAction, Qt.CopyAction)
 
     class SignalLabelList(QListWidget):
@@ -621,11 +630,11 @@ class SignalBarTable(QTableWidget):
         self.setVerticalScrollMode(self.ScrollPerPixel)
         self.setShowGrid(False)
         # selection
-        # self.setSelectionMode(self.NoSelection)
-        # self.setSelectionMode(self.SingleSelection)
+        self.setSelectionMode(self.NoSelection)  # specialy for Anchor
+        # self.setSelectionMode(self.SingleSelection)  # default
         # self.setSelectionBehavior(self.SelectRows)
         # DnD
-        self.setDragEnabled(True)
+        # self.setDragEnabled(True)  # default=False for Anchor
         self.setAcceptDrops(True)
         self.setDragDropOverwriteMode(False)
         # self.setDragDropMode(self.DragDrop)
@@ -682,7 +691,10 @@ class SignalBarTable(QTableWidget):
         return 0
 
     def dragEnterEvent(self, event: QDragEnterEvent):
-        event.accept()
+        mime = event.mimeData()
+        # print(mime.formats())  # ['application/x-qabstractitemmodeldatalist']
+        super().dragEnterEvent(event)  # paint decoration (not works w Anchor)
+        event.accept()  # hack (enable Anchor)
 
     def dragMoveEvent(self, event: QDragMoveEvent):
         super().dragMoveEvent(event)  # paint decoration (not works w Anchor)
