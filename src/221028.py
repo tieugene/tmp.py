@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
-- [ ] FIXME: Glitches (x-scale)
 - [ ] TODO: Custom SignalLabelList.Item QDrag()
+- [ ] FIXME: Glitches (x-scale)
 - idea: item.row/num == item.index().row()
 """
 # 1. std
@@ -20,12 +20,12 @@ from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed, QCP
 
 # x. const
 # - user defined
-BARS = 8  # Signals number
-SIN_SAMPLES = 360  # Samples per signal (72 = 5°)
+BARS = 6  # Signals number
+SIG_SAMPLES = 360  # Sample intervals per signal
 SIG_WIDTH = 1.0  # Signals width, s
 # - hardcoded
-LINE_CELL_SIZE = 3  # width of VLine column / height of HLine row
-BAR_HEIGHT = 48  # Initial SignalBarTable row height
+LINE_CELL_SIZE = 1  # width of VLine column / height of HLine row
+BAR_HEIGHT = 50  # Initial SignalBarTable row height
 COL_CTRL_WIDTH_INIT = 100  # Initial BarCtrlWidget column width
 COL_CTRL_WIDTH_MIN = 50  # Minimal BarCtrlWidget column width
 PEN_NONE = QPen(QColor(255, 255, 255, 0))
@@ -45,7 +45,7 @@ def y_coords(pnum: int = 1, off: int = 0) -> list[float]:
     :param off: Offset (samples)
     :return: Y-coords
     """
-    return [round(math.sin((i + off) / SIN_SAMPLES * 2 * math.pi * pnum), 3) for i in range(SIN_SAMPLES + 1)]
+    return [round(math.sin((i + off) / SIG_SAMPLES * 2 * math.pi * pnum), 3) for i in range(SIG_SAMPLES + 1)]
 
 
 @dataclass
@@ -836,8 +836,8 @@ class OscWindow(QWidget):
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
         self.x_zoom = len(X_PX_WIDTH_uS) - 1  # initial: max
-        # self.x_coords = [SIG_WIDTH * 1000 / SIN_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIN_SAMPLES + 1)]
-        self.x_coords = [(SIG_WIDTH * i / SIN_SAMPLES - SIG_WIDTH / 2) * 1000 for i in range(SIN_SAMPLES + 1)]
+        # self.x_coords = [SIG_WIDTH * 1000 / SIG_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIG_SAMPLES + 1)]
+        self.x_coords = [(SIG_WIDTH * i / SIG_SAMPLES - SIG_WIDTH / 2) * 1000 for i in range(SIG_SAMPLES + 1)]
         self.__mk_widgets()
         self.__mk_layout()
         self.__mk_actions()
@@ -863,7 +863,7 @@ class OscWindow(QWidget):
     @property
     def x_sample_width_px(self) -> int:
         """Current width of samples interval in px"""
-        return round(self.x_width_px / SIN_SAMPLES)
+        return round(self.x_width_px / SIG_SAMPLES)
 
     def __mk_widgets(self):
         self.tb = TopBar(self)
@@ -939,7 +939,7 @@ class MainWindow(QMainWindow):
             num=i,
             name=f"sig{i}",
             pnum=random.randint(1, 5),
-            off=random.randint(0, SIN_SAMPLES - 1),
+            off=random.randint(0, SIG_SAMPLES - 1),
             color=COLORS[random.randint(0, len(COLORS) - 1)]
         ) for i in range(BARS)]
         self.cw = OscWindow(data, self)
