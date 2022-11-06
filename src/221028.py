@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
-- [ ] TODO: Custom SignalLabelList.Item QDrag()
 - [ ] FIXME: Glitches (x-scale)
 - idea: item.row/num == item.index().row()
 """
 # 1. std
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 from dataclasses import dataclass
 import sys
 import math
@@ -15,7 +14,8 @@ from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint, QMime
 from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QResizeEvent, \
     QPixmap, QDrag, QDragEnterEvent, QPainter, QFontMetrics
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction, QStyle
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction, \
+    QStyle, QCommonStyle
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed, QCPScatterStyle
 
 # x. const
@@ -108,6 +108,7 @@ class TopBar(QWidget):
         def __init__(self, parent: 'TopBar' = None):
             super().__init__(Qt.Vertical, parent)
             self.setFixedHeight(0)
+            # self.setStyle(QCommonStyle())  # black
 
     __label: QLabel
     plot: TopPlot
@@ -125,9 +126,7 @@ class TopBar(QWidget):
         self.layout().addWidget(self.RStub())
         # decorate
         # self.__label.setFrameShape(QFrame.Box)
-        # self.__stub.setStyle(QCommonStyle())
         # squeeze
-        # self.setContentsMargins(QMargins())
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
         self.__label.setContentsMargins(QMargins())
@@ -139,7 +138,7 @@ class TopBar(QWidget):
         self.__label.setFixedWidth(x + LINE_CELL_SIZE)
 
 
-class HLine(QFrame):  # TODO: hide into SignalBarTable
+class HLine(QFrame):
     __parent: 'BarCtrlWidget'
 
     def __init__(self, parent: 'BarCtrlWidget'):
@@ -164,7 +163,7 @@ class BarCtrlWidget(QWidget):
         def mousePressEvent(self, _: QMouseEvent):
             self.__start_drag()
 
-        def __start_drag(self):  # , event: QMouseEvent
+        def __start_drag(self):
             def _mk_icon() -> QPixmap:
                 __txt = self.parent().bar.signals[0].signal.name
                 br = QFontMetrics(FONT_DND).boundingRect(__txt)  # sig0 = 1, -11, 55, 14
@@ -222,6 +221,26 @@ class BarCtrlWidget(QWidget):
         @property
         def selected_row(self) -> int:
             return self.selectedIndexes()[0].row()
+
+        def startDrag(self, supported_actions: Union[Qt.DropActions, Qt.DropAction]):
+            def _mk_icon() -> QPixmap:
+                __txt = self.currentItem().ss.signal.name
+                br = QFontMetrics(FONT_DND).boundingRect(__txt)  # sig0 = 1, -11, 55, 14
+                __pix = QPixmap(br.width() + 1, br.height() + 1)
+                __pix.fill(Qt.transparent)
+                __painter = QPainter(__pix)
+                __painter.setFont(FONT_DND)
+                __painter.setPen(QPen(Qt.black))
+                __painter.drawText(br.x(), -br.y(), __txt)
+                return __pix
+
+            def _mk_mime() -> QMimeData:
+                return self.mimeData([self.currentItem()])
+
+            drag = QDrag(self)
+            drag.setPixmap(_mk_icon())
+            drag.setMimeData(_mk_mime())
+            drag.exec_(Qt.MoveAction, Qt.MoveAction)
 
     class ZoomButtonBox(QWidget):
         class ZoomButton(QPushButton):
@@ -306,11 +325,6 @@ class BarCtrlWidget(QWidget):
         self.setLayout(layout)
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
-
-    # def mouseReleaseEvent(self, event: QMouseEvent):  # FIXME: not need
-    #    """Deselect item on mouse up"""
-    #    super().mouseReleaseEvent(event)
-    #    self.bar.table.clearSelection()
 
     def sig_add(self, ss: 'SignalSuit') -> SignalLabelList.Item:
         return self.SignalLabelList.Item(ss, self.lst)
@@ -466,13 +480,7 @@ class BarPlotWidget(QWidget):
         self.setLayout(layout)
         self.layout().setContentsMargins(QMargins())
         self.layout().setSpacing(0)
-        # parent.bar.signal_zoom_y_changed.connect(self.__update_buttons)
         self.ys.valueChanged.connect(self.plot.slot_rerange_y)
-
-    # def mouseReleaseEvent(self, event: QMouseEvent):
-    #    """Deselect item on mouse up"""
-    #    super().mouseReleaseEvent(event)
-    #    self.bar.table.clearSelection()
 
     def sig_add(self) -> QCPGraph:
         return self.plot.addGraph()
@@ -641,7 +649,6 @@ class SignalBarTable(QTableWidget):
         self.setShowGrid(False)
         # selection
         self.setSelectionMode(self.NoSelection)  # default=SingleSelection
-        # self.setSelectionBehavior(self.SelectRows)
         # DnD
         # self.setDragEnabled(True)  # default=False
         self.setAcceptDrops(True)
@@ -712,7 +719,6 @@ class SignalBarTable(QTableWidget):
         dst_row_num, over = self.__drop_on(event)
         # TODO: cache prev
         if self.__chk_dnd_event(event.source(), dst_row_num, over):
-            event.setDropAction(Qt.MoveAction)
             event.accept()
         else:
             event.ignore()
@@ -737,10 +743,6 @@ class SignalBarTable(QTableWidget):
 
     def __slot_resize_col_ctrl(self, x: int):
         self.setColumnWidth(0, x)
-
-    @property
-    def selected_row(self) -> int:  # FIXME: not required w/ Anchor
-        return self.selectedIndexes()[0].row()
 
     def bar_insert(self, row: int = -1) -> SignalBar:
         bar = SignalBar(self, row)
@@ -821,7 +823,6 @@ class OscWindow(QWidget):
     x_zoom: int  # current X_PX_WIDTH_uS index
     x_coords: list[float]
     tb: TopBar
-    # cb: QWidget
     lst1: SignalBarTable
     lst2: SignalBarTable
     hs: XScroller
@@ -836,7 +837,6 @@ class OscWindow(QWidget):
     def __init__(self, data: list[Signal], parent: QMainWindow):
         super().__init__(parent)
         self.x_zoom = len(X_PX_WIDTH_uS) - 1  # initial: max
-        # self.x_coords = [SIG_WIDTH * 1000 / SIG_SAMPLES * i - SIG_WIDTH / 500 for i in range(SIG_SAMPLES + 1)]
         self.x_coords = [(SIG_WIDTH * i / SIG_SAMPLES - SIG_WIDTH / 2) * 1000 for i in range(SIG_SAMPLES + 1)]
         self.__mk_widgets()
         self.__mk_layout()
@@ -850,15 +850,11 @@ class OscWindow(QWidget):
 
     @property
     def x_width_ms(self) -> float:
-        retvalue = self.x_coords[-1] - self.x_coords[0]
-        # print("x_width_ms:", retvalue)
-        return retvalue
+        return self.x_coords[-1] - self.x_coords[0]
 
     @property
     def x_width_px(self) -> int:
-        retvalue = round(self.x_width_ms * 1000 / X_PX_WIDTH_uS[self.x_zoom])
-        # print("x_width_px:", retvalue)
-        return retvalue
+        return round(self.x_width_ms * 1000 / X_PX_WIDTH_uS[self.x_zoom])
 
     @property
     def x_sample_width_px(self) -> int:
@@ -915,7 +911,6 @@ class OscWindow(QWidget):
         """Set X-zoom actions availability"""
         self.act_x_zoom_in.setEnabled(self.x_zoom > 0)
         self.act_x_zoom_out.setEnabled(self.x_zoom < (len(X_PX_WIDTH_uS) - 1))
-        # print("X-zoom:", self.x_zoom)
 
     def __do_xzoom(self, dxz: int = 0):
         if 0 <= self.x_zoom + dxz < len(X_PX_WIDTH_uS):
