@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
-- [ ] FIXME: SignalLabelList.hscroll off
 - [ ] FIXME: DnD: replot src and dst after ...
 - [ ] FIXME: Hide full YScroller, XScroller, RStub
 - [ ] FIXME: Glitches (x-scale)
@@ -202,6 +201,8 @@ class BarCtrlWidget(QWidget):
         def __init__(self, parent: 'BarCtrlWidget'):
             super().__init__(parent)
             self.setDragEnabled(True)
+            self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            self.setVerticalScrollMode(self.ScrollPerPixel)
             self.setContextMenuPolicy(Qt.CustomContextMenu)
             self.customContextMenuRequested.connect(self.__slot_context_menu)
             self.itemClicked.connect(self.__slot_item_clicked)
