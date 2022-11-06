@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
-- [ ] FIXME: DnD: replot src and dst after ...
-- [ ] FIXME: Hide full YScroller, XScroller, RStub
+- [ ] FIXME: Hide scroller:
+  + [ ] full YScroller
+  + [ ] full XScroller
+  + [ ] RStub
 - [ ] FIXME: Glitches (x-scale)
 - [ ] TODO: Custom SignalLabelList.Item QDrag()
 - idea: item.row/num == item.index().row()
@@ -408,6 +410,11 @@ class BarPlotWidget(QWidget):
             self.xAxis.ticker().setTickStep(X_PX_WIDTH_uS[self.parent().bar.table.oscwin.x_zoom] / 10)
             self.replot()
 
+        def slot_refresh(self):
+            """Refresh plot after bar/signal moves"""
+            self.__slot_rerange_x()
+            self.__slot_retick()
+
     class YScroller(QScrollBar):
         """Main idea:
         - Constant predefined width (in units; max)
@@ -504,10 +511,13 @@ class SignalSuit(QObject):
         self.__graph = self.__bar.gfx.sig_add()
         self.__graph.setData(self.__bar.table.oscwin.x_coords, y_coords(self.signal.pnum, self.signal.off), True)
         self.__graph.setPen(QPen(self.signal.color))
+        self.__graph.parentPlot().slot_refresh()
+        self.__slot_retick()
 
     def detach(self):
         self.__bar.ctrl.sig_del(self.num)
         self.__bar.gfx.sig_del(self.__graph)
+        self.__bar.gfx.plot.replot()
         self.num = None
         self.__bar = None
 
