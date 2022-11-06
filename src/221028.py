@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
-- [ ] FIXME: Hide scroller:
-  + [ ] full YScroller
-  + [ ] full XScroller
-  + [ ] RStub
 - [ ] FIXME: Glitches (x-scale)
 - [ ] TODO: Custom SignalLabelList.Item QDrag()
 - idea: item.row/num == item.index().row()
@@ -19,14 +15,14 @@ from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint, QMime
 from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QResizeEvent, \
     QPixmap, QDrag, QDragEnterEvent, QPainter, QFontMetrics
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction, QStyle
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed, QCPScatterStyle
 
 # x. const
 # - user defined
 BARS = 8  # Signals number
 SIN_SAMPLES = 360  # Samples per signal (72 = 5°)
-SIG_WIDTH = 2.0  # Signals width, s
+SIG_WIDTH = 1.0  # Signals width, s
 # - hardcoded
 LINE_CELL_SIZE = 3  # width of VLine column / height of HLine row
 BAR_HEIGHT = 48  # Initial SignalBarTable row height
@@ -442,6 +438,7 @@ class BarPlotWidget(QWidget):
                 self.setPageStep(YSCROLL_WIDTH)
                 self.setMaximum(0)
                 self.setValue(0)  # note: exact in this order
+                self.setEnabled(False)
             else:
                 v0 = self.value()
                 p0 = self.pageStep()
@@ -449,6 +446,7 @@ class BarPlotWidget(QWidget):
                 self.setPageStep(p1)
                 self.setMaximum(YSCROLL_WIDTH - p1)
                 self.setValue(v0 + round((p0 - p1) / 2))
+                self.setEnabled(True)
 
     bar: 'SignalBar'
     yzlabel: YZLabel
@@ -782,6 +780,9 @@ class XScroller(QScrollBar):
         """Normalized (0..1) right page position"""
         return (self.value() + self.pageStep()) / (self.maximum() + self.pageStep())
 
+    def __update_enabled(self):
+        self.setEnabled(self.maximum() > 0)
+
     def __slot_update_range(self):
         """Update maximum against new x-zoom.
         (x_width_px changed, page (px) - not)"""
@@ -800,6 +801,7 @@ class XScroller(QScrollBar):
             self.setValue(v_new)  # emit signal
         else:
             self.signal_update_plots.emit()
+        self.__update_enabled()
 
     def __slot_update_page(self, new_page: int):
         """Update page against new signal windows width"""
@@ -812,6 +814,7 @@ class XScroller(QScrollBar):
             self.setMaximum(self.parent().x_width_px - new_page)  # WARN: value changed w/o signal emit
             if self.value() == v0:
                 self.signal_update_plots.emit()  # Force update plots; plan B: self.valueChanged.emit(self.value())
+        self.__update_enabled()
 
 
 class OscWindow(QWidget):
