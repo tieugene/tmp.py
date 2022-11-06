@@ -11,8 +11,7 @@ from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint, QMime
 from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QResizeEvent, \
     QPixmap, QDrag, QDragEnterEvent, QPainter, QFontMetrics
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction, \
-    QStyle, QCommonStyle
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed, QCPScatterStyle
 
 # x. const
