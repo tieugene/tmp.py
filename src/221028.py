@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Sample iOsc.py prototype (new style, started 20221028):
 - [ ] FIXME: Row selection (idea: drag anchor only)
-  + [ ] Highlight (enable drag again?)
+  + [ ] Highlight: ovr/ins (select?)
+  + [ ] Use QMimeType (table, bar/signal)
+  + [ ] Multilevel DragMove: src type > State changed (row, over)
+  + [ ] SignalLabelList.Item too
 - [ ] FIXME: DnD: replot src and dst after ...
 - [ ] FIXME: Hide full YScroller, XScroller, RStub
 - [ ] FIXME: Glitches (x-scale)
@@ -163,8 +166,8 @@ class BarCtrlWidget(QWidget):
 
         def mousePressEvent(self, event: QMouseEvent):
             def _mk_icon(__txt: str) -> QPixmap:
-                __pix = QPixmap(64, 16)  # w, h
-                __pix.fill(Qt.transparent)
+                __pix = QPixmap(64, 16)  # w, h; TODO: width == current SignalLabelList.width()
+                __pix.fill(Qt.transparent)  # TODO: border
                 __painter = QPainter(__pix)
                 __painter.setFont(QFont('mono', 8))
                 __painter.setPen(QPen(Qt.black))
@@ -618,14 +621,14 @@ class SignalBarTable(QTableWidget):
         self.setVerticalScrollMode(self.ScrollPerPixel)
         self.setShowGrid(False)
         # selection
-        self.setSelectionMode(self.NoSelection)
+        # self.setSelectionMode(self.NoSelection)
         # self.setSelectionMode(self.SingleSelection)
         # self.setSelectionBehavior(self.SelectRows)
         # DnD
-        # self.setDragEnabled(True)
+        self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDragDropOverwriteMode(False)
-        self.setDragDropMode(self.DropOnly)
+        # self.setDragDropMode(self.DragDrop)
         # signals/slot
         self.oscwin.signal_resize_col_ctrl.connect(self.__slot_resize_col_ctrl)
 
@@ -682,7 +685,7 @@ class SignalBarTable(QTableWidget):
         event.accept()
 
     def dragMoveEvent(self, event: QDragMoveEvent):
-        super().dragMoveEvent(event)  # paint decoration
+        super().dragMoveEvent(event)  # paint decoration (not works w Anchor)
         src_object = event.source()
         dst_row_num, over = self.__drop_on(event)  # SignalBarTable/SignalLabelList
         if self.__chk_dnd_event(src_object, dst_row_num, over):
