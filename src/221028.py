@@ -11,7 +11,8 @@ from PyQt5.QtCore import Qt, QObject, QMargins, QRect, pyqtSignal, QPoint, QMime
 from PyQt5.QtGui import QMouseEvent, QPen, QColorConstants, QColor, QFont, QDropEvent, QDragMoveEvent, QResizeEvent, \
     QPixmap, QDrag, QDragEnterEvent, QPainter, QFontMetrics
 from PyQt5.QtWidgets import QListWidgetItem, QListWidget, QWidget, QMainWindow, QVBoxLayout, QApplication, QSplitter, \
-    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction
+    QPushButton, QHBoxLayout, QTableWidget, QFrame, QHeaderView, QLabel, QScrollBar, QGridLayout, QMenu, QAction, \
+    QStyle, QStyleOption, QProxyStyle
 from QCustomPlot2 import QCustomPlot, QCPGraph, QCPAxis, QCPAxisTickerFixed, QCPScatterStyle
 
 # x. const
@@ -623,6 +624,19 @@ class SignalBar(QObject):
 
 
 class SignalBarTable(QTableWidget):
+    class DropmarkerStyle(QProxyStyle):
+        def drawPrimitive(
+                self,
+                element: QStyle.PrimitiveElement,
+                option: QStyleOption,
+                painter: QPainter,
+                widget: QWidget = None) -> None:
+            if element == self.PE_IndicatorItemViewItemDrop and not option.rect.isNull():
+                pen = painter.pen()
+                pen.setColor(Qt.red)
+                painter.setPen(pen)
+            super().drawPrimitive(element, option, painter, widget)
+
     oscwin: 'OscWindow'
     bars: list[SignalBar]
 
@@ -643,6 +657,7 @@ class SignalBarTable(QTableWidget):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setVerticalScrollMode(self.ScrollPerPixel)
         self.setShowGrid(False)
+        self.setStyle(self.DropmarkerStyle())
         # selection
         self.setSelectionMode(self.NoSelection)  # default=SingleSelection
         # DnD
