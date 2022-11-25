@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
     QGraphicsItemGroup
 
 # x. const
+DataValue = Tuple[str, int, QColor]
 PPP = 5  # plots per page
 POINTS = 12
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
@@ -39,7 +40,7 @@ def mk_sin(o: int = 0) -> list[float]:
 
 
 class Graph(QGraphicsPathItem):
-    def __init__(self, d: tuple[str, int, QColor], parent: QGraphicsItem = None):
+    def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
         pg = QPolygonF([QPointF(x * 50, y * 100) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
@@ -68,14 +69,14 @@ class ViewWindow(QDialog):
 
         class RowItem(QGraphicsItemGroup):
             class LabelItem(QGraphicsSimpleTextItem):
-                def __init__(self, txt: str, parent: QGraphicsItem = None):
-                    super().__init__(txt, parent)
+                def __init__(self, d: DataValue, parent: QGraphicsItem = None):
+                    super().__init__(d[0], parent)
                     self.setFont(FONT_MAIN)
                     self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
-            def __init__(self, d: Tuple[str, int, QColor], parent: QGraphicsItem = None):
+            def __init__(self, d: DataValue, parent: QGraphicsItem = None):
                 super().__init__(parent)
-                label = self.LabelItem(d[0])
+                label = self.LabelItem(d)
                 self.addToGroup(label)
                 graph = Graph(d)
                 graph.setX(W_LABEL)

@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Test of rescaling print (and multipage)."""
+"""Test of rescaling print (and multipage).
+- [x] grid lines
+- [ ] cut labels
+- [ ] resize plots
+"""
 # 1. std
 import math
 import sys
 from typing import Tuple
-
 # 2. 3rd
-from PyQt5.QtCore import Qt, QPointF, QSizeF, QRectF
+from PyQt5.QtCore import Qt, QPointF, QSizeF, QRectF, QRect, QMargins
 from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
     QGraphicsView, QGraphicsScene, QGraphicsPathItem, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, \
-    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QGraphicsItem, QGraphicsProxyWidget
+    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QGraphicsItem, QGraphicsProxyWidget, QFrame, QWidget
 
 # x. const
+DataValue = Tuple[str, int, QColor]
 PPP = 5  # plots per page
 POINTS = 12
 DATA = (  # name, x-offset, color
@@ -35,7 +39,7 @@ def mk_sin(o: int = 0) -> list[float]:
 
 
 class Graph(QGraphicsPathItem):
-    def __init__(self, d: Tuple[str, int, QColor], parent: QGraphicsItem = None):
+    def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
         pg = QPolygonF([QPointF(x * 50, y * 100) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
@@ -48,43 +52,80 @@ class Graph(QGraphicsPathItem):
 
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
-        class TextGridWidget(QGraphicsProxyWidget):
-            def __init__(self, txt: str):
+        class HLineGridWidget(QGraphicsProxyWidget):
+            def __init__(self):
                 super().__init__()
-                self.setWidget(QLabel(txt))
+                self.setWidget(w := QFrame())
+                w.setFrameShape(QFrame.HLine)
+
+        class VLineGridWidget(QGraphicsProxyWidget):
+            def __init__(self):
+                super().__init__()
+                self.setWidget(w := QFrame())
+                w.setFrameShape(QFrame.VLine)
+
+        class TextGridWidget(QGraphicsProxyWidget):
+            def __init__(self, d: DataValue):
+                super().__init__()
+                self.setWidget(QLabel(d[0]))
                 self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
         class TextGridItem(QGraphicsLayoutItem):
             __subj: QGraphicsSimpleTextItem
 
-            def __init__(self, txt: str):
+            def __init__(self, d: DataValue):
                 super().__init__()
-                self.__subj = QGraphicsSimpleTextItem(txt)  # must be alive forewer
+                self.__subj = QGraphicsSimpleTextItem(d[0])  # must be alive forewer
                 self.setGraphicsItem(self.__subj)
                 self.graphicsItem().setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # Not helps
+                # replace/help sizeHint()  (not helps)
+                # size = self.__subj.boundingRect().size()
+                # self.setMinimumWidth(size.width())
+                # self.setMinimumHeight(size.height())
 
             def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
-                return self.__subj.boundingRect().size()
+                if which in {Qt.MinimumSize, Qt.PreferredSize}:
+                    return self.__subj.boundingRect().size()
+                return constraint
 
             def setGeometry(self, rect: QRectF):
+                self.__subj.prepareGeometryChange()
+                super().setGeometry(rect)
                 self.__subj.setPos(rect.topLeft())
+                # TODO: cut
 
         class PlotGridItem(QGraphicsLayoutItem):
             __subj: Graph
 
-            def __init__(self, d: Tuple[str, int, QColor]):
+            def __init__(self, d: DataValue):
                 super().__init__()
                 self.__subj = Graph(d)
                 self.setGraphicsItem(self.__subj)
+
+            def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+                return constraint
+
+            def setGeometry(self, rect: QRectF):
+                self.__subj.prepareGeometryChange()
+                super().setGeometry(rect)
+                self.__subj.setPos(rect.topLeft())
+                # FIXME: set size
 
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
             lt = QGraphicsGridLayout()
-            for i, d in enumerate(DATA[:2]):
-                # lt.addItem(self.TextGridWidget(d[0]), i, 0)  # ok
-                lt.addItem(self.TextGridItem(d[0]), i, 0)  # overwrite
-                # lt.addItem(self.PlotGridItem(), 0, 1)
+            lt.setSpacing(0)
+            lt.setContentsMargins(0, 0, 0, 0)
+            lt.addItem(self.HLineGridWidget(), 0, 0, 1, 5)
+            for i, d in enumerate(DATA[:3]):
+                row = i * 2 + 1
+                # lt.addItem(self.TextGridWidget(d[0]), i, 0)  # plan A
+                lt.addItem(self.TextGridItem(d), row, 1)  # plan B
+                lt.addItem(self.PlotGridItem(d), row, 3)
+                for c in (0, 2, 4):
+                    lt.addItem(self.VLineGridWidget(), row, c)
+                lt.addItem(self.HLineGridWidget(), row + 1, 0, 1, 5)
             gw = QGraphicsWidget()
             gw.setLayout(lt)
             self.scene().addItem(gw)
