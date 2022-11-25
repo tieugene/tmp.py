@@ -3,12 +3,14 @@
 # 1. std
 import math
 import sys
+from typing import Tuple
+
 # 2. 3rd
-from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtCore import Qt, QPointF, QSizeF, QRectF
 from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
     QGraphicsView, QGraphicsScene, QGraphicsPathItem, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, \
-    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QGraphicsItem
+    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QGraphicsItem, QGraphicsProxyWidget
 
 # x. const
 PPP = 5  # plots per page
@@ -32,30 +34,60 @@ def mk_sin(o: int = 0) -> list[float]:
     return [(1 + math.sin((i + o) * 2 * math.pi / POINTS)) / 2 for i in range(POINTS + 1)]
 
 
+class Graph(QGraphicsPathItem):
+    def __init__(self, d: Tuple[str, int, QColor], parent: QGraphicsItem = None):
+        super().__init__(parent)
+        pg = QPolygonF([QPointF(x * 50, y * 100) for x, y in enumerate(mk_sin(d[1]))])
+        pp = QPainterPath()
+        pp.addPolygon(pg)
+        self.setPath(pp)
+        pen = QPen(d[2])
+        pen.setCosmetic(True)  # !!! don't resize pen width
+        self.setPen(pen)
+
+
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
-        class PlotGridItem(QGraphicsLayoutItem):
-            subj: QGraphicsSimpleTextItem
-
-            def __init__(self):
+        class TextGridWidget(QGraphicsProxyWidget):
+            def __init__(self, txt: str):
                 super().__init__()
-                self.subj = QGraphicsSimpleTextItem("trititi")
-                self.subj.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # Not helps
-                self.setGraphicsItem(self.subj)
-                self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # Not helps
+                self.setWidget(QLabel(txt))
+                self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+
+        class TextGridItem(QGraphicsLayoutItem):
+            __subj: QGraphicsSimpleTextItem
+
+            def __init__(self, txt: str):
+                super().__init__()
+                self.__subj = QGraphicsSimpleTextItem(txt)  # must be alive forewer
+                self.setGraphicsItem(self.__subj)
+                self.graphicsItem().setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # Not helps
+
+            def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+                return self.__subj.boundingRect().size()
+
+            def setGeometry(self, rect: QRectF):
+                self.__subj.setPos(rect.topLeft())
+
+        class PlotGridItem(QGraphicsLayoutItem):
+            __subj: Graph
+
+            def __init__(self, d: Tuple[str, int, QColor]):
+                super().__init__()
+                self.__subj = Graph(d)
+                self.setGraphicsItem(self.__subj)
 
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
-            scene = QGraphicsScene()
-            txt = scene.addWidget(QLabel("tratata"))
+            self.setScene(QGraphicsScene())
             lt = QGraphicsGridLayout()
-            # WARN: нельзя просто так добавить QGraphicsItem; только QWidget или QGRaphicsLayoutItem
-            lt.addItem(txt, 0, 0)
-            # lt.addItem(self.PlotGridItem(), 0, 1)
+            for i, d in enumerate(DATA[:2]):
+                # lt.addItem(self.TextGridWidget(d[0]), i, 0)  # ok
+                lt.addItem(self.TextGridItem(d[0]), i, 0)  # overwrite
+                # lt.addItem(self.PlotGridItem(), 0, 1)
             gw = QGraphicsWidget()
             gw.setLayout(lt)
-            scene.addItem(gw)
-            self.setScene(scene)
+            self.scene().addItem(gw)
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             self.fitInView(self.sceneRect(), Qt.IgnoreAspectRatio)  # expand to max
@@ -72,15 +104,7 @@ class MainWidget(QTableWidget):
             super().__init__()
             self.setScene(QGraphicsScene())
             self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
-            pg = QPolygonF([QPointF(x, y) for x, y in enumerate(mk_sin(d[1]))])
-            pp = QPainterPath()
-            pp.addPolygon(pg)
-            gpi = QGraphicsPathItem()
-            gpi.setPath(pp)
-            pen = QPen(d[2])
-            pen.setCosmetic(True)  # !!! don't resize pen width
-            gpi.setPen(pen)
-            self.scene().addItem(gpi)
+            self.scene().addItem(Graph(d))
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             # super().resizeEvent(event)

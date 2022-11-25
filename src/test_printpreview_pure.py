@@ -10,13 +10,15 @@ from PyQt5.QtCore import Qt, QPointF, QRectF
 from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen, QFont, QPainter, QTransform, QRegion
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
     QGraphicsView, QGraphicsScene, QGraphicsPathItem, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, \
-    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QWidget, QStyleOptionGraphicsItem, QGraphicsItem
+    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QWidget, QStyleOptionGraphicsItem, QGraphicsItem, \
+    QGraphicsItemGroup
 
 # x. const
 PPP = 5  # plots per page
 POINTS = 12
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
 FONT_MAIN = QFont('mono', 8)
+W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
     ("Signal 1", 0, Qt.black),
     ("Signal 2", 1, Qt.yellow),
@@ -36,6 +38,18 @@ def mk_sin(o: int = 0) -> list[float]:
     return [(1 + math.sin((i + o) * 2 * math.pi / POINTS)) / 2 for i in range(POINTS + 1)]
 
 
+class Graph(QGraphicsPathItem):
+    def __init__(self, d: tuple[str, int, QColor], parent: QGraphicsItem = None):
+        super().__init__(parent)
+        pg = QPolygonF([QPointF(x * 50, y * 100) for x, y in enumerate(mk_sin(d[1]))])
+        pp = QPainterPath()
+        pp.addPolygon(pg)
+        self.setPath(pp)
+        pen = QPen(d[2])
+        pen.setCosmetic(True)  # !!! don't resize pen width
+        self.setPen(pen)
+
+
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
         class HeaderItem(QGraphicsSimpleTextItem):
@@ -43,33 +57,29 @@ class ViewWindow(QDialog):
             - [x] TODO: disable scaling
             - [ ] TODO: disable v-resize
             Warn: on resize:
-            - not changed: boundingRect() (126, 42)
+            - not changed: boundingRect(), pos(), scenePos()
             - not call: deviceTransform(), itemTransform(), transform(), boundingRegion()
             - call: paint()
             """
-            def __init__(self):
-                super().__init__(HEADER_TXT)
+            def __init__(self, parent: QGraphicsItem = None):
+                super().__init__(HEADER_TXT, parent)
                 self.setFont(FONT_MAIN)
                 self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # disable scaling
-                # print("Header:", self.boundingRect().size().toSize())
 
-            def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
-                p = self.pos().toPoint()
-                sp = self.scenePos().toPoint()
-                # print(f"paint: p=({p.x()}, {p.y()}), sp=({sp.x()}, {sp.y()})")
-                super().paint(painter, option, widget)
-                # painter.drawText(0, 0, self.text())
+        class RowItem(QGraphicsItemGroup):
+            class LabelItem(QGraphicsSimpleTextItem):
+                def __init__(self, txt: str, parent: QGraphicsItem = None):
+                    super().__init__(txt, parent)
+                    self.setFont(FONT_MAIN)
+                    self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
-        class LabelItem(QGraphicsSimpleTextItem):
-            def __init__(self, txt: str):
-                super().__init__(txt)
-                self.setFont(FONT_MAIN)
-
-            def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
-                p = self.pos().toPoint()
-                sp = self.scenePos().toPoint()
-                print(f"paint: p=({p.x()}, {p.y()}), sp=({sp.x()}, {sp.y()})")
-                super().paint(painter, option, widget)
+            def __init__(self, d: Tuple[str, int, QColor], parent: QGraphicsItem = None):
+                super().__init__(parent)
+                label = self.LabelItem(d[0])
+                self.addToGroup(label)
+                graph = Graph(d)
+                graph.setX(W_LABEL)
+                self.addToGroup(graph)
 
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
@@ -77,9 +87,9 @@ class ViewWindow(QDialog):
             header = self.HeaderItem()
             y = header.boundingRect().height()
             self.scene().addItem(header)
-            for r, d in enumerate(DATA):
-                item = self.LabelItem(d[0])
-                item.setPos(0, y)
+            for r, d in enumerate(DATA[:3]):
+                item = self.RowItem(d)
+                item.setY(y)
                 self.scene().addItem(item)
                 y += item.boundingRect().height()
 
@@ -94,19 +104,12 @@ class ViewWindow(QDialog):
 
 class MainWidget(QTableWidget):
     class Plot(QGraphicsView):
+
         def __init__(self, d: tuple[str, int, QColor]):
             super().__init__()
             self.setScene(QGraphicsScene())
             self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
-            pg = QPolygonF([QPointF(x, y) for x, y in enumerate(mk_sin(d[1]))])
-            pp = QPainterPath()
-            pp.addPolygon(pg)
-            gpi = QGraphicsPathItem()
-            gpi.setPath(pp)
-            pen = QPen(d[2])
-            pen.setCosmetic(True)  # !!! don't resize pen width
-            gpi.setPen(pen)
-            self.scene().addItem(gpi)
+            self.scene().addItem(Graph(d))
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             # super().resizeEvent(event)
