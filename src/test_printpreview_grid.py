@@ -9,7 +9,7 @@ import math
 import sys
 from typing import Tuple
 # 2. 3rd
-from PyQt5.QtCore import Qt, QPointF, QSizeF, QRectF, QRect, QMargins
+from PyQt5.QtCore import Qt, QPointF, QSizeF, QRectF, QRect, QMargins, QSize
 from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen, QFont, QPalette
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
     QGraphicsView, QGraphicsScene, QGraphicsPathItem, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, \
@@ -46,16 +46,29 @@ def color2style(c: QColor) -> str:
     return "rgb(%d, %d, %d)" % (c.red(), c.green(), c.blue())
 
 
-class Graph(QGraphicsPathItem):
+class GraphItem(QGraphicsPathItem):
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
-        pg = QPolygonF([QPointF(x * 50, y * 100) for x, y in enumerate(mk_sin(d[1]))])
+        pg = QPolygonF([QPointF(x * 10, y * 10) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
         pp.addPolygon(pg)
         self.setPath(pp)
         pen = QPen(d[2])
         pen.setCosmetic(True)  # !!! don't resize pen width
         self.setPen(pen)
+
+
+class GraphWidget(QGraphicsView):  # <= QAbstractScrollArea <= QFrame
+    def __init__(self, d: DataValue):
+        super().__init__()
+        self.setScene(QGraphicsScene())
+        self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
+        self.scene().addItem(GraphItem(d))
+
+    def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
+        # super().resizeEvent(event)
+        self.fitInView(self.sceneRect(), Qt.IgnoreAspectRatio)  # expand to max
+        # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
 
 
 class ViewWindow(QDialog):
@@ -80,11 +93,18 @@ class ViewWindow(QDialog):
                 w.setFrameShape(QFrame.VLine)
                 w.setLineWidth(0)
 
-        class TextGridWidget(QGraphicsProxyWidget):
-            """QWidget based"""
+        class TextGridWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
+            """QWidget based.
+            TODO: self.paintWindowFrame()
+            """
             def __init__(self, txt: str, color: QColor = None):
                 super().__init__()
-                self.setWidget(w := QLabel(txt))
+                w = QLabel(txt)
+                w.setAttribute(Qt.WA_TranslucentBackground, True)  # transparent bg
+                # w.setAutoFillBackground(False)
+                # w.setFrameShape(QFrame.Box)
+                # w.setLineWidth(0)
+                self.setWidget(w)
                 w.setFont(FONT_MAIN)
                 if color:
                     # plan A
@@ -92,8 +112,28 @@ class ViewWindow(QDialog):
                     p.setColor(QPalette.WindowText, color)
                     w.setPalette(p)
                     # plan B
-                    # w.setStyleSheet("color: %s" % color2style(color))
+                    # w.setStyleSheet("color: red")  # not works
                 self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+
+        class PlotGridWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
+            __subj: GraphItem
+
+            def __init__(self, d: DataValue, parent: QGraphicsItem = None):
+                super().__init__(parent)
+                self.__subj = GraphItem(d, self)
+                self.setGraphicsItem(self.__subj)
+                # w = QWidget()
+                # w.setLayout(QVBoxLayout())
+                # w.layout().addWidget(GraphItem(d))
+                # self.setWidget(w)  # GraphItem(d)
+
+        class PlotGridProxyWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
+            """QWidget based"""
+            def __init__(self, d: DataValue):
+                super().__init__()
+                w = GraphWidget(d)
+                w.setFrameShape(QFrame.Box)
+                self.setWidget(w)
 
         class TextGridItem(QGraphicsLayoutItem):
             """QGraphicsItem based"""
@@ -126,14 +166,19 @@ class ViewWindow(QDialog):
                 # TODO: cut
 
         class PlotGridItem(QGraphicsLayoutItem):
-            __subj: Graph
+            __subj: GraphItem
 
             def __init__(self, d: DataValue):
                 super().__init__()
-                self.__subj = Graph(d)
+                self.__subj = GraphItem(d)
                 self.setGraphicsItem(self.__subj)
 
             def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+                match which:
+                    case Qt.MinimumSize | Qt.PreferredSize:
+                        return QSizeF(50, 20)
+                    case Qt.MaximumSize:
+                        return QSizeF(1000, 1000)
                 return constraint
 
             def setGeometry(self, rect: QRectF):
@@ -148,15 +193,16 @@ class ViewWindow(QDialog):
             lt = QGraphicsGridLayout()
             lt.setSpacing(0)
             lt.setContentsMargins(0, 0, 0, 0)
-            lt.addItem(self.HLineGridWidget(), 0, 0, 1, 5)
+            # lt.addItem(self.HLineGridWidget(), 0, 0, 1, 5)
             for i, d in enumerate(DATA[:3]):
                 row = i * 2 + 1
-                lt.addItem(self.TextGridWidget(d[0], d[2]), row, 1)  # plan A (good colored, good cut)
-                # lt.addItem(self.TextGridItem(d[0], d[2]), row, 1)  # plan B
-                lt.addItem(self.PlotGridItem(d), row, 3)
-                for c in (0, 2, 4):
-                    lt.addItem(self.VLineGridWidget(), row, c)
-                lt.addItem(self.HLineGridWidget(), row + 1, 0, 1, 5)
+                # plan A: self.TextGridWidget (good colored, good cut)
+                # plan B: self.TextGridItem
+                lt.addItem(self.TextGridWidget(d[0], d[2]), row, 1)
+                lt.addItem(self.PlotGridProxyWidget(d), row, 3)
+                # for c in (0, 2, 4):
+                #    lt.addItem(self.VLineGridWidget(), row, c)
+                # lt.addItem(self.HLineGridWidget(), row + 1, 0, 1, 5)
             gw = QGraphicsWidget()
             gw.setLayout(lt)
             self.scene().addItem(gw)
@@ -171,17 +217,6 @@ class ViewWindow(QDialog):
 
 
 class MainWidget(QTableWidget):
-    class Plot(QGraphicsView):
-        def __init__(self, d: tuple[str, int, QColor]):
-            super().__init__()
-            self.setScene(QGraphicsScene())
-            self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
-            self.scene().addItem(Graph(d))
-
-        def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
-            # super().resizeEvent(event)
-            self.fitInView(self.sceneRect(), Qt.IgnoreAspectRatio)  # expand to max
-            # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
 
     def __init__(self, parent: 'MainWindow'):
         super().__init__(parent)
@@ -190,7 +225,7 @@ class MainWidget(QTableWidget):
         self.setColumnCount(2)
         for r, d in enumerate(DATA):
             self.setItem(r, 0, (QTableWidgetItem(d[0])))
-            self.setCellWidget(r, 1, self.Plot(d))
+            self.setCellWidget(r, 1, GraphWidget(d))
 
 
 class MainWindow(QMainWindow):
