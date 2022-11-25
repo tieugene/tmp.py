@@ -10,7 +10,7 @@ import sys
 from typing import Tuple
 # 2. 3rd
 from PyQt5.QtCore import Qt, QPointF, QSizeF, QRectF, QRect, QMargins
-from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen
+from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen, QFont, QPalette
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
     QGraphicsView, QGraphicsScene, QGraphicsPathItem, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, \
     QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QGraphicsItem, QGraphicsProxyWidget, QFrame, QWidget
@@ -19,6 +19,9 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
 DataValue = Tuple[str, int, QColor]
 PPP = 5  # plots per page
 POINTS = 12
+HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
+FONT_MAIN = QFont('mono', 8)
+W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
     ("Signal 1", 0, Qt.black),
     ("Signal 2", 1, Qt.yellow),
@@ -38,6 +41,11 @@ def mk_sin(o: int = 0) -> list[float]:
     return [(1 + math.sin((i + o) * 2 * math.pi / POINTS)) / 2 for i in range(POINTS + 1)]
 
 
+def color2style(c: QColor) -> str:
+    """Convert QColor into stylesheet-compatible string"""
+    return "rgb(%d, %d, %d)" % (c.red(), c.green(), c.blue())
+
+
 class Graph(QGraphicsPathItem):
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
@@ -54,28 +62,51 @@ class ViewWindow(QDialog):
     class Plot(QGraphicsView):
         class HLineGridWidget(QGraphicsProxyWidget):
             def __init__(self):
+                """Defaults:
+                - lineWidth() = 1
+                - frameShadow() = 16 (plain)
+                - frameWidth() = 1
+                - frameStyle() = 20
+                """
                 super().__init__()
                 self.setWidget(w := QFrame())
                 w.setFrameShape(QFrame.HLine)
+                w.setLineWidth(0)
 
         class VLineGridWidget(QGraphicsProxyWidget):
             def __init__(self):
                 super().__init__()
                 self.setWidget(w := QFrame())
                 w.setFrameShape(QFrame.VLine)
+                w.setLineWidth(0)
 
         class TextGridWidget(QGraphicsProxyWidget):
-            def __init__(self, d: DataValue):
+            """QWidget based"""
+            def __init__(self, txt: str, color: QColor = None):
                 super().__init__()
-                self.setWidget(QLabel(d[0]))
+                self.setWidget(w := QLabel(txt))
+                w.setFont(FONT_MAIN)
+                if color:
+                    # plan A
+                    p = QPalette()
+                    p.setColor(QPalette.WindowText, color)
+                    w.setPalette(p)
+                    # plan B
+                    # w.setStyleSheet("color: %s" % color2style(color))
                 self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
         class TextGridItem(QGraphicsLayoutItem):
+            """QGraphicsItem based"""
             __subj: QGraphicsSimpleTextItem
 
-            def __init__(self, d: DataValue):
+            def __init__(self, txt: str, color: QColor = None):
                 super().__init__()
-                self.__subj = QGraphicsSimpleTextItem(d[0])  # must be alive forewer
+                self.__subj = QGraphicsSimpleTextItem(txt)  # must be alive forewer
+                self.__subj.setFont(FONT_MAIN)
+                if color:
+                    pen = self.__subj.pen()
+                    pen.setColor(color)  # FIXME: not helps (always black)
+                    self.__subj.setPen(pen)
                 self.setGraphicsItem(self.__subj)
                 self.graphicsItem().setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # Not helps
                 # replace/help sizeHint()  (not helps)
@@ -120,8 +151,8 @@ class ViewWindow(QDialog):
             lt.addItem(self.HLineGridWidget(), 0, 0, 1, 5)
             for i, d in enumerate(DATA[:3]):
                 row = i * 2 + 1
-                # lt.addItem(self.TextGridWidget(d[0]), i, 0)  # plan A
-                lt.addItem(self.TextGridItem(d), row, 1)  # plan B
+                lt.addItem(self.TextGridWidget(d[0], d[2]), row, 1)  # plan A (good colored, good cut)
+                # lt.addItem(self.TextGridItem(d[0], d[2]), row, 1)  # plan B
                 lt.addItem(self.PlotGridItem(d), row, 3)
                 for c in (0, 2, 4):
                     lt.addItem(self.VLineGridWidget(), row, c)
