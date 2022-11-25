@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
     QGraphicsView, QGraphicsScene, QGraphicsPathItem, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, \
-    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel
+    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QGraphicsItem
 
 # x. const
 PPP = 5  # plots per page
@@ -40,7 +40,9 @@ class ViewWindow(QDialog):
             def __init__(self):
                 super().__init__()
                 self.subj = QGraphicsSimpleTextItem("trititi")
+                self.subj.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # Not helps
                 self.setGraphicsItem(self.subj)
+                self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # Not helps
 
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
