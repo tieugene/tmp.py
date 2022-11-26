@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 """Test of rescaling print (and multipage)."""
 # 1. std
-import math
 import sys
-from typing import Tuple
-
 # 2. 3rd
-from PyQt5.QtCore import Qt, QPointF, QRectF
-from PyQt5.QtGui import QIcon, QColor, QPolygonF, QPainterPath, QResizeEvent, QPen, QFont, QPainter, QTransform, QRegion
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
-    QGraphicsView, QGraphicsScene, QGraphicsPathItem, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, \
-    QGraphicsSimpleTextItem, QGraphicsLayoutItem, QLabel, QWidget, QStyleOptionGraphicsItem, QGraphicsItem, \
-    QGraphicsItemGroup
-
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QColor, QResizeEvent
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
+    QGraphicsScene, QDialog, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup
+# 3. local
+from src.gfx_table_widgets import DataValue, GraphItem, TextItem
 # x. const
-DataValue = Tuple[str, int, QColor]
 PPP = 5  # plots per page
-POINTS = 12
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
-FONT_MAIN = QFont('mono', 8)
 W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
     ("Signal 1", 0, Qt.black),
@@ -30,62 +23,22 @@ DATA = (  # name, x-offset, color
 )
 
 
-def mk_sin(o: int = 0) -> list[float]:
-    """
-    Make sinusoide graph coordinates. Y=0..1
-    :param o: Offset, points
-    :return: list of y (0..1)
-    """
-    return [(1 + math.sin((i + o) * 2 * math.pi / POINTS)) / 2 for i in range(POINTS + 1)]
-
-
-class Graph(QGraphicsPathItem):
-    def __init__(self, d: DataValue, parent: QGraphicsItem = None):
-        super().__init__(parent)
-        pg = QPolygonF([QPointF(x * 50, y * 100) for x, y in enumerate(mk_sin(d[1]))])
-        pp = QPainterPath()
-        pp.addPolygon(pg)
-        self.setPath(pp)
-        pen = QPen(d[2])
-        pen.setCosmetic(True)  # !!! don't resize pen width
-        self.setPen(pen)
-
-
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
-        class HeaderItem(QGraphicsSimpleTextItem):
-            """Header.
-            - [x] TODO: disable scaling
-            - [ ] TODO: disable v-resize
-            Warn: on resize:
-            - not changed: boundingRect(), pos(), scenePos()
-            - not call: deviceTransform(), itemTransform(), transform(), boundingRegion()
-            - call: paint()
-            """
-            def __init__(self, parent: QGraphicsItem = None):
-                super().__init__(HEADER_TXT, parent)
-                self.setFont(FONT_MAIN)
-                self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)  # disable scaling
-
         class RowItem(QGraphicsItemGroup):
-            class LabelItem(QGraphicsSimpleTextItem):
-                def __init__(self, d: DataValue, parent: QGraphicsItem = None):
-                    super().__init__(d[0], parent)
-                    self.setFont(FONT_MAIN)
-                    self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
             def __init__(self, d: DataValue, parent: QGraphicsItem = None):
                 super().__init__(parent)
-                label = self.LabelItem(d)
+                label = TextItem(d[0], d[2])
                 self.addToGroup(label)
-                graph = Graph(d)
+                graph = GraphItem(d)
                 graph.setX(W_LABEL)
                 self.addToGroup(graph)
 
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
-            header = self.HeaderItem()
+            header = TextItem(HEADER_TXT)
             y = header.boundingRect().height()
             self.scene().addItem(header)
             for r, d in enumerate(DATA[:3]):
@@ -110,7 +63,7 @@ class MainWidget(QTableWidget):
             super().__init__()
             self.setScene(QGraphicsScene())
             self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
-            self.scene().addItem(Graph(d))
+            self.scene().addItem(GraphItem(d))
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             # super().resizeEvent(event)
