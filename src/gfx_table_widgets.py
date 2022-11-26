@@ -22,25 +22,11 @@ def mk_sin(o: int = 0) -> list[float]:
     return [(1 + math.sin((i + o) * 2 * math.pi / POINTS)) / 2 for i in range(POINTS + 1)]
 
 
-class TextWidget(QLabel):
-    def __init__(self, txt: str, color: QColor = None, parent=None):
-        super().__init__(txt, parent)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)  # transparent bg
-        self.setFont(FONT_MAIN)
-        if color:
-            # plan A
-            p = QPalette()
-            p.setColor(QPalette.WindowText, color)
-            self.setPalette(p)
-            # plan B
-            # w.setStyleSheet("color: red")  # not works
-
-
 class TextItem(QGraphicsSimpleTextItem):
     """
     - [x] TODO: disable scaling
+    - [x] TODO: color
     - [ ] TODO: disable v-resize
-    - [ ] TODO: color
     Warn: on resize:
     - not changed: boundingRect(), pos(), scenePos()
     - not call: deviceTransform(), itemTransform(), transform(), boundingRegion()
@@ -52,6 +38,54 @@ class TextItem(QGraphicsSimpleTextItem):
         if color:
             self.setBrush(color)
         self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+
+
+class TextWidget(QLabel):
+    def __init__(self, txt: str, color: QColor = None, parent=None):
+        super().__init__(txt, parent)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)  # transparent bg
+        self.setFont(FONT_MAIN)
+        if color:
+            p = QPalette()
+            p.setColor(QPalette.WindowText, color)
+            self.setPalette(p)
+        # self.setStyleSheet("border: 1px solid black")  # not works
+
+
+class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
+    """QGraphicsProxyWidget(QWidget) based.
+    Not good:
+    - [+] color
+    - [?] v-align: center?
+    - [-] v-size: strange
+    - [+] cut
+    - [-] no border
+    """
+    __vcentered: bool
+
+    def __init__(self, txt: str, color: QColor = None, vcentered: bool = False):
+        # Signal x: (53, 14)
+        super().__init__()
+        self.__vcentered = vcentered
+        self.setWidget(TextWidget(txt, color))
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+        # print(f"{txt}: label={qsize2str(self.widget().size())}, self={qsize2str(self.boundingRect().size())}")
+
+    '''
+    def boundingRect(self) -> QRectF:
+        # return super().boundingRect().adjusted(0, 0, 0, 0)  # too big (54, 96)
+        return QRectF(0, 0, (s := self.widget().size()).width(), s.height())
+
+    def paintWindowFrame(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...):
+        """Not calling.
+        RTFM examples/../embeddeddialogs
+        """
+        print("Go!")
+        painter.setPen(Qt.black)
+        painter.setBrush(Qt.red)
+        painter.drawRect(self.windowFrameRect())
+        super().paintWindowFrame(painter, option, widget)
+    '''
 
 
 class GraphItem(QGraphicsPathItem):

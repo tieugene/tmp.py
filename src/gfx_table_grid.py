@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """Test of rescaling print (and multipage).
-- [x] grid lines
+- [ ] grid lines
 - [ ] cut labels
 - [ ] resize plots
 """
 # 1. std
 import sys
-from typing import Optional
+from typing import Union
 # 2. 3rd
-from PyQt5.QtCore import Qt, QSizeF, QRectF, QPointF
-from PyQt5.QtGui import QIcon, QColor, QResizeEvent, QFont, QPainter
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
-    QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, QGraphicsItem,\
-    QGraphicsProxyWidget, QFrame, QWidget, QStyleOptionGraphicsItem
+from PyQt5.QtCore import Qt, QSizeF, QRectF, QPointF, QRect, QSize
+from PyQt5.QtGui import QIcon, QColor, QResizeEvent, QFont
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView, \
+    QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, QGraphicsItem, \
+    QGraphicsProxyWidget, QFrame
 
-from gfx_table_widgets import DataValue, TextItem, GraphItem, GraphView, TextWidget
+from gfx_table_widgets import DataValue, TextItem, GraphItem, GraphView
 
 # x. const
 PPP = 5  # plots per page
@@ -36,19 +36,33 @@ def color2style(c: QColor) -> str:
     return "rgb(%d, %d, %d)" % (c.red(), c.green(), c.blue())
 
 
+def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
+    if isinstance(size, QRectF):
+        v = size.size().toSize()
+    elif isinstance(size, QRect):
+        v = size.size()
+    elif isinstance(size, QSizeF):
+        v = size.toSize()
+    else:
+        v = size
+    return f"({v.width()}, {v.height()})"
+
+
 class GridTextItem(QGraphicsLayoutItem):
     """QGraphicsLayoutItem(QGraphicsItem) based.
     Ok:
     - [+] color
-    - [+] v-align top
-    - [+] v-size min
+    - [+] v-align: top/center
+    - [+] v-size: min
     - [+] cut
     - [-] no border
     """
     __subj: TextItem
+    __vcentered: bool
 
-    def __init__(self, txt: str, color: QColor = None):
+    def __init__(self, txt: str, color: QColor = None, vcentered: bool = False):
         super().__init__()
+        self.__vcentered = vcentered
         self.__subj = TextItem(txt, color)  # must be alive forewer
         self.setGraphicsItem(self.__subj)
 
@@ -60,35 +74,11 @@ class GridTextItem(QGraphicsLayoutItem):
     def setGeometry(self, rect: QRectF):
         self.__subj.prepareGeometryChange()
         super().setGeometry(rect)
-        self.__subj.setPos(QPointF(0, rect.center().y() - self.__subj.boundingRect().height() / 2))
-
-
-class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
-    """QGraphicsProxyWidget(QWidget) based.
-    Not good:
-    - [+] color
-    - [+] v-align center
-    - [!] v-size strange
-    - [+] cut
-    - [-] no border
-    """
-    def __init__(self, txt: str, color: QColor = None):
-        super().__init__()
-        self.setWidget(TextWidget(txt, color))
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
-
-    # def boundingRect(self):
-    #    return QGraphicsProxyWidget.boundingRect(self).adjusted(0, 0, 0, 0)
-
-    def paintWindowFrame(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...):
-        """Not calling.
-        RTFM examples/../embeddeddialogs
-        """
-        print("Go!")
-        painter.setPen(Qt.black)
-        painter.setBrush(Qt.red)
-        painter.drawRect(self.windowFrameRect())
-        super().paintWindowFrame(painter, option, widget)
+        if self.__vcentered:
+            p = QPointF(0, rect.center().y() - self.__subj.boundingRect().height() / 2)
+        else:
+            p = rect.topLeft()
+        self.__subj.setPos(p)
 
 
 class GridGraphItem(QGraphicsLayoutItem):
@@ -131,6 +121,7 @@ class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutI
 
 class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
     """QGraphicsProxyWidget(QGraphicsView)"""
+
     def __init__(self, d: DataValue):
         super().__init__()
         w = GraphView(d)
@@ -145,14 +136,16 @@ class ViewWindow(QDialog):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
             lt = QGraphicsGridLayout()
-            lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)
-            for i, d in enumerate(DATA[:3]):
-                lt.addItem(GridTextItem(d[0], d[2]), i + 1, 0)  # A: GridTextItem, B: TextGfxWidget
-                lt.addItem(GraphViewGfxWidget(d), i + 1, 1)
+            # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)
+            for row, d in enumerate(DATA[:3]):
+                lt.addItem(GridTextItem(d[0], d[2], True), row, 0)  # A: GridTextItem, B: TextGfxWidget
+                lt.addItem(GraphViewGfxWidget(d), row, 1)
             # Layout tuning
-            lt.setSpacing(0)
-            lt.setContentsMargins(0, 0, 0, 0)
+            # lt.setSpacing(0)
+            # lt.setContentsMargins(0, 0, 0, 0)
             # lt.setColumnAlignment(0, Qt.AlignLeft | Qt.AlignVCenter)  # not helps
+            # lt.setRowStretchFactor(0, 0)  # not works
+            # lt.setRowFixedHeight(0, 50)  # not works
             # go
             gw = QGraphicsWidget()
             gw.setLayout(lt)
