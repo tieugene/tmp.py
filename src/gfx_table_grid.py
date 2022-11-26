@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Test of rescaling print (and multipage).
-- [ ] grid lines
+- [ ] grid lines (a) paint over layout. b) add to each cell item
 - [ ] cut labels
 - [ ] resize plots
 """
@@ -54,16 +54,16 @@ class GridTextItem(QGraphicsLayoutItem):
     - [+] color
     - [+] v-align: top/center
     - [+] v-size: min
-    - [+] cut
+    - [-] no cut
     - [-] no border
     """
-    __subj: TextItem
+    __subj: TextItem  # must live
     __vcentered: bool
 
     def __init__(self, txt: str, color: QColor = None, vcentered: bool = False):
         super().__init__()
+        self.__subj = TextItem(txt, color)
         self.__vcentered = vcentered
-        self.__subj = TextItem(txt, color)  # must be alive forewer
         self.setGraphicsItem(self.__subj)
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
@@ -82,7 +82,11 @@ class GridTextItem(QGraphicsLayoutItem):
 
 
 class GridGraphItem(QGraphicsLayoutItem):
-    """QGraphicsLayoutItem(QGraphicsItem)"""
+    """QGraphicsLayoutItem(QGraphicsItem).
+    - [+] Lite
+    - [-] Not fill cell
+    - [?] Transparent
+    """
     __subj: GraphItem
 
     def __init__(self, d: DataValue):
@@ -91,42 +95,41 @@ class GridGraphItem(QGraphicsLayoutItem):
         self.setGraphicsItem(self.__subj)
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
-        match which:
-            case Qt.MinimumSize | Qt.PreferredSize:
-                return QSizeF(50, 20)
-            case Qt.MaximumSize:
-                return QSizeF(1000, 1000)
+        # if which in {Qt.MinimumSize, Qt.PreferredSize}:
+        #    return QSizeF(50, 20)
+        # no limits
         return constraint
 
     def setGeometry(self, rect: QRectF):
         self.__subj.prepareGeometryChange()
         super().setGeometry(rect)
         self.__subj.setPos(rect.topLeft())
-        # FIXME: set size
 
 
 class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
-    """QGraphicsWidget(QGraphicsItem)"""
-    __subj: GraphItem
+    """QGraphicsWidget(QGraphicsItem).
+    - [+] Lite, Simple
+    - [-] Paints from screen (0, 0)
+    """
+    __subj: GraphItem  # must alive
 
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
-        self.__subj = GraphItem(d, self)
+        self.__subj = GraphItem(d)
         self.setGraphicsItem(self.__subj)
-        # w = QWidget()
-        # w.setLayout(QVBoxLayout())
-        # w.layout().addWidget(GraphItem(d))
-        # self.setWidget(w)  # GraphItem(d)
+        # self.__subj.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
 
 class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
-    """QGraphicsProxyWidget(QGraphicsView)"""
+    """QGraphicsProxyWidget(QGraphicsView).
+    - [+] OK
+    - [-] Too bulky: QGraphicsProxyWidget(QGraphicsView(QGraphicsScene(QGraphicsItem)))
+    """
 
     def __init__(self, d: DataValue):
         super().__init__()
-        w = GraphView(d)
+        self.setWidget(w := GraphView(d))
         w.setFrameShape(QFrame.Box)
-        self.setWidget(w)
 
 
 class ViewWindow(QDialog):
@@ -139,7 +142,7 @@ class ViewWindow(QDialog):
             # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)
             for row, d in enumerate(DATA[:3]):
                 lt.addItem(GridTextItem(d[0], d[2], True), row, 0)  # A: GridTextItem, B: TextGfxWidget
-                lt.addItem(GraphViewGfxWidget(d), row, 1)
+                lt.addItem(GridGraphItem(d), row, 1)
             # Layout tuning
             # lt.setSpacing(0)
             # lt.setContentsMargins(0, 0, 0, 0)
