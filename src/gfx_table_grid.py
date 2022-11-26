@@ -109,6 +109,7 @@ class GridGraphItem(QGraphicsLayoutItem):
     def boundingRect(self) -> QRectF:
         return QRectF(QPointF(0, 0), self.geometry().size())
 
+
 class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
     """QGraphicsProxyWidget(QGraphicsView).
     - [+] OK
@@ -131,7 +132,6 @@ class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
 
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
-
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())

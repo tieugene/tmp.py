@@ -8,7 +8,8 @@ from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup
 # 3. local
-from gfx_table_widgets import DataValue, GraphItem, TextItem
+from gfx_table_widgets import DataValue, GraphItem, TextItem, GraphView
+
 # x. const
 PPP = 5  # plots per page
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
@@ -26,7 +27,6 @@ DATA = (  # name, x-offset, color
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
         class RowItem(QGraphicsItemGroup):
-
             def __init__(self, d: DataValue, parent: QGraphicsItem = None):
                 super().__init__(parent)
                 label = TextItem(d[0], d[2])
@@ -59,19 +59,6 @@ class ViewWindow(QDialog):
 
 
 class MainWidget(QTableWidget):
-    class Plot(QGraphicsView):
-
-        def __init__(self, d: DataValue):
-            super().__init__()
-            self.setScene(QGraphicsScene())
-            # self.setViewportUpdateMode(self.BoundingRectViewportUpdate)
-            self.scene().addItem(GraphItem(d))
-
-        def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
-            # super().resizeEvent(event)
-            self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
-            # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
-
     def __init__(self, parent: 'MainWindow'):
         super().__init__(parent)
         self.horizontalHeader().setStretchLastSection(True)
@@ -79,7 +66,7 @@ class MainWidget(QTableWidget):
         self.setColumnCount(2)
         for r, d in enumerate(DATA):
             self.setItem(r, 0, (QTableWidgetItem(d[0])))
-            self.setCellWidget(r, 1, self.Plot(d))
+            self.setCellWidget(r, 1, GraphView(d))
 
 
 class MainWindow(QMainWindow):
