@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Test of rescaling print (and multipage).
 - [ ] FIXME: Label: r-cut
-- [ ] TODO: Row: shrink v-spaces (now %)
-- [ ] TODO: Row: stretchfactor (now depends on label height)
+- [ ] FIXME: Plot: shrink v-spaces
 - [ ] TODO: Grid: grid lines (a) paint over layout. b) add to each cell item)
+Note: now stretch factors depends on (label/graph).boundingRect() ratio
 """
 # 1. std
 import sys
@@ -11,10 +11,10 @@ import sys
 from PyQt5.QtCore import Qt, QSizeF, QRectF, QPointF
 from PyQt5.QtGui import QIcon, QColor, QResizeEvent, QFont
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView, \
-    QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, QGraphicsItem, \
+    QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, \
     QGraphicsProxyWidget, QFrame
-
-from gfx_table_widgets import DataValue, TextItem, GraphItem, GraphView
+# 3. local
+from gfx_table_widgets import qsize2str, DataValue, TextItem, GraphItem, GraphView
 
 # x. const
 PPP = 5  # plots per page
@@ -22,12 +22,12 @@ HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
 FONT_MAIN = QFont('mono', 8)
 W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
-    ("Signal 1", 0, Qt.black),
-    ("Signal 2", 1, Qt.red),
-    ("Signal 3", 2, Qt.blue),
-    ("Signal 4", 3, Qt.green),
-    ("Signal 5", 4, Qt.yellow),
-    ("Signal 6", 5, Qt.magenta),
+    ("Signal 1", 0, Qt.GlobalColor.black),
+    ("Signal 2", 1, Qt.GlobalColor.red),
+    ("Signal 3", 2, Qt.GlobalColor.blue),
+    ("Signal 4", 3, Qt.GlobalColor.green),
+    ("Signal 5", 4, Qt.GlobalColor.yellow),
+    ("Signal 6", 5, Qt.GlobalColor.magenta),
 )
 
 
@@ -60,11 +60,12 @@ class GridTextItem(QGraphicsLayoutItem):
         # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
-        if which in {Qt.MinimumSize, Qt.PreferredSize}:
+        if which in {Qt.SizeHint.MinimumSize, Qt.SizeHint.PreferredSize}:
             return self.__subj.boundingRect().size()
         return constraint
 
-    def setGeometry(self, rect: QRectF):
+    def setGeometry(self, rect: QRectF):  # Warn: Calling once on init
+        # print("Text setG:", qsize2str(rect))
         self.__subj.prepareGeometryChange()
         super().setGeometry(rect)
         if self.__vcentered:
@@ -87,44 +88,40 @@ class GridGraphItem(QGraphicsLayoutItem):
         self.__subj = GraphItem(d)
         self.setGraphicsItem(self.__subj)
         self.__subj.bordered = True
+        # self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # ✗
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+        """Calling 3 times at start; has no effect.
+        Constraint default = (-1, -1)
+        """
         # if which in {Qt.MinimumSize, Qt.PreferredSize}:
-        #    return QSizeF(50, 20)
-        # no limits
+        #   return QSizeF(0, 0)  # h must be same as on init
         return constraint
 
     def setGeometry(self, rect: QRectF):
+        """Calling once on init"""
+        # print("Graph setG:", qsize2str(rect))
         self.__subj.prepareGeometryChange()
         super().setGeometry(rect)
         self.__subj.setPos(rect.topLeft())
+        # TODO: resize item to rect
 
-
-class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
-    """QGraphicsWidget(QGraphicsItem).
-    - [+] Lite, Simple
-    - [-] Paints from screen (0, 0)
-    """
-    __subj: GraphItem  # must alive
-
-    def __init__(self, d: DataValue, parent: QGraphicsItem = None):
-        super().__init__(parent)
-        self.__subj = GraphItem(d)
-        self.setGraphicsItem(self.__subj)
-        # self.__subj.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
-
+    def boundingRect(self) -> QRectF:
+        return QRectF(QPointF(0, 0), self.geometry().size())
 
 class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
     """QGraphicsProxyWidget(QGraphicsView).
     - [+] OK
     - [?] not transparent
+    - [-] Extra spaces
     - [-] Too bulky: QGraphicsProxyWidget(QGraphicsView(QGraphicsScene(QGraphicsItem)))
     """
 
     def __init__(self, d: DataValue):
         super().__init__()
         self.setWidget(w := GraphView(d))
-        w.setFrameShape(QFrame.Box)
+        w.setFrameShape(QFrame.Shape.Box)
+        # w.setContentsMargins(0, 0, 0, 0)  # ✗
         # experiments:
         # self.setAttribute(Qt.WA_NoSystemBackground)  # ✗
         # self.setAttribute(Qt.WA_TranslucentBackground)  # ✗
@@ -138,16 +135,18 @@ class ViewWindow(QDialog):
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
+            self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)  # ✗
             lt = QGraphicsGridLayout()
             # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)  # ✗ (span)
-            for row, d in enumerate(DATA[:4]):
-                lt.addItem(GridTextItem(d[0], d[2], True), row, 0)  # A: GridTextItem, B: TextGfxWidget
+            for row, d in enumerate(DATA[:3]):
+                lt.addItem(GridTextItem(d[0], d[2], False), row, 0)  # A: GridTextItem, B: TextGfxWidget
                 lt.addItem(GridGraphItem(d), row, 1)
+                # lt.setRowFixedHeight(row, 100)  # works strange
+                # lt.setRowSpacing(row, 0)  # ✗
                 # lt.setRowStretchFactor(row, 1)  # ✗
             # Layout tuning
             lt.setSpacing(0)
             lt.setContentsMargins(0, 0, 0, 0)
-            # lt.setRowStretchFactor(2, 0)  # ✗
             # lt.setRowFixedHeight(0, 50)  # ✗
             # go
             gw = QGraphicsWidget()
@@ -155,7 +154,7 @@ class ViewWindow(QDialog):
             self.scene().addItem(gw)
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
-            self.fitInView(self.sceneRect(), Qt.IgnoreAspectRatio)  # expand to max
+            self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
 
     def __init__(self, parent: 'MainWindows'):
         super().__init__(parent)
@@ -203,7 +202,7 @@ def main() -> int:
     mw = MainWindow()
     mw.show()
     # mw.resize(600, 600)
-    return app.exec_()
+    return app.exec()
 
 
 if __name__ == '__main__':

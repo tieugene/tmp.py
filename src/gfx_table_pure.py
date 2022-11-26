@@ -4,22 +4,22 @@
 import sys
 # 2. 3rd
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QColor, QResizeEvent
+from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup
 # 3. local
-from src.gfx_table_widgets import DataValue, GraphItem, TextItem
+from gfx_table_widgets import DataValue, GraphItem, TextItem
 # x. const
 PPP = 5  # plots per page
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
 W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
-    ("Signal 1", 0, Qt.black),
-    ("Signal 2", 1, Qt.yellow),
-    ("Signal 3", 2, Qt.blue),
-    ("Signal 4", 3, Qt.green),
-    ("Signal 5", 4, Qt.red),
-    ("Signal 6", 5, Qt.magenta),
+    ("Signal 1", 0, Qt.GlobalColor.black),
+    ("Signal 2", 1, Qt.GlobalColor.red),
+    ("Signal 3", 2, Qt.GlobalColor.blue),
+    ("Signal 4", 3, Qt.GlobalColor.green),
+    ("Signal 5", 4, Qt.GlobalColor.yellow),
+    ("Signal 6", 5, Qt.GlobalColor.magenta),
 )
 
 
@@ -33,14 +33,16 @@ class ViewWindow(QDialog):
                 self.addToGroup(label)
                 graph = GraphItem(d)
                 graph.setX(W_LABEL)
+                graph.bordered = True
                 self.addToGroup(graph)
 
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
-            header = TextItem(HEADER_TXT)
-            y = header.boundingRect().height()
-            self.scene().addItem(header)
+            # header = TextItem(HEADER_TXT)
+            # y = header.boundingRect().height()
+            # self.scene().addItem(header)
+            y = 0
             for r, d in enumerate(DATA[:3]):
                 item = self.RowItem(d)
                 item.setY(y)
@@ -48,7 +50,7 @@ class ViewWindow(QDialog):
                 y += item.boundingRect().height()
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
-            self.fitInView(self.sceneRect(), Qt.IgnoreAspectRatio)  # expand to max
+            self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
 
     def __init__(self, parent: 'MainWindows'):
         super().__init__(parent)
@@ -59,15 +61,15 @@ class ViewWindow(QDialog):
 class MainWidget(QTableWidget):
     class Plot(QGraphicsView):
 
-        def __init__(self, d: tuple[str, int, QColor]):
+        def __init__(self, d: DataValue):
             super().__init__()
             self.setScene(QGraphicsScene())
-            self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
+            # self.setViewportUpdateMode(self.BoundingRectViewportUpdate)
             self.scene().addItem(GraphItem(d))
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             # super().resizeEvent(event)
-            self.fitInView(self.sceneRect(), Qt.IgnoreAspectRatio)  # expand to max
+            self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
             # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
 
     def __init__(self, parent: 'MainWindow'):
@@ -108,7 +110,7 @@ def main() -> int:
     mw = MainWindow()
     mw.show()
     # mw.resize(600, 600)
-    return app.exec_()
+    return app.exec()
 
 
 if __name__ == '__main__':

@@ -5,10 +5,10 @@ from typing import Tuple, Union
 from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QColor, QFont, QPalette, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsProxyWidget, \
-    QFrame, QGraphicsSimpleTextItem, QLabel, QWidget, QStyleOptionGraphicsItem
+    QFrame, QGraphicsSimpleTextItem, QLabel, QWidget, QStyleOptionGraphicsItem, QGraphicsWidget
 
 # x. const
-DataValue = Tuple[str, int, QColor]
+DataValue = Tuple[str, int, Qt.GlobalColor]
 POINTS = 12
 FONT_MAIN = QFont('mono', 8)
 
@@ -36,9 +36,6 @@ def mk_sin(o: int = 0) -> list[float]:
 
 class TextItem(QGraphicsSimpleTextItem):
     """
-    - [x] TODO: disable scaling
-    - [x] TODO: color
-    - [ ] TODO: disable v-resize
     Warn: on resize:
     - not changed: boundingRect(), pos(), scenePos()
     - not call: deviceTransform(), itemTransform(), transform(), boundingRegion()
@@ -46,13 +43,13 @@ class TextItem(QGraphicsSimpleTextItem):
     """
     bordered: bool
 
-    def __init__(self, txt: str, color: QColor = None):
+    def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__(txt)
         self.bordered = False
         self.setFont(FONT_MAIN)
         if color:
             self.setBrush(color)
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         """Notes:
@@ -61,7 +58,7 @@ class TextItem(QGraphicsSimpleTextItem):
         """
         super().paint(painter, option, widget)
         if self.bordered:
-            pen = QPen(Qt.black)
+            pen = QPen(Qt.GlobalColor.black)
             pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(self.boundingRect())
@@ -70,11 +67,11 @@ class TextItem(QGraphicsSimpleTextItem):
 class TextWidget(QLabel):
     def __init__(self, txt: str, color: QColor = None, parent=None):
         super().__init__(txt, parent)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)  # transparent bg
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)  # transparent bg
         self.setFont(FONT_MAIN)
         if color:
             p = QPalette()
-            p.setColor(QPalette.WindowText, color)
+            p.setColor(QPalette.ColorRole.WindowText, color)
             self.setPalette(p)
         # self.setStyleSheet("border: 1px solid black")  # not works
 
@@ -95,7 +92,7 @@ class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
         super().__init__()
         self.__vcentered = vcentered
         self.setWidget(TextWidget(txt, color))
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
         # print(f"{txt}: label={qsize2str(self.widget().size())}, self={qsize2str(self.boundingRect().size())}")
 
     '''
@@ -121,18 +118,20 @@ class GraphItem(QGraphicsPathItem):
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
         self.bordered = False
-        pg = QPolygonF([QPointF(x * 10, y * 10) for x, y in enumerate(mk_sin(d[1]))])
+        pg = QPolygonF([QPointF(x * 10, y * 14) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
         pp.addPolygon(pg)
         self.setPath(pp)
         pen = QPen(d[2])
         pen.setCosmetic(True)  # !!! don't resize pen width
         self.setPen(pen)
+        # self.setFlag(QGraphicsItem.ItemIgnoresTransformations, False)  # ✗
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         super().paint(painter, option, widget)
+        # TODO: resize to parent
         if self.bordered:
-            pen = QPen(Qt.black)
+            pen = QPen(Qt.GlobalColor.black)
             pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(self.boundingRect())
@@ -142,12 +141,12 @@ class GraphView(QGraphicsView):  # <= QAbstractScrollArea <= QFrame
     def __init__(self, d: DataValue):
         super().__init__()
         self.setScene(QGraphicsScene())
-        self.setViewportUpdateMode(QGraphicsView.BoundingRectViewportUpdate)
+        self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)
         self.scene().addItem(GraphItem(d))
 
     def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
         # super().resizeEvent(event)
-        self.fitInView(self.sceneRect(), Qt.IgnoreAspectRatio)  # expand to max
+        self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
         # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
 
 
@@ -161,7 +160,7 @@ class HLineGfxWidget(QGraphicsProxyWidget):
         """
         super().__init__()
         self.setWidget(w := QFrame())
-        w.setFrameShape(QFrame.HLine)
+        w.setFrameShape(QFrame.Shape.HLine)
         w.setLineWidth(0)
 
 
@@ -169,5 +168,31 @@ class VLineGfxWidget(QGraphicsProxyWidget):
     def __init__(self):
         super().__init__()
         self.setWidget(w := QFrame())
-        w.setFrameShape(QFrame.VLine)
+        w.setFrameShape(QFrame.Shape.VLine)
         w.setLineWidth(0)
+
+
+class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
+    """QGraphicsWidget(QGraphicsItem).
+    == GridGraphItem + minimal sizeHint()/setGeometry()
+    - [+] Lite, Simple
+    - [-] Paints from screen (0, 0)
+    """
+    __subj: GraphItem  # must alive
+
+    def __init__(self, d: DataValue, parent: QGraphicsItem = None):
+        super().__init__(parent)
+        self.__subj = GraphItem(d)
+        self.setGraphicsItem(self.__subj)
+        # self.__subj.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+
+    def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+        # if which in {Qt.MinimumSize, Qt.PreferredSize}:
+        #    return QSizeF(50, 20)
+        return constraint
+
+    def setGeometry(self, rect: QRectF):  # Fix painting from screen(0,0); Warn: Calling once on init
+        # print("Graph setG:", qsize2str(rect))
+        self.__subj.prepareGeometryChange()
+        super().setGeometry(rect)
+        self.__subj.setPos(rect.topLeft())
