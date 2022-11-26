@@ -8,7 +8,7 @@
 import sys
 from typing import Optional
 # 2. 3rd
-from PyQt5.QtCore import Qt, QSizeF, QRectF
+from PyQt5.QtCore import Qt, QSizeF, QRectF, QPointF
 from PyQt5.QtGui import QIcon, QColor, QResizeEvent, QFont, QPainter
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, QGraphicsItem,\
@@ -23,7 +23,7 @@ FONT_MAIN = QFont('mono', 8)
 W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
     ("Signal 1", 0, Qt.black),
-    ("Signal 2", 1, Qt.red),
+    ("Signal 2\nvalue", 1, Qt.red),
     ("Signal 3", 2, Qt.blue),
     ("Signal 4", 3, Qt.green),
     ("Signal 5", 4, Qt.yellow),
@@ -38,8 +38,9 @@ def color2style(c: QColor) -> str:
 
 class GridTextItem(QGraphicsLayoutItem):
     """QGraphicsLayoutItem(QGraphicsItem) based.
+    Ok:
     - [+] color
-    - [?] v-align top
+    - [+] v-align top
     - [+] v-size min
     - [+] cut
     - [-] no border
@@ -59,14 +60,15 @@ class GridTextItem(QGraphicsLayoutItem):
     def setGeometry(self, rect: QRectF):
         self.__subj.prepareGeometryChange()
         super().setGeometry(rect)
-        self.__subj.setPos(rect.topLeft())
+        self.__subj.setPos(QPointF(0, rect.center().y() - self.__subj.boundingRect().height() / 2))
 
 
 class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
     """QGraphicsProxyWidget(QWidget) based.
+    Not good:
     - [+] color
     - [+] v-align center
-    - [-] v-size strange
+    - [!] v-size strange
     - [+] cut
     - [-] no border
     """
@@ -79,7 +81,7 @@ class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
     #    return QGraphicsProxyWidget.boundingRect(self).adjusted(0, 0, 0, 0)
 
     def paintWindowFrame(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...):
-        """Not works.
+        """Not calling.
         RTFM examples/../embeddeddialogs
         """
         print("Go!")
@@ -145,7 +147,7 @@ class ViewWindow(QDialog):
             lt = QGraphicsGridLayout()
             lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)
             for i, d in enumerate(DATA[:3]):
-                lt.addItem(GridTextItem(d[0], d[2]), i + 1, 0)  # A: [+] TextGfxWidget, B: [-] GridTextItem
+                lt.addItem(GridTextItem(d[0], d[2]), i + 1, 0)  # A: GridTextItem, B: TextGfxWidget
                 lt.addItem(GraphViewGfxWidget(d), i + 1, 1)
             # Layout tuning
             lt.setSpacing(0)
