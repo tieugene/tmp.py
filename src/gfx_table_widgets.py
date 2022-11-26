@@ -1,16 +1,28 @@
 # 1. std
 import math
-from typing import Tuple
+from typing import Tuple, Union
 # 2. 3rd
-from PyQt5.QtCore import QPointF, Qt
-from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QColor, QFont, QPalette
+from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
+from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QColor, QFont, QPalette, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsProxyWidget, \
-    QFrame, QGraphicsSimpleTextItem, QLabel
+    QFrame, QGraphicsSimpleTextItem, QLabel, QWidget, QStyleOptionGraphicsItem
 
 # x. const
 DataValue = Tuple[str, int, QColor]
 POINTS = 12
 FONT_MAIN = QFont('mono', 8)
+
+
+def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
+    if isinstance(size, QRectF):
+        v = size.size().toSize()
+    elif isinstance(size, QRect):
+        v = size.size()
+    elif isinstance(size, QSizeF):
+        v = size.toSize()
+    else:
+        v = size
+    return f"({v.width()}, {v.height()})"
 
 
 def mk_sin(o: int = 0) -> list[float]:
@@ -32,12 +44,27 @@ class TextItem(QGraphicsSimpleTextItem):
     - not call: deviceTransform(), itemTransform(), transform(), boundingRegion()
     - call: paint()
     """
+    bordered: bool
+
     def __init__(self, txt: str, color: QColor = None):
         super().__init__(txt)
+        self.bordered = False
         self.setFont(FONT_MAIN)
         if color:
             self.setBrush(color)
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations)
+
+    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
+        """Notes:
+        - widget is not None
+        - painter.clipBoundingRect() = 0, 0
+        """
+        super().paint(painter, option, widget)
+        if self.bordered:
+            pen = QPen(Qt.black)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            painter.drawRect(self.boundingRect())
 
 
 class TextWidget(QLabel):
@@ -89,8 +116,11 @@ class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
 
 
 class GraphItem(QGraphicsPathItem):
+    bordered: bool
+
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
+        self.bordered = False
         pg = QPolygonF([QPointF(x * 10, y * 10) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
         pp.addPolygon(pg)
@@ -98,6 +128,14 @@ class GraphItem(QGraphicsPathItem):
         pen = QPen(d[2])
         pen.setCosmetic(True)  # !!! don't resize pen width
         self.setPen(pen)
+
+    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
+        super().paint(painter, option, widget)
+        if self.bordered:
+            pen = QPen(Qt.black)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            painter.drawRect(self.boundingRect())
 
 
 class GraphView(QGraphicsView):  # <= QAbstractScrollArea <= QFrame

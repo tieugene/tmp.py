@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Test of rescaling print (and multipage).
-- [ ] grid lines (a) paint over layout. b) add to each cell item
-- [ ] cut labels
-- [ ] resize plots
+- [ ] FIXME: Label: r-cut
+- [ ] TODO: Row: shrink v-spaces (now %)
+- [ ] TODO: Row: stretchfactor (now depends on label height)
+- [ ] TODO: Grid: grid lines (a) paint over layout. b) add to each cell item)
 """
 # 1. std
 import sys
-from typing import Union
 # 2. 3rd
-from PyQt5.QtCore import Qt, QSizeF, QRectF, QPointF, QRect, QSize
+from PyQt5.QtCore import Qt, QSizeF, QRectF, QPointF
 from PyQt5.QtGui import QIcon, QColor, QResizeEvent, QFont
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView, \
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, QGraphicsItem, \
@@ -23,7 +23,7 @@ FONT_MAIN = QFont('mono', 8)
 W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
     ("Signal 1", 0, Qt.black),
-    ("Signal 2\nvalue", 1, Qt.red),
+    ("Signal 2", 1, Qt.red),
     ("Signal 3", 2, Qt.blue),
     ("Signal 4", 3, Qt.green),
     ("Signal 5", 4, Qt.yellow),
@@ -34,18 +34,6 @@ DATA = (  # name, x-offset, color
 def color2style(c: QColor) -> str:
     """Convert QColor into stylesheet-compatible string"""
     return "rgb(%d, %d, %d)" % (c.red(), c.green(), c.blue())
-
-
-def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
-    if isinstance(size, QRectF):
-        v = size.size().toSize()
-    elif isinstance(size, QRect):
-        v = size.size()
-    elif isinstance(size, QSizeF):
-        v = size.toSize()
-    else:
-        v = size
-    return f"({v.width()}, {v.height()})"
 
 
 class GridTextItem(QGraphicsLayoutItem):
@@ -65,6 +53,11 @@ class GridTextItem(QGraphicsLayoutItem):
         self.__subj = TextItem(txt, color)
         self.__vcentered = vcentered
         self.setGraphicsItem(self.__subj)
+        # experiments:
+        # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
+        # self.__subj.setFlag(QGraphicsItem.ItemClipsChildrenToShape, True)
+        # self.__subj.setFlag(QGraphicsItem.ItemUsesExtendedStyleOption)
+        # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
         if which in {Qt.MinimumSize, Qt.PreferredSize}:
@@ -84,8 +77,8 @@ class GridTextItem(QGraphicsLayoutItem):
 class GridGraphItem(QGraphicsLayoutItem):
     """QGraphicsLayoutItem(QGraphicsItem).
     - [+] Lite
-    - [-] Not fill cell
     - [?] Transparent
+    - [-] Not fill cell
     """
     __subj: GraphItem
 
@@ -93,6 +86,7 @@ class GridGraphItem(QGraphicsLayoutItem):
         super().__init__()
         self.__subj = GraphItem(d)
         self.setGraphicsItem(self.__subj)
+        self.__subj.bordered = True
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
         # if which in {Qt.MinimumSize, Qt.PreferredSize}:
@@ -123,6 +117,7 @@ class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutI
 class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
     """QGraphicsProxyWidget(QGraphicsView).
     - [+] OK
+    - [?] not transparent
     - [-] Too bulky: QGraphicsProxyWidget(QGraphicsView(QGraphicsScene(QGraphicsItem)))
     """
 
@@ -130,6 +125,11 @@ class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
         super().__init__()
         self.setWidget(w := GraphView(d))
         w.setFrameShape(QFrame.Box)
+        # experiments:
+        # self.setAttribute(Qt.WA_NoSystemBackground)  # ✗
+        # self.setAttribute(Qt.WA_TranslucentBackground)  # ✗
+        # w.setAttribute(Qt.WA_NoSystemBackground)  # ✗
+        # w.setAttribute(Qt.WA_TranslucentBackground)  # ✗
 
 
 class ViewWindow(QDialog):
@@ -139,16 +139,16 @@ class ViewWindow(QDialog):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
             lt = QGraphicsGridLayout()
-            # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)
-            for row, d in enumerate(DATA[:3]):
+            # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)  # ✗ (span)
+            for row, d in enumerate(DATA[:4]):
                 lt.addItem(GridTextItem(d[0], d[2], True), row, 0)  # A: GridTextItem, B: TextGfxWidget
                 lt.addItem(GridGraphItem(d), row, 1)
+                # lt.setRowStretchFactor(row, 1)  # ✗
             # Layout tuning
-            # lt.setSpacing(0)
-            # lt.setContentsMargins(0, 0, 0, 0)
-            # lt.setColumnAlignment(0, Qt.AlignLeft | Qt.AlignVCenter)  # not helps
-            # lt.setRowStretchFactor(0, 0)  # not works
-            # lt.setRowFixedHeight(0, 50)  # not works
+            lt.setSpacing(0)
+            lt.setContentsMargins(0, 0, 0, 0)
+            # lt.setRowStretchFactor(2, 0)  # ✗
+            # lt.setRowFixedHeight(0, 50)  # ✗
             # go
             gw = QGraphicsWidget()
             gw.setLayout(lt)
