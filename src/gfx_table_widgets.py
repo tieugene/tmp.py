@@ -49,11 +49,9 @@ class TextItem(QGraphicsSimpleTextItem):
     def __init__(self, txt: str, color: QColor = None):
         super().__init__(txt)
         self.setFont(FONT_MAIN)
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
         if color:
-            pen = self.pen()
-            pen.setColor(color)  # FIXME: not helps (always black)
-            self.setPen(pen)
+            self.setBrush(color)
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
 
 class GraphItem(QGraphicsPathItem):
@@ -68,7 +66,7 @@ class GraphItem(QGraphicsPathItem):
         self.setPen(pen)
 
 
-class GraphWidget(QGraphicsView):  # <= QAbstractScrollArea <= QFrame
+class GraphView(QGraphicsView):  # <= QAbstractScrollArea <= QFrame
     def __init__(self, d: DataValue):
         super().__init__()
         self.setScene(QGraphicsScene())
@@ -81,7 +79,7 @@ class GraphWidget(QGraphicsView):  # <= QAbstractScrollArea <= QFrame
         # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
 
 
-class HLineGridWidget(QGraphicsProxyWidget):
+class HLineGfxWidget(QGraphicsProxyWidget):
     def __init__(self):
         """Defaults:
         - lineWidth() = 1
@@ -95,7 +93,7 @@ class HLineGridWidget(QGraphicsProxyWidget):
         w.setLineWidth(0)
 
 
-class VLineGridWidget(QGraphicsProxyWidget):
+class VLineGfxWidget(QGraphicsProxyWidget):
     def __init__(self):
         super().__init__()
         self.setWidget(w := QFrame())

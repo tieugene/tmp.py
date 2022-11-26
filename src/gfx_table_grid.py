@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, QGraphicsItem,\
     QGraphicsProxyWidget, QFrame, QWidget, QStyleOptionGraphicsItem
 
-from src.gfx_table_widgets import DataValue, TextItem, GraphItem, GraphWidget, TextWidget
+from gfx_table_widgets import DataValue, TextItem, GraphItem, GraphView, TextWidget
 
 # x. const
 PPP = 5  # plots per page
@@ -36,18 +36,20 @@ def color2style(c: QColor) -> str:
     return "rgb(%d, %d, %d)" % (c.red(), c.green(), c.blue())
 
 
-class TextGridItem(QGraphicsLayoutItem):
-    """QGraphicsItem based"""
+class GridTextItem(QGraphicsLayoutItem):
+    """QGraphicsLayoutItem(QGraphicsItem) based.
+    - [+] color
+    - [?] v-align top
+    - [+] v-size min
+    - [+] cut
+    - [-] no border
+    """
     __subj: TextItem
 
     def __init__(self, txt: str, color: QColor = None):
         super().__init__()
         self.__subj = TextItem(txt, color)  # must be alive forewer
         self.setGraphicsItem(self.__subj)
-        # replace/help sizeHint()  (not helps)
-        # size = self.__subj.boundingRect().size()
-        # self.setMinimumWidth(size.width())
-        # self.setMinimumHeight(size.height())
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
         if which in {Qt.MinimumSize, Qt.PreferredSize}:
@@ -58,10 +60,37 @@ class TextGridItem(QGraphicsLayoutItem):
         self.__subj.prepareGeometryChange()
         super().setGeometry(rect)
         self.__subj.setPos(rect.topLeft())
-        # TODO: cut
 
 
-class PlotGridItem(QGraphicsLayoutItem):
+class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
+    """QGraphicsProxyWidget(QWidget) based.
+    - [+] color
+    - [+] v-align center
+    - [-] v-size strange
+    - [+] cut
+    - [-] no border
+    """
+    def __init__(self, txt: str, color: QColor = None):
+        super().__init__()
+        self.setWidget(TextWidget(txt, color))
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+
+    # def boundingRect(self):
+    #    return QGraphicsProxyWidget.boundingRect(self).adjusted(0, 0, 0, 0)
+
+    def paintWindowFrame(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...):
+        """Not works.
+        RTFM examples/../embeddeddialogs
+        """
+        print("Go!")
+        painter.setPen(Qt.black)
+        painter.setBrush(Qt.red)
+        painter.drawRect(self.windowFrameRect())
+        super().paintWindowFrame(painter, option, widget)
+
+
+class GridGraphItem(QGraphicsLayoutItem):
+    """QGraphicsLayoutItem(QGraphicsItem)"""
     __subj: GraphItem
 
     def __init__(self, d: DataValue):
@@ -84,32 +113,8 @@ class PlotGridItem(QGraphicsLayoutItem):
         # FIXME: set size
 
 
-class TextGridWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
-    """QWidget based.
-    TODO: self.paintWindowFrame()
-    """
-    def __init__(self, txt: str, color: QColor = None):
-        super().__init__()
-        w = TextWidget(txt, color)
-        self.setWidget(w)
-        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
-
-    def boundingRect(self):
-        """Seems not works"""
-        return QGraphicsProxyWidget.boundingRect(self).adjusted(0, 0, 10, 10)
-
-    def paintWindowFrame(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...):
-        """Not works.
-        RTFM examples/../embeddeddialogs
-        """
-        print("Go!")
-        painter.setPen(Qt.black)
-        painter.setBrush(Qt.red)
-        painter.drawRect(self.windowFrameRect())
-        super().paintWindowFrame(painter, option, widget)
-
-
-class PlotGridWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
+class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
+    """QGraphicsWidget(QGraphicsItem)"""
     __subj: GraphItem
 
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
@@ -122,11 +127,11 @@ class PlotGridWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
         # self.setWidget(w)  # GraphItem(d)
 
 
-class PlotGridProxyWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
-    """QWidget based"""
+class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
+    """QGraphicsProxyWidget(QGraphicsView)"""
     def __init__(self, d: DataValue):
         super().__init__()
-        w = GraphWidget(d)
+        w = GraphView(d)
         w.setFrameShape(QFrame.Box)
         self.setWidget(w)
 
@@ -138,18 +143,15 @@ class ViewWindow(QDialog):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
             lt = QGraphicsGridLayout()
+            lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)
+            for i, d in enumerate(DATA[:3]):
+                lt.addItem(GridTextItem(d[0], d[2]), i + 1, 0)  # A: [+] TextGfxWidget, B: [-] GridTextItem
+                lt.addItem(GraphViewGfxWidget(d), i + 1, 1)
+            # Layout tuning
             lt.setSpacing(0)
             lt.setContentsMargins(0, 0, 0, 0)
-            # lt.addItem(self.HLineGridWidget(), 0, 0, 1, 5)
-            for i, d in enumerate(DATA[:3]):
-                row = i * 2 + 1
-                # plan A: self.TextGridWidget (good colored, good cut)
-                # plan B: self.TextGridItem
-                lt.addItem(TextGridItem(d[0], d[2]), row, 0)
-                lt.addItem(PlotGridProxyWidget(d), row, 1)
-                # for c in (0, 2, 4):
-                #    lt.addItem(self.VLineGridWidget(), row, c)
-                # lt.addItem(self.HLineGridWidget(), row + 1, 0, 1, 5)
+            # lt.setColumnAlignment(0, Qt.AlignLeft | Qt.AlignVCenter)  # not helps
+            # go
             gw = QGraphicsWidget()
             gw.setLayout(lt)
             self.scene().addItem(gw)
@@ -172,7 +174,7 @@ class MainWidget(QTableWidget):
         self.setColumnCount(2)
         for r, d in enumerate(DATA):
             self.setItem(r, 0, (QTableWidgetItem(d[0])))
-            self.setCellWidget(r, 1, GraphWidget(d))
+            self.setCellWidget(r, 1, GraphView(d))
 
 
 class MainWindow(QMainWindow):
