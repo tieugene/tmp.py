@@ -54,6 +54,7 @@ class GridTextItem(QGraphicsLayoutItem):
         self.__vcentered = vcentered
         self.setGraphicsItem(self.__subj)
         # experiments:
+        self.__subj.bordered = True
         # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
         # self.__subj.setFlag(QGraphicsItem.ItemClipsChildrenToShape, True)
         # self.__subj.setFlag(QGraphicsItem.ItemUsesExtendedStyleOption)
@@ -106,8 +107,8 @@ class GridGraphItem(QGraphicsLayoutItem):
         self.__subj.setPos(rect.topLeft())
         # TODO: resize item to rect
 
-    def boundingRect(self) -> QRectF:
-        return QRectF(QPointF(0, 0), self.geometry().size())
+    # def boundingRect(self) -> QRectF:
+    #    return QRectF(QPointF(0, 0), self.geometry().size())
 
 
 class GraphViewGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
@@ -143,7 +144,7 @@ class ViewWindow(QDialog):
                 lt.addItem(GridGraphItem(d), row, 1)
                 # lt.setRowFixedHeight(row, 100)  # works strange
                 # lt.setRowSpacing(row, 0)  # ✗
-                # lt.setRowStretchFactor(row, 1)  # ✗
+                lt.setRowStretchFactor(row, row)  # ✗
             # Layout tuning
             lt.setSpacing(0)
             lt.setContentsMargins(0, 0, 0, 0)

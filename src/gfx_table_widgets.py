@@ -55,13 +55,21 @@ class TextItem(QGraphicsSimpleTextItem):
         """Notes:
         - widget is not None
         - painter.clipBoundingRect() = 0, 0
+        - option.rect == self.boundingRect()
         """
         super().paint(painter, option, widget)
+        print(qsize2str(widget.size()))
         if self.bordered:
-            pen = QPen(Qt.GlobalColor.black)
+            pen = QPen()
             pen.setCosmetic(True)
+            # item border
+            pen.setColor(Qt.GlobalColor.black)
             painter.setPen(pen)
             painter.drawRect(self.boundingRect())
+            # place border (more precise)
+            pen.setColor(Qt.GlobalColor.blue)
+            painter.setPen(pen)
+            painter.drawRect(option.rect)
 
 
 class TextWidget(QLabel):
@@ -128,13 +136,18 @@ class GraphItem(QGraphicsPathItem):
         # self.setFlag(QGraphicsItem.ItemIgnoresTransformations, False)  # ✗
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
-        super().paint(painter, option, widget)
-        # TODO: resize to parent
         if self.bordered:
-            pen = QPen(Qt.GlobalColor.black)
+            pen = QPen()
             pen.setCosmetic(True)
+            # item border
+            pen.setColor(Qt.GlobalColor.black)
             painter.setPen(pen)
             painter.drawRect(self.boundingRect())
+            # place border (more precise)
+            pen.setColor(Qt.GlobalColor.blue)
+            painter.setPen(pen)
+            painter.drawRect(option.rect)
+        super().paint(painter, option, widget)
 
 
 class GraphView(QGraphicsView):  # <= QAbstractScrollArea <= QFrame
