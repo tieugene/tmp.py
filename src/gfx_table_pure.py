@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Test of rescaling print (and multipage)."""
+"""Test of rescaling print (and multipage).
+- [x] FIXME: Label: r-cut
+- [ ] FIXME: Plot: shrink v-spaces
+- [ ] TODO: Grid: grid lines (a) paint over layout. b) add to each cell item)
+"""
 # 1. std
 import sys
 # 2. 3rd
@@ -8,16 +12,16 @@ from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup
 # 3. local
-from gfx_table_widgets import DataValue, GraphItem, TextItem, GraphView
+from gfx_table_widgets import DataValue, GraphItem, TextItem, GraphView, RectTextItem
 
 # x. const
 PPP = 5  # plots per page
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
-W_LABEL = 50  # width of label column
+W_LABEL = 53  # width of label column
 DATA = (  # name, x-offset, color
     ("Signal 1", 0, Qt.GlobalColor.black),
-    ("Signal 2", 1, Qt.GlobalColor.red),
-    ("Signal 3", 2, Qt.GlobalColor.blue),
+    ("Signal 22", 1, Qt.GlobalColor.red),
+    ("Signal 3333", 2, Qt.GlobalColor.blue),
     ("Signal 4", 3, Qt.GlobalColor.green),
     ("Signal 5", 4, Qt.GlobalColor.yellow),
     ("Signal 6", 5, Qt.GlobalColor.magenta),
@@ -29,7 +33,7 @@ class ViewWindow(QDialog):
         class RowItem(QGraphicsItemGroup):
             def __init__(self, d: DataValue, parent: QGraphicsItem = None):
                 super().__init__(parent)
-                label = TextItem(d[0], d[2])
+                label = RectTextItem(d[0], d[2])
                 self.addToGroup(label)
                 graph = GraphItem(d)
                 graph.setX(W_LABEL)

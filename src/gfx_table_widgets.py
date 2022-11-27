@@ -5,7 +5,8 @@ from typing import Tuple, Union
 from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QColor, QFont, QPalette, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsProxyWidget, \
-    QFrame, QGraphicsSimpleTextItem, QLabel, QWidget, QStyleOptionGraphicsItem, QGraphicsWidget
+    QFrame, QGraphicsSimpleTextItem, QLabel, QWidget, QStyleOptionGraphicsItem, QGraphicsWidget, QGraphicsRectItem, \
+    QGraphicsItemGroup
 
 # x. const
 DataValue = Tuple[str, int, Qt.GlobalColor]
@@ -34,6 +35,34 @@ def mk_sin(o: int = 0) -> list[float]:
     return [(1 + math.sin((i + o) * 2 * math.pi / POINTS)) / 2 for i in range(POINTS + 1)]
 
 
+class RectTextItem(QGraphicsItemGroup):
+    """Text in border.
+    Result: something strange."""
+    bordered: bool
+    rect: QGraphicsRectItem
+    text: QGraphicsSimpleTextItem
+
+    def __init__(self, txt: str, color: Qt.GlobalColor = None):
+        super().__init__()
+        # text
+        self.text = QGraphicsSimpleTextItem(txt)
+        self.text.setFont(FONT_MAIN)
+        self.text.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+        # rect
+        self.rect = QGraphicsRectItem(self.text.boundingRect())
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # YES!!!
+        # color up
+        if color:
+            self.text.setBrush(color)
+            pen = QPen(color)
+            pen.setCosmetic(True)
+            self.rect.setPen(pen)
+        # altogether
+        self.text.setParentItem(self)
+        self.addToGroup(self.rect)
+        self.addToGroup(self.text)
+
+
 class TextItem(QGraphicsSimpleTextItem):
     """
     Warn: on resize:
@@ -58,7 +87,6 @@ class TextItem(QGraphicsSimpleTextItem):
         - option.rect == self.boundingRect()
         """
         super().paint(painter, option, widget)
-        print(qsize2str(widget.size()))
         if self.bordered:
             pen = QPen()
             pen.setCosmetic(True)
@@ -126,7 +154,7 @@ class GraphItem(QGraphicsPathItem):
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
         self.bordered = False
-        pg = QPolygonF([QPointF(x * 10, y * 14) for x, y in enumerate(mk_sin(d[1]))])
+        pg = QPolygonF([QPointF(x * 50, y * 14) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
         pp.addPolygon(pg)
         self.setPath(pp)
@@ -136,15 +164,17 @@ class GraphItem(QGraphicsPathItem):
         # self.setFlag(QGraphicsItem.ItemIgnoresTransformations, False)  # ✗
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
+        """Note:
+        - painter.setBrush(Qt.GlobalColor.white): clean bg (label cut "plan B")
+        """
         if self.bordered:
-            pen = QPen()
-            pen.setCosmetic(True)
             # item border
-            pen.setColor(Qt.GlobalColor.black)
-            painter.setPen(pen)
-            painter.drawRect(self.boundingRect())
+            # pen.setColor(Qt.GlobalColor.black)
+            # painter.setPen(pen)
+            # painter.drawRect(self.boundingRect())
             # place border (more precise)
-            pen.setColor(Qt.GlobalColor.blue)
+            pen = QPen(Qt.GlobalColor.blue)
+            pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(option.rect)
         super().paint(painter, option, widget)

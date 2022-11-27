@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, \
     QGraphicsProxyWidget, QFrame
 # 3. local
-from gfx_table_widgets import qsize2str, DataValue, TextItem, GraphItem, GraphView
+from gfx_table_widgets import qsize2str, DataValue, TextItem, GraphItem, GraphView, RectTextItem
 
 # x. const
 PPP = 5  # plots per page
@@ -23,8 +23,8 @@ FONT_MAIN = QFont('mono', 8)
 W_LABEL = 50  # width of label column
 DATA = (  # name, x-offset, color
     ("Signal 1", 0, Qt.GlobalColor.black),
-    ("Signal 2", 1, Qt.GlobalColor.red),
-    ("Signal 3", 2, Qt.GlobalColor.blue),
+    ("Signal 22", 1, Qt.GlobalColor.red),
+    ("Signal 333", 2, Qt.GlobalColor.blue),
     ("Signal 4", 3, Qt.GlobalColor.green),
     ("Signal 5", 4, Qt.GlobalColor.yellow),
     ("Signal 6", 5, Qt.GlobalColor.magenta),
@@ -45,19 +45,18 @@ class GridTextItem(QGraphicsLayoutItem):
     - [-] no cut
     - [-] no border
     """
-    __subj: TextItem  # must live
+    __subj: RectTextItem  # must live
     __vcentered: bool
 
     def __init__(self, txt: str, color: QColor = None, vcentered: bool = False):
         super().__init__()
-        self.__subj = TextItem(txt, color)
+        self.__subj = RectTextItem(txt, color)
         self.__vcentered = vcentered
         self.setGraphicsItem(self.__subj)
         # experiments:
         self.__subj.bordered = True
         # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
-        # self.__subj.setFlag(QGraphicsItem.ItemClipsChildrenToShape, True)
-        # self.__subj.setFlag(QGraphicsItem.ItemUsesExtendedStyleOption)
+        # self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
         # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
