@@ -9,12 +9,13 @@ Note: now stretch factors depends on (label/graph).boundingRect() ratio
 import sys
 # 2. 3rd
 from PyQt5.QtCore import Qt, QSizeF, QRectF, QPointF
-from PyQt5.QtGui import QIcon, QColor, QResizeEvent, QFont
+from PyQt5.QtGui import QIcon, QColor, QResizeEvent, QFont, QPalette
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView, \
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, \
-    QGraphicsProxyWidget, QFrame
+    QGraphicsProxyWidget, QFrame, QLabel, QGraphicsItem
 # 3. local
 from gfx_table_widgets import qsize2str, DataValue, TextItem, GraphItem, GraphView, RectTextItem
+from src.gfx_table_widgets import FONT_MAIN, GraphItem, DataValue
 
 # x. const
 PPP = 5  # plots per page
@@ -207,3 +208,99 @@ def main() -> int:
 
 if __name__ == '__main__':
     sys.exit(main())
+
+
+class TextWidget(QLabel):
+    def __init__(self, txt: str, color: QColor = None, parent=None):
+        super().__init__(txt, parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)  # transparent bg
+        self.setFont(FONT_MAIN)
+        if color:
+            p = QPalette()
+            p.setColor(QPalette.ColorRole.WindowText, color)
+            self.setPalette(p)
+        # self.setStyleSheet("border: 1px solid black")  # not works
+
+
+class TextGfxWidget(QGraphicsProxyWidget):  # <= QGraphicsWidget
+    """QGraphicsProxyWidget(QWidget) based.
+    Not good:
+    - [+] color
+    - [?] v-align: center?
+    - [-] v-size: strange
+    - [+] cut
+    - [-] no border
+    """
+    __vcentered: bool
+
+    def __init__(self, txt: str, color: QColor = None, vcentered: bool = False):
+        # Signal x: (53, 14)
+        super().__init__()
+        self.__vcentered = vcentered
+        self.setWidget(TextWidget(txt, color))
+        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations, True)
+        # print(f"{txt}: label={qsize2str(self.widget().size())}, self={qsize2str(self.boundingRect().size())}")
+
+    '''
+    def boundingRect(self) -> QRectF:
+        # return super().boundingRect().adjusted(0, 0, 0, 0)  # too big (54, 96)
+        return QRectF(0, 0, (s := self.widget().size()).width(), s.height())
+
+    def paintWindowFrame(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = ...):
+        """Not calling.
+        RTFM examples/../embeddeddialogs
+        """
+        print("Go!")
+        painter.setPen(Qt.black)
+        painter.setBrush(Qt.red)
+        painter.drawRect(self.windowFrameRect())
+        super().paintWindowFrame(painter, option, widget)
+    '''
+
+
+class HLineGfxWidget(QGraphicsProxyWidget):
+    def __init__(self):
+        """Defaults:
+        - lineWidth() = 1
+        - frameShadow() = 16 (plain)
+        - frameWidth() = 1
+        - frameStyle() = 20
+        """
+        super().__init__()
+        self.setWidget(w := QFrame())
+        w.setFrameShape(QFrame.Shape.HLine)
+        w.setLineWidth(0)
+
+
+class VLineGfxWidget(QGraphicsProxyWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWidget(w := QFrame())
+        w.setFrameShape(QFrame.Shape.VLine)
+        w.setLineWidth(0)
+
+
+class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutItem
+    """QGraphicsWidget(QGraphicsItem).
+    == GridGraphItem + minimal sizeHint()/setGeometry()
+    - [+] Lite, Simple
+    - [-] Paints from screen (0, 0)
+    """
+    __subj: GraphItem  # must alive
+
+    def __init__(self, d: DataValue, parent: QGraphicsItem = None):
+        super().__init__(parent)
+        self.__subj = GraphItem(d)
+        self.setGraphicsItem(self.__subj)
+        # self.__subj.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+
+    def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+        # if which in {Qt.MinimumSize, Qt.PreferredSize}:
+        #    return QSizeF(50, 20)
+        return constraint
+
+    def setGeometry(self, rect: QRectF):  # Fix painting from screen(0,0); Warn: Calling once on init
+        # print("Graph setG:", qsize2str(rect))
+        self.__subj.prepareGeometryChange()
+        super().setGeometry(rect)
+        self.__subj.setPos(rect.topLeft())
