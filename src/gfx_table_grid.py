@@ -20,8 +20,10 @@ from gfx_table_widgets import W_LABEL, DataValue, RectTextItem, GraphItem, Layou
 class TableItem(QGraphicsWidget):
     def __init__(self, dlist: List[DataValue]):
         super().__init__()
-        self.setLayout(lt := QGraphicsGridLayout())
+        lt = QGraphicsGridLayout(self)
         lt.setSpacing(0)
         for row, d in enumerate(dlist):
             lt.addItem(LayoutItem(RectTextItem(W_LABEL, d[0], d[2])), row, 0)  # A: GridTextItem, B: TextGfxWidget
             lt.addItem(LayoutItem(GraphItem(d)), row, 1)
+        # lt.setRowStretchFactor(0, 0)
+        self.setLayout(lt)
