@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
     QGraphicsScene, QDialog, QVBoxLayout
 # 3. local
 from gfx_table_widgets import HEADER_TXT, DATA, TextItem, GraphView
-from gfx_table_grid import TableItem
+from gfx_table_pure import TableItem
 
 
 class ViewWindow(QDialog):
