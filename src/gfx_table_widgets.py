@@ -9,10 +9,11 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QGraphicsItemGroup
 
 # x. const
+FONT_MAIN = QFont('mono', 8)
 DataValue = Tuple[str, int, Qt.GlobalColor]
 POINTS = 12
-FONT_MAIN = QFont('mono', 8)
-W_LABEL = 53  # width of label column
+W_LABEL = 64  # width of label column
+W_GRAPH_STEP = W_LABEL // 4
 
 
 def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
@@ -107,7 +108,8 @@ class GraphItem(QGraphicsPathItem):
     def __init__(self, d: DataValue, parent: QGraphicsItem = None):
         super().__init__(parent)
         self.bordered = False
-        pg = QPolygonF([QPointF(x * 20, y * 14) for x, y in enumerate(mk_sin(d[1]))])
+        # W: ..., H: 1xChar
+        pg = QPolygonF([QPointF(x * W_GRAPH_STEP, y * 14) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
         pp.addPolygon(pg)
         self.setPath(pp)

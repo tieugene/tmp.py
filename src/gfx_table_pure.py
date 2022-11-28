@@ -3,16 +3,19 @@
 - [x] FIXME: Label: r-cut
 - [x] ~FIXME: Plot: shrink v-spaces~
 - [ ] TODO: Grid: grid lines (a) paint over layout. ~b) add to each cell item)~
+- [ ] Footer
 """
 # 1. std
 import sys
+from typing import List
+
 # 2. 3rd
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup
 # 3. local
-from gfx_table_widgets import DataValue, GraphItem, GraphView, RectTextItem
+from gfx_table_widgets import DataValue, TextItem, RectTextItem, GraphItem, GraphView
 from src.gfx_table_widgets import W_LABEL
 
 # x. const
@@ -30,28 +33,29 @@ DATA = (  # name, x-offset, color
 
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
-        class RowItem(QGraphicsItemGroup):
-            def __init__(self, d: DataValue, parent: QGraphicsItem = None):
+        class TableItem(QGraphicsItemGroup):
+            class RowItem(QGraphicsItemGroup):
+                def __init__(self, d: DataValue, parent: QGraphicsItem = None):
+                    super().__init__(parent)
+                    self.addToGroup(label := RectTextItem(W_LABEL - 1, d[0], d[2]))
+                    self.addToGroup(graph := GraphItem(d))
+                    graph.setX(W_LABEL)
+                    graph.bordered = True
+
+            def __init__(self, dlist: List[DataValue], parent: QGraphicsItem = None):
                 super().__init__(parent)
-                label = RectTextItem(W_LABEL-1, d[0], d[2])
-                self.addToGroup(label)
-                graph = GraphItem(d)
-                graph.setX(W_LABEL)
-                graph.bordered = True
-                self.addToGroup(graph)
+                y = 0
+                for r, d in enumerate(dlist):
+                    self.addToGroup(item := self.RowItem(d))
+                    item.setY(y)
+                    y += item.boundingRect().height()
 
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
-            # header = TextItem(HEADER_TXT)
-            # y = header.boundingRect().height()
-            # self.scene().addItem(header)
-            y = 0
-            for r, d in enumerate(DATA[:3]):
-                item = self.RowItem(d)
-                item.setY(y)
-                self.scene().addItem(item)
-                y += item.boundingRect().height()
+            self.scene().addItem(header := TextItem(HEADER_TXT))
+            self.scene().addItem(table := self.TableItem(DATA[:3]))
+            table.setPos(0, header.boundingRect().height())
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
