@@ -14,6 +14,7 @@ DataValue = Tuple[str, int, Qt.GlobalColor]
 POINTS = 12
 W_LABEL = 64  # width of label column
 W_GRAPH_STEP = W_LABEL // 4
+H_GRAPH = 14  # bigger makes label b-cutted
 
 
 def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
@@ -109,7 +110,7 @@ class GraphItem(QGraphicsPathItem):
         super().__init__(parent)
         self.bordered = False
         # W: ..., H: 1xChar
-        pg = QPolygonF([QPointF(x * W_GRAPH_STEP, y * 14) for x, y in enumerate(mk_sin(d[1]))])
+        pg = QPolygonF([QPointF(x * W_GRAPH_STEP, y * H_GRAPH) for x, y in enumerate(mk_sin(d[1]))])
         pp = QPainterPath()
         pp.addPolygon(pg)
         self.setPath(pp)
