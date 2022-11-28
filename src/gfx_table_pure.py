@@ -8,27 +8,13 @@
 # 1. std
 import sys
 from typing import List
-
 # 2. 3rd
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup
 # 3. local
-from gfx_table_widgets import DataValue, TextItem, RectTextItem, GraphItem, GraphView
-from src.gfx_table_widgets import W_LABEL
-
-# x. const
-PPP = 5  # plots per page
-HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
-DATA = (  # name, x-offset, color
-    ("Signal 1", 0, Qt.GlobalColor.black),
-    ("Signal 22", 1, Qt.GlobalColor.red),
-    ("Signal 3333", 2, Qt.GlobalColor.blue),
-    ("Signal 4", 3, Qt.GlobalColor.green),
-    ("Signal 5", 4, Qt.GlobalColor.yellow),
-    ("Signal 6", 5, Qt.GlobalColor.magenta),
-)
+from gfx_table_widgets import W_LABEL, HEADER_TXT, DATA, DataValue, TextItem, RectTextItem, GraphItem, GraphView
 
 
 class ViewWindow(QDialog):

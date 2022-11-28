@@ -7,14 +7,23 @@ from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QFont, QPai
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, \
     QGraphicsItemGroup
-
 # x. const
+PPP = 5  # plots per page
 FONT_MAIN = QFont('mono', 8)
 DataValue = Tuple[str, int, Qt.GlobalColor]
 POINTS = 12
 W_LABEL = 64  # width of label column
 W_GRAPH_STEP = W_LABEL // 4
 H_GRAPH = 14  # bigger makes label b-cutted
+HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line."
+DATA = (  # name, x-offset, color
+    ("Signal 1", 0, Qt.GlobalColor.black),
+    ("Signal 22", 1, Qt.GlobalColor.red),
+    ("Signal 3333", 2, Qt.GlobalColor.blue),
+    ("Signal 4", 3, Qt.GlobalColor.green),
+    ("Signal 5", 4, Qt.GlobalColor.yellow),
+    ("Signal 6", 5, Qt.GlobalColor.magenta),
+)
 
 
 def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
