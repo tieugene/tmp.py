@@ -8,39 +8,58 @@ Note: now stretch factors depends on (label/graph).boundingRect() ratio
 """
 # 1. std
 import sys
+from typing import List
+
 # 2. 3rd
 from PyQt5.QtCore import Qt, QSizeF, QRectF
 from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView, \
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsWidget, QGraphicsGridLayout, QGraphicsLayoutItem, QGraphicsItem
 # 3. local
-from gfx_table_widgets import W_LABEL, DATA, RectTextItem, GraphItem, GraphView
+from gfx_table_widgets import W_LABEL, DataValue, HEADER_TXT, DATA, TextItem, RectTextItem, GraphItem, GraphView
 
 
-class LayoutItem(QGraphicsLayoutItem):
-    """QGraphicsLayoutItem(QGraphicsItem) based."""
-    __subj: QGraphicsItem  # must live
+class TableItem(QGraphicsWidget):
+    class LayoutItem(QGraphicsLayoutItem):
+        """QGraphicsLayoutItem(QGraphicsItem) based."""
+        __subj: QGraphicsItem  # must live
 
-    def __init__(self, subj: QGraphicsItem):
+        def __init__(self, subj: QGraphicsItem):
+            super().__init__()
+            self.__subj = subj
+            self.setGraphicsItem(self.__subj)
+            # experiments:
+            self.__subj.bordered = True
+            # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
+            # self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
+            # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
+            # self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # ✗
+
+        def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+            if which in {Qt.SizeHint.MinimumSize, Qt.SizeHint.PreferredSize}:
+                return self.__subj.boundingRect().size()
+            return constraint
+
+        def setGeometry(self, rect: QRectF):  # Warn: Calling once on init
+            self.__subj.prepareGeometryChange()
+            super().setGeometry(rect)
+            self.__subj.setPos(rect.topLeft())
+
+    def __init__(self, dlist: List[DataValue]):
         super().__init__()
-        self.__subj = subj
-        self.setGraphicsItem(self.__subj)
-        # experiments:
-        self.__subj.bordered = True
-        # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
-        # self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
-        # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
-        # self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # ✗
-
-    def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
-        if which in {Qt.SizeHint.MinimumSize, Qt.SizeHint.PreferredSize}:
-            return self.__subj.boundingRect().size()
-        return constraint
-
-    def setGeometry(self, rect: QRectF):  # Warn: Calling once on init
-        self.__subj.prepareGeometryChange()
-        super().setGeometry(rect)
-        self.__subj.setPos(rect.topLeft())
+        lt = QGraphicsGridLayout()
+        # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)  # ✗ (span)
+        for row, d in enumerate(dlist):
+            lt.addItem(self.LayoutItem(RectTextItem(W_LABEL, d[0], d[2])), row, 0)  # A: GridTextItem, B: TextGfxWidget
+            lt.addItem(self.LayoutItem(GraphItem(d)), row, 1)
+            # lt.setRowFixedHeight(row, 100)  # works strange
+            # lt.setRowSpacing(row, 0)  # ✗
+            lt.setRowStretchFactor(row, row)  # ✗
+        # Layout tuning
+        lt.setSpacing(0)
+        lt.setContentsMargins(0, 0, 0, 0)
+        # lt.setRowFixedHeight(0, 50)  # ✗
+        self.setLayout(lt)
 
 
 class ViewWindow(QDialog):
@@ -48,23 +67,10 @@ class ViewWindow(QDialog):
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
-            self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)  # ✗
-            lt = QGraphicsGridLayout()
-            # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)  # ✗ (span)
-            for row, d in enumerate(DATA[:3]):
-                lt.addItem(LayoutItem(RectTextItem(W_LABEL, d[0], d[2])), row, 0)  # A: GridTextItem, B: TextGfxWidget
-                lt.addItem(LayoutItem(GraphItem(d)), row, 1)
-                # lt.setRowFixedHeight(row, 100)  # works strange
-                # lt.setRowSpacing(row, 0)  # ✗
-                lt.setRowStretchFactor(row, row)  # ✗
-            # Layout tuning
-            lt.setSpacing(0)
-            lt.setContentsMargins(0, 0, 0, 0)
-            # lt.setRowFixedHeight(0, 50)  # ✗
-            # go
-            gw = QGraphicsWidget()  # TODO: separate
-            gw.setLayout(lt)
-            self.scene().addItem(gw)
+            self.scene().addItem(header := TextItem(HEADER_TXT))
+            self.scene().addItem(table := TableItem(DATA[:3]))
+            table.setPos(0, header.boundingRect().height())
+            # self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)  # ✗
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max

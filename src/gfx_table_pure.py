@@ -14,33 +14,34 @@ from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup
 # 3. local
-from gfx_table_widgets import W_LABEL, HEADER_TXT, DATA, DataValue, TextItem, RectTextItem, GraphItem, GraphView
+from gfx_table_widgets import W_LABEL, DataValue, HEADER_TXT, DATA, TextItem, RectTextItem, GraphItem, GraphView
+
+
+class TableItem(QGraphicsItemGroup):
+    class RowItem(QGraphicsItemGroup):
+        def __init__(self, d: DataValue, parent: QGraphicsItem = None):
+            super().__init__(parent)
+            self.addToGroup(label := RectTextItem(W_LABEL - 1, d[0], d[2]))
+            self.addToGroup(graph := GraphItem(d))
+            graph.setX(W_LABEL)
+            graph.bordered = True
+
+    def __init__(self, dlist: List[DataValue]):
+        super().__init__()
+        y = 0
+        for r, d in enumerate(dlist):
+            self.addToGroup(item := self.RowItem(d))
+            item.setY(y)
+            y += item.boundingRect().height()
 
 
 class ViewWindow(QDialog):
     class Plot(QGraphicsView):
-        class TableItem(QGraphicsItemGroup):
-            class RowItem(QGraphicsItemGroup):
-                def __init__(self, d: DataValue, parent: QGraphicsItem = None):
-                    super().__init__(parent)
-                    self.addToGroup(label := RectTextItem(W_LABEL - 1, d[0], d[2]))
-                    self.addToGroup(graph := GraphItem(d))
-                    graph.setX(W_LABEL)
-                    graph.bordered = True
-
-            def __init__(self, dlist: List[DataValue], parent: QGraphicsItem = None):
-                super().__init__(parent)
-                y = 0
-                for r, d in enumerate(dlist):
-                    self.addToGroup(item := self.RowItem(d))
-                    item.setY(y)
-                    y += item.boundingRect().height()
-
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
             self.scene().addItem(header := TextItem(HEADER_TXT))
-            self.scene().addItem(table := self.TableItem(DATA[:3]))
+            self.scene().addItem(table := TableItem(DATA[:3]))
             table.setPos(0, header.boundingRect().height())
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
