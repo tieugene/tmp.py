@@ -1,6 +1,12 @@
 """Signal table.
 GridTable version
-Resume: setStretch, setHeight not work
+Resume:
+- lt.setRowFixedHeight works strange
+- lt.* not work:
+  + setRowStretchFactor
+  + setColumnFixedWidth
+  + setContentsMargins
+  + cell span
 Note: now stretch factors depends on (label/graph).boundingRect() ratio
 """
 # 1. std
@@ -24,7 +30,7 @@ class TableItem(QGraphicsWidget):
             # experiments:
             self.__subj.bordered = True
             # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
-            # self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
+            # self.__subjsetFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
             # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
             # self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # ✗
 
@@ -41,15 +47,8 @@ class TableItem(QGraphicsWidget):
     def __init__(self, dlist: List[DataValue]):
         super().__init__()
         lt = QGraphicsGridLayout()
-        # lt.addItem(TextGfxWidget(HEADER_TXT), 0, 0, 1, 2)  # ✗ (span)
+        lt.setSpacing(0)
         for row, d in enumerate(dlist):
             lt.addItem(self.LayoutItem(RectTextItem(W_LABEL, d[0], d[2])), row, 0)  # A: GridTextItem, B: TextGfxWidget
             lt.addItem(self.LayoutItem(GraphItem(d)), row, 1)
-            # lt.setRowFixedHeight(row, 100)  # works strange
-            # lt.setRowSpacing(row, 0)  # ✗
-            lt.setRowStretchFactor(row, row)  # ✗
-        # Layout tuning
-        lt.setSpacing(0)
-        lt.setContentsMargins(0, 0, 0, 0)
-        # lt.setRowFixedHeight(0, 50)  # ✗
         self.setLayout(lt)

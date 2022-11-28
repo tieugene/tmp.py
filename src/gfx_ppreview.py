@@ -29,7 +29,7 @@ class ViewWindow(QDialog):
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
 
-    def __init__(self, parent: 'MainWindows'):
+    def __init__(self, parent: QMainWindow):
         super().__init__(parent)
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.Plot(self))
