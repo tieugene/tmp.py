@@ -1,5 +1,5 @@
 """Signal table.
-GridTable version
+GridLayout version
 Resume:
 - lt.setRowFixedHeight works strange
 - lt.* not work:

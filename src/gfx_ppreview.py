@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
     QGraphicsScene, QDialog, QVBoxLayout
 # 3. local
 from gfx_table_widgets import HEADER_TXT, DATA, TextItem, GraphView
-from gfx_table_line import TableItem
+from gfx_table_anch import TableItem
 
 
 class ViewWindow(QDialog):
@@ -22,9 +22,9 @@ class ViewWindow(QDialog):
         def __init__(self, parent: 'ViewWindow' = None):
             super().__init__(parent)
             self.setScene(QGraphicsScene())
-            self.scene().addItem(header := TextItem(HEADER_TXT))
+            # self.scene().addItem(header := TextItem(HEADER_TXT))
             self.scene().addItem(table := TableItem(DATA[:3]))
-            table.setPos(0, header.boundingRect().height())
+            # table.setPos(0, header.boundingRect().height())
 
         def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
             self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max

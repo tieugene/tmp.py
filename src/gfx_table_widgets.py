@@ -6,7 +6,7 @@ from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QFont, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, \
-    QGraphicsItemGroup, QGraphicsLayoutItem
+    QGraphicsItemGroup, QGraphicsLayoutItem, QSizePolicy
 
 # x. const
 PPP = 5  # plots per page
@@ -173,7 +173,9 @@ class LayoutItem(QGraphicsLayoutItem):
         # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
         # self.__subjsetFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
         # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
-        # self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)  # ✗
+        # self.setMinimumHeight(self.__subj.boundingRect().height())
+        # self.setPreferredHeight(self.__subj.boundingRect().height())
+        # self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)  # ✗
 
     def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
         if which in {Qt.SizeHint.MinimumSize, Qt.SizeHint.PreferredSize}:
