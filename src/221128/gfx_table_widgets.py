@@ -5,7 +5,8 @@ import math
 from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QFont, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
-    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLayoutItem
+    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, \
+    QGraphicsItemGroup
 
 # x. const
 PPP = 5  # plots per page
@@ -64,6 +65,27 @@ class TextItem(QGraphicsSimpleTextItem):
         if color:
             self.setBrush(color)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
+
+    '''
+    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
+        """Notes:
+        - widget is not None
+        - painter.clipBoundingRect() = 0, 0
+        - option.rect == self.boundingRect()
+        """
+        super().paint(painter, option, widget)
+        if self.bordered:
+            pen = QPen()
+            pen.setCosmetic(True)
+            # item border
+            pen.setColor(Qt.GlobalColor.black)
+            painter.setPen(pen)
+            painter.drawRect(self.boundingRect())
+            # place border (more precise)
+            pen.setColor(Qt.GlobalColor.blue)
+            painter.setPen(pen)
+            painter.drawRect(option.rect)
+    '''
 
 
 class RectTextItem(QGraphicsItemGroup):
@@ -136,31 +158,3 @@ class RowItem(QGraphicsItemGroup):
         self.addToGroup(graph := GraphItem(d))
         graph.setX(W_LABEL)
         graph.bordered = True
-
-
-class LayoutItem(QGraphicsLayoutItem):
-    """QGraphicsLayoutItem(QGraphicsItem) based."""
-    __subj: QGraphicsItem  # must live
-
-    def __init__(self, subj: QGraphicsItem):
-        super().__init__()
-        self.__subj = subj
-        self.setGraphicsItem(self.__subj)
-        # experiments:
-        self.__subj.bordered = True
-        # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
-        # self.__subjsetFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
-        # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
-        # self.setMinimumHeight(self.__subj.boundingRect().height())
-        # self.setPreferredHeight(self.__subj.boundingRect().height())
-        # self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)  # ✗
-
-    def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
-        if which in {Qt.SizeHint.MinimumSize, Qt.SizeHint.PreferredSize}:
-            return self.__subj.boundingRect().size()
-        return constraint
-
-    def setGeometry(self, rect: QRectF):  # Warn: Calling once on init
-        self.__subj.prepareGeometryChange()
-        super().setGeometry(rect)
-        self.__subj.setPos(rect.topLeft())

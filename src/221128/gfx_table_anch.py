@@ -6,9 +6,10 @@ Resume: ...
 from typing import List
 # 2. 3rd
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QGraphicsWidget, QGraphicsLinearLayout, QSizePolicy, QGraphicsAnchorLayout
+from PyQt5.QtWidgets import QGraphicsWidget, QSizePolicy, QGraphicsAnchorLayout
 # 3. local
-from gfx_table_widgets import DataValue, LayoutItem, RowItem, TextItem, HEADER_TXT
+from gfx_table_widgets import DataValue, RowItem, TextItem, HEADER_TXT
+from gfx_table_zzz import LayoutItem
 
 
 class TableItem(QGraphicsWidget):

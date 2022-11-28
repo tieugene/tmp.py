@@ -1,9 +1,9 @@
 """Trash can"""
 from PyQt5.QtCore import Qt, QSizeF, QRectF
 from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtWidgets import QLabel, QGraphicsProxyWidget, QGraphicsItem, QFrame, QGraphicsWidget
+from PyQt5.QtWidgets import QLabel, QGraphicsProxyWidget, QGraphicsItem, QFrame, QGraphicsWidget, QGraphicsLayoutItem
 
-from src.gfx_table_widgets import FONT_MAIN, DataValue, GraphView, GraphItem
+from gfx_table_widgets import FONT_MAIN, DataValue, GraphView, GraphItem
 
 
 def color2style(c: QColor) -> str:
@@ -122,6 +122,34 @@ class GraphItemGfxWidget(QGraphicsWidget):  # QGraphicsObject + QGraphicsLayoutI
 
     def setGeometry(self, rect: QRectF):  # Fix painting from screen(0,0); Warn: Calling once on init
         # print("Graph setG:", qsize2str(rect))
+        self.__subj.prepareGeometryChange()
+        super().setGeometry(rect)
+        self.__subj.setPos(rect.topLeft())
+
+
+class LayoutItem(QGraphicsLayoutItem):
+    """QGraphicsLayoutItem(QGraphicsItem) based."""
+    __subj: QGraphicsItem  # must live
+
+    def __init__(self, subj: QGraphicsItem):
+        super().__init__()
+        self.__subj = subj
+        self.setGraphicsItem(self.__subj)
+        # experiments:
+        self.__subj.bordered = True
+        # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
+        # self.__subjsetFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
+        # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
+        # self.setMinimumHeight(self.__subj.boundingRect().height())
+        # self.setPreferredHeight(self.__subj.boundingRect().height())
+        # self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)  # ✗
+
+    def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
+        if which in {Qt.SizeHint.MinimumSize, Qt.SizeHint.PreferredSize}:
+            return self.__subj.boundingRect().size()
+        return constraint
+
+    def setGeometry(self, rect: QRectF):  # Warn: Calling once on init
         self.__subj.prepareGeometryChange()
         super().setGeometry(rect)
         self.__subj.setPos(rect.topLeft())

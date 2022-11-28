@@ -14,7 +14,8 @@ from typing import List
 # 2. 3rd
 from PyQt5.QtWidgets import QGraphicsWidget, QGraphicsGridLayout
 # 3. local
-from gfx_table_widgets import W_LABEL, DataValue, RectTextItem, GraphItem, LayoutItem
+from gfx_table_widgets import W_LABEL, DataValue, RectTextItem, GraphItem
+from gfx_table_zzz import LayoutItem
 
 
 class TableItem(QGraphicsWidget):

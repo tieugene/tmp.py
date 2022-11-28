@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Test of rescaling print (and multipage).
-- [ ] TODO: Grid: grid lines (paint over layout)
-- [ ] TODO: Footer
+- [x] FIXME: Label: r-cut
+- [x] ~FIXME: Plot: shrink v-spaces~
+- [ ] TODO: Grid: grid lines (a) paint over layout. ~b) add to each cell item)~
+- [ ] Footer
 """
 # 1. std
 import sys
@@ -11,26 +13,26 @@ from PyQt5.QtGui import QIcon, QResizeEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
     QGraphicsScene, QDialog, QVBoxLayout
 # 3. local
-from gfx_table_widgets import DATA, GraphView
-from gfx_table_line import TableItem
-
-
-class Plot(QGraphicsView):
-    def __init__(self, parent: 'ViewWindow'):
-        super().__init__(parent)
-        self.setScene(QGraphicsScene())
-        self.scene().addItem(TableItem(DATA[:3]))
-
-    def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
-        self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
+from gfx_table_widgets import HEADER_TXT, DATA, TextItem, GraphView
+from gfx_table_pure import TableItem
 
 
 class ViewWindow(QDialog):
+    class Plot(QGraphicsView):
+        def __init__(self, parent: 'ViewWindow' = None):
+            super().__init__(parent)
+            self.setScene(QGraphicsScene())
+            self.scene().addItem(header := TextItem(HEADER_TXT))
+            self.scene().addItem(table := TableItem(DATA[:3]))
+            table.setPos(0, header.boundingRect().height())
+
+        def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
+            self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
 
     def __init__(self, parent: QMainWindow):
         super().__init__(parent)
         self.setLayout(QVBoxLayout())
-        self.layout().addWidget(Plot(self))
+        self.layout().addWidget(self.Plot(self))
 
 
 class MainWidget(QTableWidget):
