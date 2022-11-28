@@ -1,6 +1,6 @@
 # 1. std
-import math
 from typing import Tuple, Union
+import math
 # 2. 3rd
 from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QFont, QPainter
