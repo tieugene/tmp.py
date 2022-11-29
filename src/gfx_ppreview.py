@@ -6,7 +6,7 @@ from typing import List
 
 # 2. 3rd
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QCloseEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QDialog, QVBoxLayout, \
     QGraphicsWidget, QGraphicsLinearLayout, QToolBar, QActionGroup, QSizePolicy, QLayout
 # 3. local
@@ -30,11 +30,13 @@ class TableItem(QGraphicsWidget):
 
 
 class Plot(GraphViewBase):
+    __father: 'MainWindow'
     __portrait: bool
     __table: TableItem
 
-    def __init__(self, parent: 'MainWindow' = None):
-        super().__init__(parent)
+    def __init__(self, father: 'MainWindow'):
+        super().__init__()
+        self.__father = father
         self.__portrait = False
         self.__table = TableItem(DATA[:6], self)
         self.scene().addItem(self.__table)
@@ -58,19 +60,19 @@ class Plot(GraphViewBase):
 
     @portrait.setter
     def portrait(self, v: bool):
+        # FIXME: shrink width
         self.__portrait = v
         self.__table.update_sizes()
-        # self.setSceneRect(self.scene().itemsBoundingRect())  not works
+        # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
         # self.slot_reset_size()
 
     def slot_reset_size(self):
-        """[Re]set view to original size.
-        Partially works.
-        .viewport().resize(): not works
-        .setSceneRect(): not works
-        .setFixedSize(): too strict
-        """
+        """[Re]set view to original size."""
         self.resize(self.scene().itemsBoundingRect().size().toSize())
+
+    def closeEvent(self, e: QCloseEvent):
+        """Masq closing with switch off"""
+        self.__father.act_view.setChecked(False)
 
 
 class MainWidget(QTableWidget):
@@ -86,6 +88,7 @@ class MainWidget(QTableWidget):
 
 class MainWindow(QMainWindow):
     view: Plot
+    act_view: QAction
     act_o_l: QAction
     act_o_p: QAction
     act_o: QActionGroup
@@ -93,7 +96,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setCentralWidget(MainWidget(self))
-        self.view = Plot()
+        self.view = Plot(self)
         self.__mk_actions()
 
     def __mk_actions(self):
@@ -106,13 +109,14 @@ class MainWindow(QMainWindow):
         self.act_o.addAction(self.act_o_l).setChecked(True)
         self.act_o.addAction(self.act_o_p)
         self.act_o.triggered.connect(self.__do_o)
+        self.act_view = QAction(QIcon.fromTheme("view-fullscreen"), "&View", self, shortcut="Ctrl+V", checkable=True,
+                                toggled=self.__do_view)
         # menu
         self.menuBar().setVisible(True)
         menu_file = self.menuBar().addMenu("&File")
-        menu_file.addAction(QAction(QIcon.fromTheme("view-fullscreen"), "&View", self, shortcut="Ctrl+V",
-                                    triggered=self.__view))
+        menu_file.addAction(self.act_view)
         menu_file.addAction(QAction(QIcon.fromTheme("document-print-preview"), "&Print", self, shortcut="Ctrl+P",
-                                    triggered=self.__print))
+                                    triggered=self.__do_print))
         menu_file.addAction(QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
                                     triggered=self.close))
         menu_view = self.menuBar().addMenu("&View")
@@ -125,10 +129,11 @@ class MainWindow(QMainWindow):
         """Switch page orientation"""
         self.view.portrait = (a == self.act_o_p)
 
-    def __view(self):
-        self.view.show()
+    def __do_view(self, v: bool):
+        """Switch View on/off"""
+        self.view.setVisible(v)
 
-    def __print(self):
+    def __do_print(self):
         ...
 
 
