@@ -30,12 +30,14 @@ class TableItem(QGraphicsWidget):
 
 
 class Plot(GraphViewBase):
-    portrait: bool
+    __portrait: bool
+    __table: TableItem
 
     def __init__(self, parent: 'ViewWindow'):
         super().__init__(parent)
-        self.portrait = False
-        self.scene().addItem(TableItem(DATA[:6], self))
+        self.__portrait = False
+        self.__table = TableItem(DATA[:6], self)
+        self.scene().addItem(self.__table)
 
     # def sizeHint(self) -> QSize:  # not helps
     #    return self.scene().itemsBoundingRect().size().toSize()
@@ -43,7 +45,7 @@ class Plot(GraphViewBase):
     @property
     def w_full(self) -> int:
         """Current full table width"""
-        return W_PAGE[int(self.portrait)]
+        return W_PAGE[int(self.__portrait)]
 
     @property
     def h_row_base(self) -> int:
@@ -51,10 +53,22 @@ class Plot(GraphViewBase):
         :note: in theory must be (W_PAGE - header - footer) / num
         :todo: cache it
         """
-        return round(H_ROW_BASE * 1.5) if self.portrait else H_ROW_BASE
+        return round(H_ROW_BASE * 1.5) if self.__portrait else H_ROW_BASE
 
-    def reset_size(self):
+    @property
+    def portrait(self) -> bool:
+        return self.__portrait
+
+    @portrait.setter
+    def portrait(self, v: bool):
+        self.__portrait = v
+        self.__table.update_sizes()
+        # self.setSceneRect(self.scene().itemsBoundingRect())  not works
+        # self.slot_reset_size()
+
+    def slot_reset_size(self):
         """[Re]set view to original size.
+        Partially works.
         .viewport().resize(): not works
         .setSceneRect(): not works
         .setFixedSize(): too strict
@@ -88,7 +102,7 @@ class ViewWindow(QDialog):
 
     def __mk_actions(self):
         self.act_size0 = QAction(QIcon.fromTheme("zoom-original"), "Original size", self, shortcut="Ctrl+0",
-                                 triggered=self.__plot.reset_size)
+                                 triggered=self.__plot.slot_reset_size)
         self.act_o_L = QAction(QIcon.fromTheme("object-flip-horizontal"), "Landscape", self, shortcut="Ctrl+L",
                                checkable=True)
         self.act_o_P = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+P",
@@ -106,7 +120,7 @@ class ViewWindow(QDialog):
 
     def __do_o(self, a: QAction):
         """Switch page orientation"""
-        ...
+        self.__plot.portrait = (a == self.act_o_P)
 
 
 class MainWidget(QTableWidget):
