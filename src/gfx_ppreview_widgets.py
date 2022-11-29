@@ -176,8 +176,11 @@ class RowItem(QGraphicsItemGroup):
         self.addToGroup(self.__graph)
 
     def update_size(self):
-        self.__label.set_height(self.__plot.h_row_base * (1 + int(self.__wide) * 3))
-        self.__graph.set_size(QSizeF(self.__plot.w_full - W_LABEL, self.__plot.h_row_base * (1 + int(self.__wide) * 3)))
+        w = self.__plot.w_full - W_LABEL  # 1077, 695
+        h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
+        # print(f"W={w}, H={h}")
+        self.__label.set_height(h)
+        self.__graph.set_size(QSizeF(w, h))
 
 
 # TODO: class BottomItem(rect+(rect(txt))

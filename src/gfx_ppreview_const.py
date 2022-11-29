@@ -18,8 +18,8 @@ DataValue = Tuple[str, int, Qt.GlobalColor, bool]
 DATA = (  # name, x-offset, color, wide
     ("Signal 1", 0, Qt.GlobalColor.black, True),
     ("Signal 22", 1, Qt.GlobalColor.red, True),
-    ("Signal 333", 2, Qt.GlobalColor.blue, False),
-    ("Signal 4444", 3, Qt.GlobalColor.green, False),
+    ("Signal 333", 2, Qt.GlobalColor.blue, True),
+    ("Signal 4444", 3, Qt.GlobalColor.green, True),
     ("Signal 5", 4, Qt.GlobalColor.magenta, True),
-    ("Signal 6", 5, Qt.GlobalColor.yellow, False),
+    ("Signal 6", 5, Qt.GlobalColor.yellow, True),
 )

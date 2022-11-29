@@ -34,7 +34,7 @@ class Plot(GraphViewBase):
 
     def __init__(self, parent: 'ViewWindow'):
         super().__init__(parent)
-        self.portrait = True
+        self.portrait = False
         self.scene().addItem(TableItem(DATA[:6], self))
 
     @property
