@@ -10,7 +10,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QDialog, QVBoxLayout,\
     QGraphicsWidget, QGraphicsLinearLayout
 # 3. local
-from gfx_ppreview_const import DATA, DataValue, W_PAGE
+from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE
 from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem
 
 
@@ -43,9 +43,11 @@ class Plot(GraphViewBase):
         return W_PAGE[int(self.portrait)]
 
     @property
-    def h_row_base(self) -> float:
-        """Current base (short) row height"""
-        return 28.0  # TODO: (W_PAGE - header - footer) / num
+    def h_row_base(self) -> int:
+        """Current base (short) row height.
+        :note: in theory must be (W_PAGE - header - footer) / num
+        """
+        return round(H_ROW_BASE * 1.5) if self.portrait else H_ROW_BASE
 
 
 class ViewWindow(QDialog):

@@ -5,8 +5,9 @@ from PyQt5.QtGui import QFont
 
 DEBUG = True
 W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
-W_LABEL = 53  # width of label column
-H_BOTTOM = 20  # Height of bottom scale
+W_LABEL = 53  # Label column width
+H_ROW_BASE = 28  # Base (slick) row height in landscape mode
+H_BOTTOM = 20  # Bottom scale height
 # W_GRAPH_STEP = W_LABEL // 4
 # H_GRAPH = 14  # bigger makes label b-cutted
 POINTS = 12
