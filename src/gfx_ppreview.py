@@ -33,14 +33,11 @@ class Plot(GraphViewBase):
     __portrait: bool
     __table: TableItem
 
-    def __init__(self, parent: 'ViewWindow'):
+    def __init__(self, parent: 'MainWindow' = None):
         super().__init__(parent)
         self.__portrait = False
         self.__table = TableItem(DATA[:6], self)
         self.scene().addItem(self.__table)
-
-    # def sizeHint(self) -> QSize:  # not helps
-    #    return self.scene().itemsBoundingRect().size().toSize()
 
     @property
     def w_full(self) -> int:
@@ -73,28 +70,7 @@ class Plot(GraphViewBase):
         .setSceneRect(): not works
         .setFixedSize(): too strict
         """
-        size = self.scene().itemsBoundingRect().size().toSize()
-        # print(qsize2str(size))
-        self.resize(size)
-        self.parent().adjustSize()  # "The maximum size of a window is 2/3 of the screen's width and height."
-
-
-class ViewWindow(QDialog):
-    __plot: Plot
-    tb: QToolBar
-
-    def __init__(self, parent: QMainWindow):
-        super().__init__(parent)
-        self.__plot = Plot(self)
-        self.setLayout(QVBoxLayout())
-        self.layout().addWidget(self.__plot)
-        # experiments
-        self.layout().setSpacing(0)
-        # self.layout().setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
-        # self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-
-    def slot_reset_size(self):
-        self.__plot.slot_reset_size()
+        self.resize(self.scene().itemsBoundingRect().size().toSize())
 
 
 class MainWidget(QTableWidget):
@@ -109,27 +85,26 @@ class MainWidget(QTableWidget):
 
 
 class MainWindow(QMainWindow):
-    view: ViewWindow
-    # act_size0: QAction  # [re]set size to original
+    view: Plot
+    act_o_l: QAction
+    act_o_p: QAction
     act_o: QActionGroup
-    act_o_L: QAction  # landscape
-    act_o_P: QAction  # portrait
 
     def __init__(self):
         super().__init__()
         self.setCentralWidget(MainWidget(self))
-        self.view = ViewWindow(self)
+        self.view = Plot()
         self.__mk_actions()
 
     def __mk_actions(self):
-        # standalone
-        self.act_o_L = QAction(QIcon.fromTheme("object-flip-horizontal"), "Landscape", self, shortcut="Ctrl+L",
+        # grouping
+        self.act_o_l = QAction(QIcon.fromTheme("object-flip-horizontal"), "Landscape", self, shortcut="Ctrl+L",
                                checkable=True)
-        self.act_o_P = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+P",
+        self.act_o_p = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+P",
                                checkable=True)
         self.act_o = QActionGroup(self)
-        self.act_o.addAction(self.act_o_L).setChecked(True)
-        self.act_o.addAction(self.act_o_P)
+        self.act_o.addAction(self.act_o_l).setChecked(True)
+        self.act_o.addAction(self.act_o_p)
         self.act_o.triggered.connect(self.__do_o)
         # menu
         self.menuBar().setVisible(True)
@@ -142,14 +117,13 @@ class MainWindow(QMainWindow):
                                     triggered=self.close))
         menu_view = self.menuBar().addMenu("&View")
         menu_view.addAction(QAction(QIcon.fromTheme("zoom-original"), "Original size", self, shortcut="Ctrl+0",
-                            triggered=self.view.slot_reset_size))
-        menu_view.addAction(self.act_o_L)
-        menu_view.addAction(self.act_o_P)
+                                    triggered=self.view.slot_reset_size))
+        menu_view.addAction(self.act_o_l)
+        menu_view.addAction(self.act_o_p)
 
     def __do_o(self, a: QAction):
         """Switch page orientation"""
-        # self.__plot.portrait = (a == self.act_o_P)
-        ...
+        self.view.portrait = (a == self.act_o_p)
 
     def __view(self):
         self.view.show()
