@@ -8,15 +8,7 @@ from typing import List
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGraphicsWidget, QGraphicsLinearLayout
 # 3. local
-from gfx_table_widgets import DataValue, RowItem, HEADER_TXT, TextItem, LayoutItem
+from gfx_ppreview_const import DataValue, HEADER_TXT
+from gfx_ppreview_widgets import RowItem, TextItem, LayoutItem
 
 
-class TableItem(QGraphicsWidget):
-    def __init__(self, dlist: List[DataValue]):
-        super().__init__()
-        lt = QGraphicsLinearLayout(Qt.Vertical, self)
-        lt.setSpacing(0)
-        lt.addItem(LayoutItem(TextItem(HEADER_TXT)))
-        for row, d in enumerate(dlist):
-            lt.addItem(LayoutItem(RowItem(d)))
-        self.setLayout(lt)

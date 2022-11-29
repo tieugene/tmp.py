@@ -1,28 +1,40 @@
 #!/usr/bin/env python3
-"""Test of rescaling print (and multipage).
-- [ ] TODO: Grid: grid lines (paint over layout)
-- [ ] TODO: Footer
-"""
+"""Test of rescaling print (and multipage)."""
 # 1. std
 import sys
+from typing import List
+
 # 2. 3rd
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QResizeEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsView,\
-    QGraphicsScene, QDialog, QVBoxLayout
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QDialog, QVBoxLayout,\
+    QGraphicsWidget, QGraphicsLinearLayout
 # 3. local
-from gfx_table_widgets import DATA, GraphView
-from gfx_table_line import TableItem
+from gfx_ppreview_const import DATA, DataValue
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem
 
 
-class Plot(QGraphicsView):
+class TableItem(QGraphicsWidget):
+    def __init__(self, dlist: List[DataValue], plot: 'Plot'):
+        super().__init__()
+        lt = QGraphicsLinearLayout(Qt.Vertical, self)
+        lt.setSpacing(0)
+        lt.addItem(LayoutItem(HeaderItem(plot)))
+        for row, d in enumerate(dlist):
+            lt.addItem(LayoutItem(RowItem(d, plot)))
+        self.setLayout(lt)
+
+    def update_sizes(self):
+        ...  # TODO:
+
+
+class Plot(GraphViewBase):
+    portrait: bool
+
     def __init__(self, parent: 'ViewWindow'):
         super().__init__(parent)
-        self.setScene(QGraphicsScene())
-        self.scene().addItem(TableItem(DATA[:3]))
-
-    def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
-        self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
+        self.portrait = False
+        self.scene().addItem(TableItem(DATA[:4], self))
 
 
 class ViewWindow(QDialog):
