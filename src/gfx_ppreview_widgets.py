@@ -63,10 +63,12 @@ class RectTextItem(QGraphicsItemGroup):
         # rect
         self.rect = QGraphicsRectItem(self.text.boundingRect())  # default size == text size
         self.addToGroup(self.rect)
-        if color:  # FIXME: ?
-            pen = QPen(color if DEBUG else Qt.GlobalColor.transparent)
+        if DEBUG:
+            pen = QPen(color or Qt.GlobalColor.black)
             pen.setCosmetic(True)
-            self.rect.setPen(pen)
+        else:
+            pen = QPen(Qt.GlobalColor.transparent)
+        self.rect.setPen(pen)
         # clip label
         self.rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # YES!!!
         self.text.setParentItem(self.rect)
@@ -82,6 +84,7 @@ class RectTextItem(QGraphicsItemGroup):
         self.rect.setRect(r)
 
     def set_size(self, s: QSizeF):  # self.rect.rect() = self.rect.boundingRect() + 1
+        self.prepareGeometryChange()  # not helps
         r = self.rect.rect()
         r.setWidth(s.width())
         r.setHeight(s.height())
@@ -89,16 +92,16 @@ class RectTextItem(QGraphicsItemGroup):
 
 
 class GraphItem(QGraphicsPathItem):
-    __y_src: List[float]
+    __y: List[float]
 
     def __init__(self, d: DataValue):
         super().__init__()
-        self.__y_src = mk_sin(d[1])
+        self.__y = mk_sin(d[1])
         pen = QPen(d[2])
         pen.setCosmetic(True)
         self.setPen(pen)
         pp = QPainterPath()
-        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y_src)]))  # default
+        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))  # default
         self.setPath(pp)
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
@@ -114,10 +117,11 @@ class GraphItem(QGraphicsPathItem):
         :param s: Size of graph
         :return:
         """
+        self.prepareGeometryChange()  # not helps
         pp = self.path()
         step = s.width() / (pp.elementCount() - 1)
         for i in range(pp.elementCount()):
-            pp.setElementPositionAt(i, i * step, self.__y_src[i] * s.height())
+            pp.setElementPositionAt(i, i * step, self.__y[i] * s.height())
         self.setPath(pp)
 
 
@@ -165,9 +169,9 @@ class RowItem(QGraphicsItemGroup):
         self.__graph = GraphItem(d)
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
+        self.update_size()
         self.addToGroup(self.__label)
         self.addToGroup(self.__graph)
-        self.update_size()
 
     def update_size(self):
         self.__label.set_height(self.__plot.h_row_base)

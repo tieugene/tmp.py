@@ -25,7 +25,8 @@ class TableItem(QGraphicsWidget):
         self.setLayout(lt)
 
     def update_sizes(self):
-        ...  # TODO:
+        for i in range(self.layout().count()):
+            self.layout().itemAt(i).graphicsItem().update_size()
 
 
 class Plot(GraphViewBase):
