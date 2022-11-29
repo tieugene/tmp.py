@@ -1,5 +1,5 @@
 # 1. std
-from typing import Union
+from typing import Union, List
 import math
 # 2. 3rd
 from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLayoutItem
 # 3. local
-from gfx_ppreview_const import FONT_MAIN, DataValue, POINTS, W_LABEL, W_GRAPH_STEP, H_GRAPH, DEBUG, HEADER_TXT
+from gfx_ppreview_const import FONT_MAIN, DataValue, POINTS, W_LABEL, DEBUG, HEADER_TXT
 
 
 def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
@@ -55,45 +55,51 @@ class RectTextItem(QGraphicsItemGroup):
     text: TextItem
     rect: QGraphicsRectItem
 
-    def __init__(self, txt: str, width: int, color: Qt.GlobalColor = None):
+    def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__()
         # text
         self.text = TextItem(txt, color)
         self.addToGroup(self.text)
         # rect
-        r = self.text.boundingRect()
-        r.setWidth(width)
-        self.rect = QGraphicsRectItem(r)  # FIXME: default size == text_height x const
-        if color:
+        self.rect = QGraphicsRectItem(self.text.boundingRect())  # default size == text size
+        self.addToGroup(self.rect)
+        if color:  # FIXME: ?
             pen = QPen(color if DEBUG else Qt.GlobalColor.transparent)
             pen.setCosmetic(True)
             self.rect.setPen(pen)
-        self.addToGroup(self.rect)
         # clip label
         self.rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # YES!!!
         self.text.setParentItem(self.rect)
 
     def set_width(self, w: float):
-        ...  # TODO:
+        r = self.rect.rect()
+        r.setWidth(w)
+        self.rect.setRect(r)
 
     def set_height(self, h: float):
-        ...  # TODO:
+        r = self.rect.rect()
+        r.setHeight(h)
+        self.rect.setRect(r)
 
-    def set_size(self, s: QSizeF):
-        ...  # TODO:
+    def set_size(self, s: QSizeF):  # self.rect.rect() = self.rect.boundingRect() + 1
+        r = self.rect.rect()
+        r.setWidth(s.width())
+        r.setHeight(s.height())
+        self.rect.setRect(r)
 
 
 class GraphItem(QGraphicsPathItem):
+    __y_src: List[float]
+
     def __init__(self, d: DataValue):
         super().__init__()
-        # W: ..., H: 1xChar
-        pg = QPolygonF([QPointF(x * W_GRAPH_STEP, y * H_GRAPH) for x, y in enumerate(mk_sin(d[1]))])
-        pp = QPainterPath()
-        pp.addPolygon(pg)
-        self.setPath(pp)
+        self.__y_src = mk_sin(d[1])
         pen = QPen(d[2])
-        pen.setCosmetic(True)  # !!! don't resize pen width
+        pen.setCosmetic(True)
         self.setPen(pen)
+        pp = QPainterPath()
+        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y_src)]))  # default
+        self.setPath(pp)
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         """For debug only"""
@@ -105,10 +111,14 @@ class GraphItem(QGraphicsPathItem):
     def set_size(self, s: QSizeF):
         """
 
-        :param s: Size of row (full width x basic height)
+        :param s: Size of graph
         :return:
         """
-        ...  # TODO:
+        pp = self.path()
+        step = s.width() / (pp.elementCount() - 1)
+        for i in range(pp.elementCount()):
+            pp.setElementPositionAt(i, i * step, self.__y_src[i] * s.height())
+        self.setPath(pp)
 
 
 # ---- QGraphicsView
@@ -131,31 +141,37 @@ class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
 
 
 # ---- Helpers
-class HeaderItem(TextItem):
-    def __init__(self, plot: QGraphicsView):
+class HeaderItem(RectTextItem):
+    __plot: 'Plot'
+
+    def __init__(self, plot: 'Plot'):
         super().__init__(HEADER_TXT)
         self.__plot = plot
+        self.update_size()
 
     def update_size(self):
-        ...  # TODO:
+        self.set_width(self.__plot.w_full)
 
 
 class RowItem(QGraphicsItemGroup):
-    __plot: QGraphicsView
+    __plot: 'Plot'
     __label: RectTextItem
     __graph: GraphItem
 
-    def __init__(self, d: DataValue, plot: QGraphicsView):
+    def __init__(self, d: DataValue, plot: 'Plot'):
         super().__init__()
         self.__plot = plot
-        self.__label = RectTextItem(d[0], W_LABEL, d[2])
+        self.__label = RectTextItem(d[0], d[2])
         self.__graph = GraphItem(d)
+        self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
         self.addToGroup(self.__label)
         self.addToGroup(self.__graph)
+        self.update_size()
 
     def update_size(self):
-        ...  # TODO:
+        self.__label.set_height(self.__plot.h_row_base)
+        self.__graph.set_size(QSizeF(self.__plot.w_full - W_LABEL, self.__plot.h_row_base))
 
 
 # TODO: class BottomItem(rect+(rect(txt))
