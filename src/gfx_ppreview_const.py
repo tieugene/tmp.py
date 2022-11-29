@@ -13,13 +13,13 @@ H_BOTTOM = 20  # Bottom scale height
 POINTS = 12
 PPP = 5  # plots per page
 FONT_MAIN = QFont('mono', 8)  # 7×14
-DataValue = Tuple[str, int, Qt.GlobalColor]
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line.\n"
-DATA = (  # name, x-offset, color
-    ("Signal 1", 0, Qt.GlobalColor.black),
-    ("Signal 22", 1, Qt.GlobalColor.red),
-    ("Signal 333", 2, Qt.GlobalColor.blue),
-    ("Signal 4444", 3, Qt.GlobalColor.green),
-    ("Signal 5", 4, Qt.GlobalColor.yellow),
-    ("Signal 6", 5, Qt.GlobalColor.magenta),
+DataValue = Tuple[str, int, Qt.GlobalColor, bool]
+DATA = (  # name, x-offset, color, wide
+    ("Signal 1", 0, Qt.GlobalColor.black, True),
+    ("Signal 22", 1, Qt.GlobalColor.red, True),
+    ("Signal 333", 2, Qt.GlobalColor.blue, False),
+    ("Signal 4444", 3, Qt.GlobalColor.green, False),
+    ("Signal 5", 4, Qt.GlobalColor.magenta, True),
+    ("Signal 6", 5, Qt.GlobalColor.yellow, False),
 )

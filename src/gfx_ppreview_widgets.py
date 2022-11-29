@@ -160,6 +160,7 @@ class HeaderItem(RectTextItem):
 class RowItem(QGraphicsItemGroup):
     __plot: 'Plot'
     __label: RectTextItem
+    __wide: bool
     __graph: GraphItem
 
     def __init__(self, d: DataValue, plot: 'Plot'):
@@ -167,6 +168,7 @@ class RowItem(QGraphicsItemGroup):
         self.__plot = plot
         self.__label = RectTextItem(d[0], d[2])
         self.__graph = GraphItem(d)
+        self.__wide = d[3]
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
         self.update_size()
@@ -174,8 +176,8 @@ class RowItem(QGraphicsItemGroup):
         self.addToGroup(self.__graph)
 
     def update_size(self):
-        self.__label.set_height(self.__plot.h_row_base)
-        self.__graph.set_size(QSizeF(self.__plot.w_full - W_LABEL, self.__plot.h_row_base))
+        self.__label.set_height(self.__plot.h_row_base * (1 + int(self.__wide) * 3))
+        self.__graph.set_size(QSizeF(self.__plot.w_full - W_LABEL, self.__plot.h_row_base * (1 + int(self.__wide) * 3)))
 
 
 # TODO: class BottomItem(rect+(rect(txt))

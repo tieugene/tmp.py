@@ -34,8 +34,8 @@ class Plot(GraphViewBase):
 
     def __init__(self, parent: 'ViewWindow'):
         super().__init__(parent)
-        self.portrait = False
-        self.scene().addItem(TableItem(DATA[:4], self))
+        self.portrait = True
+        self.scene().addItem(TableItem(DATA[:6], self))
 
     @property
     def w_full(self) -> int:
@@ -46,6 +46,7 @@ class Plot(GraphViewBase):
     def h_row_base(self) -> int:
         """Current base (short) row height.
         :note: in theory must be (W_PAGE - header - footer) / num
+        :todo: cache it
         """
         return round(H_ROW_BASE * 1.5) if self.portrait else H_ROW_BASE
 
