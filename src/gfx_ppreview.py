@@ -6,15 +6,16 @@ from typing import List
 # 2. 3rd
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QCloseEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsLinearLayout,\
-    QGraphicsWidget, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsLinearLayout, \
+    QGraphicsWidget, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem, \
+    QGraphicsScene
 # 3. local
 from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, \
     PORTRAIT, DATA_PREDEF, AUTOFILL, SIGNALS, COLORS
 from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem
 
 
-def fill_data():
+def data_fill():
     """Fill data witth predefined or auto"""
     if AUTOFILL:
         import random
@@ -30,6 +31,23 @@ def fill_data():
         DATA.extend(DATA_PREDEF)
 
 
+def data_split() -> List[int]:
+    """Split data to scene pieces (6/24).
+    :return: list of bar numbers
+    """
+    retvalue = list()
+    cur_num = cur_height = 0  # heigth of current piece in basic (B) units
+    for i, d in enumerate(DATA):
+        h = 1 + int(d[3]) * 3
+        if cur_height + h > 24:
+            retvalue.append(cur_num)
+            cur_num = cur_height = 0
+        cur_num += 1
+        cur_height += h
+    retvalue.append(cur_num)
+    return retvalue
+
+
 class TableCanvas(QGraphicsItemGroup):
     """Table frame with:
     - header
@@ -41,12 +59,12 @@ class TableCanvas(QGraphicsItemGroup):
     """
 
     class GridItem(QGraphicsItemGroup):
-        __plot: 'Plot'
+        __plot: 'PlotView'
         __x: float
         __line: QGraphicsLineItem
         __text: TCTextItem
 
-        def __init__(self, x: float, num: int, plot: 'Plot'):
+        def __init__(self, x: float, num: int, plot: 'PlotView'):
             super().__init__()
             self.__x = x
             self.__plot = plot
@@ -63,14 +81,14 @@ class TableCanvas(QGraphicsItemGroup):
             self.__line.setLine(x, H_HEADER, x, y)
             self.__text.setPos(x, y)
 
-    __plot: 'Plot'
+    __plot: 'PlotView'
     __header: HeaderItem
     __frame: QGraphicsRectItem  # external border; TODO: clip all inners (header, tic labels) by this
     __colsep: QGraphicsLineItem  # columns separator
     __btmsep: QGraphicsLineItem  # bottom separator
     __grid: List[GridItem]  # tics (v-line+label)
 
-    def __init__(self, plot: 'Plot'):
+    def __init__(self, plot: 'PlotView'):
         super().__init__()
         self.__plot = plot
         self.__header = HeaderItem(plot)
@@ -107,7 +125,7 @@ class TableCanvas(QGraphicsItemGroup):
 
 class TablePayload(QGraphicsWidget):  # <(QGraphicsObject<QGraphicsItem, QGraphicsLayoutItem)
     """Just rows with underlines"""
-    def __init__(self, dlist: List[DataValue], plot: 'Plot'):
+    def __init__(self, dlist: List[DataValue], plot: 'PlotView'):
         super().__init__()
         lt = QGraphicsLinearLayout(Qt.Vertical, self)
         lt.setContentsMargins(0, 0, 0, 0)
@@ -121,11 +139,27 @@ class TablePayload(QGraphicsWidget):  # <(QGraphicsObject<QGraphicsItem, QGraphi
             self.layout().itemAt(i).graphicsItem().update_size()
 
 
-class Plot(GraphViewBase):
-    __father: 'MainWindow'
-    __portrait: bool
+class PlotScene(QGraphicsScene):
     __canvas: TableCanvas
     __payload: TablePayload
+
+    def __init__(self, data: List[DataValue], plot: 'PlotView'):
+        super().__init__()
+        self.__canvas = TableCanvas(plot)
+        self.__payload = TablePayload(data, plot)
+        self.__payload.setY(H_HEADER)
+        self.addItem(self.__canvas)
+        self.addItem(self.__payload)
+
+    def update_sizes(self):
+        self.__canvas.update_sizes()
+        self.__payload.update_sizes()
+
+
+class PlotView(GraphViewBase):
+    __father: 'MainWindow'
+    __portrait: bool
+    __scene: List[PlotScene]
     # shortcuts
     __sc_close: QShortcut
     __sc_size0: QShortcut
@@ -136,12 +170,15 @@ class Plot(GraphViewBase):
         super().__init__()
         self.__father = father
         self.__portrait = PORTRAIT
-        self.__canvas = TableCanvas(self)
-        self.__payload = TablePayload(DATA, self)
-        self.__payload.setY(H_HEADER)
-        # layout
-        self.scene().addItem(self.__canvas)
-        self.scene().addItem(self.__payload)
+        pieces = data_split()
+        # fill scenes
+        self.__scene = list()
+        i0 = 0
+        for k in pieces:
+            self.__scene.append(PlotScene(DATA[i0:i0+k], self))
+            i0 += k
+        # set default scene
+        self.setScene(self.__scene[0])
         # shortcuts
         self.__sc_close = QShortcut("Ctrl+V", self)
         self.__sc_size0 = QShortcut("Ctrl+0", self)
@@ -180,8 +217,10 @@ class Plot(GraphViewBase):
         # FIXME: shrink width
         if self.__portrait ^ v:
             self.__portrait = v
-            self.__canvas.update_sizes()
-            self.__payload.update_sizes()
+            # self.__canvas.update_sizes()
+            # self.__payload.update_sizes()
+            self.scene().update_sizes()
+            # skip
             # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
             # self.slot_reset_size()
 
@@ -212,7 +251,7 @@ class MainWidget(QTableWidget):
 
 
 class MainWindow(QMainWindow):
-    view: Plot
+    view: PlotView
     act_view: QAction
     act_o_l: QAction
     act_o_p: QAction
@@ -221,7 +260,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setCentralWidget(MainWidget(self))
-        self.view = Plot(self)
+        self.view = PlotView(self)
         self.__mk_actions()
 
     def __mk_actions(self):
@@ -263,7 +302,7 @@ class MainWindow(QMainWindow):
 
 
 def main() -> int:
-    fill_data()
+    data_fill()
     app = QApplication(sys.argv)
     mw = MainWindow()
     mw.show()

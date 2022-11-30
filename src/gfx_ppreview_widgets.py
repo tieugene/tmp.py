@@ -164,7 +164,6 @@ class GraphItem(QGraphicsPathItem):
 class GraphViewBase(QGraphicsView):
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
-        self.setScene(QGraphicsScene())
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)
 
     def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
@@ -176,14 +175,15 @@ class GraphViewBase(QGraphicsView):
 class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
     def __init__(self, d: DataValue):
         super().__init__()
+        self.setScene(QGraphicsScene())
         self.scene().addItem(GraphItem(d))
 
 
 # ---- Containers
 class HeaderItem(RectTextItem):
-    __plot: 'Plot'
+    __plot: 'PlotView'
 
-    def __init__(self, plot: 'Plot'):
+    def __init__(self, plot: 'PlotView'):
         super().__init__(HEADER_TXT)
         self.__plot = plot
         self.update_size()
@@ -193,13 +193,13 @@ class HeaderItem(RectTextItem):
 
 
 class RowItem(QGraphicsItemGroup):
-    __plot: 'Plot'  # ref to father
+    __plot: 'PlotView'  # ref to father
     __label: RectTextItem  # left side
     __graph: GraphItem  # right side
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
-    def __init__(self, d: DataValue, plot: 'Plot'):
+    def __init__(self, d: DataValue, plot: 'PlotView'):
         super().__init__()
         self.__plot = plot
         self.__label = RectTextItem(d[0], d[2])

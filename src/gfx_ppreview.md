@@ -31,8 +31,9 @@
 
 ### ToDo:
 - [ ] View:
-  + [ ] Paging
-  + [ ] FIXME: Bad Plot size after L/P switching
+  + [ ] Paging:
+    + [ ] switch between scenes
+  + [ ] FIXME: Bad PlotView size after L/P switching
   + [ ] FIXME: QTableWidget's graphs too small
   + [ ] TODO: text clippath
 - [ ] Print
@@ -48,7 +49,7 @@
   + [x] Var heights
   + [x] Landscape/Portrait (row height, graph width/step)
   + [x] Resize to original
-  + [x] ~ViewWindow~ Plot as ViewWindow
+  + [x] ~ViewWindow~ PlotView as ViewWindow
   + [x] View on/off
   + [x] Bottom bar:
     * [x] rect
@@ -61,3 +62,7 @@
     - [x] Tics
   + [x] TODO: Analog/Binary graphs
   + [x] TODO: initial autofill DATA
+  + [ ] Paging:
+    + [x] split data
+    + [x] mk scenes
+    + [x] set to 1st

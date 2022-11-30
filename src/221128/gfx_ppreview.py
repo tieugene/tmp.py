@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test of rescaling print (and multipage).
 - [x] FIXME: Label: r-cut
-- [x] ~FIXME: Plot: shrink v-spaces~
+- [x] ~FIXME: PlotView: shrink v-spaces~
 - [ ] TODO: Grid: grid lines (a) paint over layout. ~b) add to each cell item)~
 - [ ] Footer
 """

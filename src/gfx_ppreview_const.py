@@ -8,7 +8,7 @@ from PyQt5.QtGui import QFont
 # - user defined
 DEBUG = False
 PORTRAIT = False  # initial orientation
-AUTOFILL = True
+AUTOFILL = False
 # -- ...
 SAMPLES = 24
 SIGNALS = 10  # Number of signals for autofill
@@ -53,9 +53,13 @@ DataValue = Tuple[str, int, Qt.GlobalColor, bool]
 DATA_PREDEF = (
     ("Signal 1", 0, Qt.GlobalColor.black, True),
     ("Signal 22", 1, Qt.GlobalColor.red, True),
-    ("Signal 333", 2, Qt.GlobalColor.blue, False),
-    ("Signal 4444", 3, Qt.GlobalColor.green, True),
+    ("Signal 333", 2, Qt.GlobalColor.blue, True),
+    ("Signal 4444", 3, Qt.GlobalColor.green, False),
     ("Signal 5", 4, Qt.GlobalColor.magenta, False),
-    ("Signal 6", 5, Qt.GlobalColor.yellow, True),
+    ("Signal 6", 5, Qt.GlobalColor.darkYellow, True),
+    ("Signal 10", 6, Qt.GlobalColor.cyan, True),
+    ("Signal 11", 7, Qt.GlobalColor.darkGreen, True),
+    ("Signal 12", 8, Qt.GlobalColor.yellow, True),
+    ("Signal 13", 9, Qt.GlobalColor.darkBlue, True),
 )
 DATA = []
