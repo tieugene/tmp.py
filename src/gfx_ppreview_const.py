@@ -26,5 +26,5 @@ DATA = (  # name, x-offset, color, wide
 TICS = {  # scale tics
     0: 123,
     5: 456,
-    11.7: 789
+    11.8: 789
 }

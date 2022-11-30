@@ -202,11 +202,23 @@ class BottomItem(QGraphicsItemGroup):
             self.setRect(r)
 
     class Tic(TextItem):
-        __x: float
+        __x: float  # Original x
+        __br: QRectF  # boundingRect()
 
         def __init__(self, x: float, num: int):
             super().__init__(str(num))
             self.__x = x
+            self.__br = super().boundingRect()
+
+        def boundingRect(self) -> QRectF:
+            self.__br = super().boundingRect()
+            self.__br.translate(-self.__br.width() / 2, 0.0)
+            return self.__br
+
+        def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
+            """H-center"""
+            painter.translate(self.__br.left(), -self.__br.top())
+            super().paint(painter, option, widget)
 
         def set_width(self, w: float):
             self.setX(W_LABEL + w * self.__x / SAMPLES)
