@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLayoutItem
 # 3. local
-from gfx_ppreview_const import FONT_MAIN, DataValue, POINTS, W_LABEL, DEBUG, HEADER_TXT
+from gfx_ppreview_const import FONT_MAIN, DataValue, SAMPLES, W_LABEL, DEBUG, HEADER_TXT, H_BOTTOM, TICS
 
 
 def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
@@ -28,7 +28,7 @@ def mk_sin(o: int = 0) -> list[float]:
     :param o: Offset, points
     :return: list of y (0..1)
     """
-    return [(1 + math.sin((i + o) * 2 * math.pi / POINTS)) / 2 for i in range(POINTS + 1)]
+    return [(1 + math.sin((i + o) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
 
 
 # ---- QGraphicsItem ----
@@ -41,7 +41,6 @@ class TextItem(QGraphicsSimpleTextItem):
     """
     def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__(txt)
-        self.bordered = False
         self.setFont(FONT_MAIN)
         if color:
             self.setBrush(color)
@@ -101,6 +100,7 @@ class GraphItem(QGraphicsPathItem):
         pen.setCosmetic(True)
         self.setPen(pen)
         pp = QPainterPath()
+        # default: x=0..SAMPLES, y=0..1
         pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))  # default
         self.setPath(pp)
 
@@ -144,7 +144,7 @@ class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
         self.scene().addItem(GraphItem(d))
 
 
-# ---- Helpers
+# ---- Containers
 class HeaderItem(RectTextItem):
     __plot: 'Plot'
 
@@ -183,7 +183,63 @@ class RowItem(QGraphicsItemGroup):
         self.__graph.set_size(QSizeF(w, h))
 
 
-# TODO: class BottomItem(rect+(rect(txt))
+class BottomItem(QGraphicsItemGroup):
+    class LeftRect(QGraphicsRectItem):
+        def __init__(self):
+            super().__init__(0, 0, W_LABEL, H_BOTTOM)
+            self.setPen(Qt.GlobalColor.transparent)
+
+    class RightRect(QGraphicsRectItem):
+        def __init__(self):
+            super().__init__(W_LABEL, 0, SAMPLES, H_BOTTOM)
+            pen = QPen(Qt.GlobalColor.black)
+            pen.setCosmetic(True)
+            self.setPen(pen)
+
+        def set_width(self, w: float):
+            r = self.rect()
+            r.setWidth(w)
+            self.setRect(r)
+
+    class Tic(TextItem):
+        __x: float
+
+        def __init__(self, x: float, num: int):
+            super().__init__(str(num))
+            self.__x = x
+
+        def set_width(self, w: float):
+            self.setX(W_LABEL + w * self.__x / SAMPLES)
+
+    __plot: 'Plot'
+    __rect: QGraphicsRectItem
+    __tics: List[Tic]  # TODO: top-h-centered
+
+    def __init__(self, plot: 'Plot'):
+        super().__init__()
+        self.__plot = plot
+        # left side
+        self.addToGroup(self.LeftRect())
+        # right side
+        self.__rect = self.RightRect()
+        self.__rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # FIXME:
+        self.addToGroup(self.__rect)
+        self.__tics = list()
+        for x, num in TICS.items():
+            item = self.Tic(x, num)
+            item.setParentItem(self.__rect)
+            self.__tics.append(item)
+            self.addToGroup(item)
+        self.update_size()
+
+    def update_size(self):
+        # rect width
+        # text positions
+        w = self.__plot.w_full - W_LABEL
+        self.__rect.set_width(w)
+        for tic in self.__tics:
+            tic.set_width(w)
+
 
 class LayoutItem(QGraphicsLayoutItem):
     """QGraphicsLayoutItem(QGraphicsItem) based."""

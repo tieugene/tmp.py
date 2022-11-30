@@ -10,7 +10,7 @@ H_ROW_BASE = 28  # Base (slick) row height in landscape mode
 H_BOTTOM = 20  # Bottom scale height
 # W_GRAPH_STEP = W_LABEL // 4
 # H_GRAPH = 14  # bigger makes label b-cutted
-POINTS = 12
+SAMPLES = 12
 PPP = 5  # plots per page
 FONT_MAIN = QFont('mono', 8)  # 7×14
 HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line.\n"
@@ -23,3 +23,8 @@ DATA = (  # name, x-offset, color, wide
     ("Signal 5", 4, Qt.GlobalColor.magenta, True),
     ("Signal 6", 5, Qt.GlobalColor.yellow, True),
 )
+TICS = {  # scale tics
+    0: 123,
+    5: 456,
+    11.7: 789
+}

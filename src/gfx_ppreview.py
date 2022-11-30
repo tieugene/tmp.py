@@ -7,11 +7,11 @@ from typing import List
 # 2. 3rd
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QCloseEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QDialog, QVBoxLayout, \
-    QGraphicsWidget, QGraphicsLinearLayout, QToolBar, QActionGroup, QSizePolicy, QLayout
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
+    QGraphicsWidget, QGraphicsLinearLayout, QActionGroup
 # 3. local
 from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, qsize2str
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, qsize2str, BottomItem
 
 
 class TableItem(QGraphicsWidget):
@@ -22,6 +22,7 @@ class TableItem(QGraphicsWidget):
         lt.addItem(LayoutItem(HeaderItem(plot)))
         for row, d in enumerate(dlist):
             lt.addItem(LayoutItem(RowItem(d, plot)))
+        lt.addItem(LayoutItem(BottomItem(plot)))
         self.setLayout(lt)
 
     def update_sizes(self):
