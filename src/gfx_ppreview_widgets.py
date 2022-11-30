@@ -61,6 +61,7 @@ class RectTextItem(QGraphicsItemGroup):
         self.addToGroup(self.text)
         # rect
         self.rect = QGraphicsRectItem(self.text.boundingRect())  # default size == text size
+        self.rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # YES!!!
         self.addToGroup(self.rect)
         if DEBUG:
             pen = QPen(color or Qt.GlobalColor.black)
@@ -69,7 +70,6 @@ class RectTextItem(QGraphicsItemGroup):
             pen = QPen(Qt.GlobalColor.transparent)
         self.rect.setPen(pen)
         # clip label
-        self.rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # YES!!!
         self.text.setParentItem(self.rect)
 
     def set_width(self, w: float):
@@ -195,6 +195,7 @@ class BottomItem(QGraphicsItemGroup):
             pen = QPen(Qt.GlobalColor.black)
             pen.setCosmetic(True)
             self.setPen(pen)
+            self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
 
         def set_width(self, w: float):
             r = self.rect()
@@ -234,19 +235,18 @@ class BottomItem(QGraphicsItemGroup):
         self.addToGroup(self.LeftRect())
         # right side
         self.__rect = self.RightRect()
-        self.__rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # FIXME:
         self.addToGroup(self.__rect)
+        # - tics
         self.__tics = list()
         for x, num in TICS.items():
             item = self.Tic(x, num)
             item.setParentItem(self.__rect)
             self.__tics.append(item)
             self.addToGroup(item)
+        # refresh all
         self.update_size()
 
     def update_size(self):
-        # rect width
-        # text positions
         w = self.__plot.w_full - W_LABEL
         self.__rect.set_width(w)
         for tic in self.__tics:
