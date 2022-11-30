@@ -58,6 +58,25 @@ class TextItem(QGraphicsSimpleTextItem):
         # print(qsize2str(self.boundingRect()))
 
 
+class TCTextItem(TextItem):
+    """Top-H=centered text"""
+    __br: QRectF  # boundingRect()
+
+    def __init__(self, txt: str):
+        super().__init__(txt)
+        self.__br = super().boundingRect()
+
+    def boundingRect(self) -> QRectF:
+        self.__br = super().boundingRect()
+        self.__br.translate(-self.__br.width() / 2, 0.0)
+        return self.__br
+
+    def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
+        """H-center"""
+        painter.translate(self.__br.left(), -self.__br.top())
+        super().paint(painter, option, widget)
+
+
 class RectTextItem(QGraphicsItemGroup):
     """Text in border.
     Result: something strange."""
@@ -192,73 +211,6 @@ class RowItem(QGraphicsItemGroup):
         self.__label.set_height(h)
         self.__graph.set_size(QSizeF(w, h))
         self.__uline.setLine(0, h, self.__plot.w_full, h)
-
-
-class BottomItem(QGraphicsItemGroup):
-    """Bottom scale.
-    :todo: replace RightRect with text clippath
-    """
-    class RightRect(QGraphicsRectItem):
-        def __init__(self):
-            super().__init__(W_LABEL, 0, SAMPLES, H_BOTTOM)
-            self.setPen(ThinPen(Qt.GlobalColor.transparent))
-            self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
-
-        def set_width(self, w: float):
-            r = self.rect()
-            r.setWidth(w)
-            self.setRect(r)
-
-    class Tic(TextItem):
-        __x: float  # Original x
-        __br: QRectF  # boundingRect()
-
-        def __init__(self, x: float, num: int):
-            super().__init__(str(num))
-            self.__x = x
-            self.__br = super().boundingRect()
-
-        def boundingRect(self) -> QRectF:
-            self.__br = super().boundingRect()
-            self.__br.translate(-self.__br.width() / 2, 0.0)
-            return self.__br
-
-        def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
-            """H-center"""
-            painter.translate(self.__br.left(), -self.__br.top())
-            super().paint(painter, option, widget)
-
-        def set_width(self, w: float):
-            self.setX(W_LABEL + w * self.__x / SAMPLES)
-
-    __plot: 'Plot'
-    __aline: QGraphicsLineItem
-    __rect: QGraphicsRectItem
-    __tics: List[Tic]
-
-    def __init__(self, plot: 'Plot'):
-        super().__init__()
-        self.__plot = plot
-        self.__aline = QGraphicsLineItem()
-        self.__rect = self.RightRect()
-        # layout
-        self.addToGroup(self.__aline)
-        self.addToGroup(self.__rect)
-        # - tics
-        self.__tics = list()
-        for x, num in TICS.items():
-            self.__tics.append(self.Tic(x, num))
-            self.addToGroup(self.__tics[-1])
-            self.__tics[-1].setParentItem(self.__rect)
-        # refresh all
-        self.update_size()
-
-    def update_size(self):
-        w = self.__plot.w_full - W_LABEL
-        self.__aline.setLine(0, 0, self.__plot.w_full, 0)
-        self.__rect.set_width(w)
-        for tic in self.__tics:
-            tic.set_width(w)
 
 
 # ---- Wrappers

@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
 DEBUG = False
-PORTRAIT = True  # initial orientation
+PORTRAIT = False  # initial orientation
 W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
 W_LABEL = 53  # Label column width
 H_HEADER = 56

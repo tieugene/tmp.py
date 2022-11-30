@@ -8,10 +8,11 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsWidget, \
     QGraphicsLinearLayout, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, \
-    QStyleOptionGraphicsItem, QWidget
+    QStyleOptionGraphicsItem, QWidget, QGraphicsItem
 # 3. local
 from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, PORTRAIT
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TextItem
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TextItem, \
+    TCTextItem
 
 
 class TableCanvas(QGraphicsItemGroup):
@@ -25,27 +26,10 @@ class TableCanvas(QGraphicsItemGroup):
     """
 
     class GridItem(QGraphicsItemGroup):
-        class TicText(TextItem):
-            __br: QRectF  # boundingRect()
-
-            def __init__(self, num: int):
-                super().__init__(str(num))
-                self.__br = super().boundingRect()
-
-            def boundingRect(self) -> QRectF:
-                self.__br = super().boundingRect()
-                self.__br.translate(-self.__br.width() / 2, 0.0)
-                return self.__br
-
-            def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
-                """H-center"""
-                painter.translate(self.__br.left(), -self.__br.top())
-                super().paint(painter, option, widget)
-
         __plot: 'Plot'
         __x: float
         __line: QGraphicsLineItem
-        __text: TextItem
+        __text: TCTextItem
 
         def __init__(self, x: float, num: int, plot: 'Plot'):
             super().__init__()
@@ -53,7 +37,7 @@ class TableCanvas(QGraphicsItemGroup):
             self.__plot = plot
             self.__line = QGraphicsLineItem()
             self.__line.setPen(ThinPen(Qt.GlobalColor.lightGray))
-            self.__text = self.TicText(num)
+            self.__text = TCTextItem(str(num))
             # layout
             self.addToGroup(self.__line)
             self.addToGroup(self.__text)
@@ -69,7 +53,7 @@ class TableCanvas(QGraphicsItemGroup):
     __frame: QGraphicsRectItem  # external border; TODO: clip all inners (header, tic labels) by this
     __colsep: QGraphicsLineItem  # columns separator
     __btmsep: QGraphicsLineItem  # bottom separator
-    __grid: List[GridItem]
+    __grid: List[GridItem]  # tics (v-line+label)
 
     def __init__(self, plot: 'Plot'):
         super().__init__()
@@ -78,6 +62,7 @@ class TableCanvas(QGraphicsItemGroup):
         pen = ThinPen(Qt.GlobalColor.gray)
         self.__frame = QGraphicsRectItem()
         self.__frame.setPen(pen)
+        self.__frame.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # clip inners into this
         self.__colsep = QGraphicsLineItem()
         self.__colsep.setPen(pen)
         self.__btmsep = QGraphicsLineItem()
@@ -92,7 +77,7 @@ class TableCanvas(QGraphicsItemGroup):
         for x, num in TICS.items():
             self.__grid.append(self.GridItem(x, num, plot))
             self.addToGroup(self.__grid[-1])
-            # TODO: setParentItem
+            self.__grid[-1].setParentItem(self.__frame)
         # go
         self.update_sizes()
 
