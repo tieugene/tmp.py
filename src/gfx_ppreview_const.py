@@ -13,7 +13,10 @@ H_BOTTOM = 20  # Bottom scale height
 SAMPLES = 12
 PPP = 5  # plots per page
 FONT_MAIN = QFont('mono', 8)  # 7×14
-HEADER_TXT = "This is the header.\nWith 3 lines.\nLast line.\n"
+HEADER_TXT = '''This is the header with 3[4] lines.
+Use "Ctrl+0" to original size, "Ctr-P" to portrait, "Ctr+L" to landscape (default), "Ctrl+V" to close.
+Last line.
+'''
 DataValue = Tuple[str, int, Qt.GlobalColor, bool]
 DATA = (  # name, x-offset, color, wide
     ("Signal 1", 0, Qt.GlobalColor.black, True),
