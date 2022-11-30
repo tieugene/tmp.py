@@ -322,7 +322,14 @@ class MainWindow(QMainWindow):
                                     triggered=self.view.slot_reset_size))
         menu_view.addAction(self.act_o_l)
         menu_view.addAction(self.act_o_p)
-        # menu_view.addAction(QAction())
+        menu_view.addAction(QAction(QIcon.fromTheme("go-first"), "1st page", self, shortcut="Ctrl+Up",
+                                    triggered=self.view.slot_p_1st))
+        menu_view.addAction(QAction(QIcon.fromTheme("go-previous"), "Prev. page", self, shortcut="Ctrl+Left",
+                                    triggered=self.view.slot_p_prev))
+        menu_view.addAction(QAction(QIcon.fromTheme("go-next"), "Next page", self, shortcut="Ctrl+Right",
+                                    triggered=self.view.slot_p_next))
+        menu_view.addAction(QAction(QIcon.fromTheme("go-last"), "Last page", self, shortcut="Ctrl+Down",
+                                    triggered=self.view.slot_p_last))
 
     def __do_o(self, a: QAction):
         """Switch page orientation"""
