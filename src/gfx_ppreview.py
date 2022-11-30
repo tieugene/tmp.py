@@ -6,22 +6,63 @@ from typing import List
 # 2. 3rd
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QCloseEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsWidget,\
-    QGraphicsLinearLayout, QActionGroup, QShortcut
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsWidget, \
+    QGraphicsLinearLayout, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem
 # 3. local
-from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, BottomItem
+from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, BottomItem, ThinPen
 
 
-class TableItem(QGraphicsWidget):
+class TableCanvas(QGraphicsItemGroup):
+    """Table frame with:
+    - header
+    - border
+    - columns separator
+    - bottom underline
+    - bottom scale
+    - grid (?)
+    """
+    __plot: 'Plot'
+    __header: HeaderItem
+    __bottom: BottomItem
+    __frame: QGraphicsRectItem  # external border
+    __colsep: QGraphicsLineItem  # columns separator
+
+    def __init__(self, plot: 'Plot'):
+        super().__init__()
+        self.__plot = plot
+        self.__header = HeaderItem(plot)
+        self.__bottom = BottomItem(plot)
+        pen = ThinPen(Qt.GlobalColor.gray)
+        self.__frame = QGraphicsRectItem()
+        self.__frame.setPen(pen)
+        self.__colsep = QGraphicsLineItem()
+        self.__colsep.setPen(pen)
+        # layout
+        self.addToGroup(self.__header)
+        self.addToGroup(self.__bottom)
+        self.addToGroup(self.__frame)
+        self.addToGroup(self.__colsep)
+        # go
+        self.update_sizes()
+
+    def update_sizes(self):
+        self.__header.update_size()
+        self.__bottom.setY(self.__plot.h_full - H_BOTTOM)
+        self.__bottom.update_size()
+        self.__frame.setRect(0, H_HEADER, self.__plot.w_full, self.__plot.h_full - H_HEADER)
+        self.__colsep.setLine(W_LABEL, H_HEADER, W_LABEL, self.__plot.h_full)
+
+
+class TablePayload(QGraphicsWidget):  # <(QGraphicsObject<QGraphicsItem, QGraphicsLayoutItem)
+    """Just rows with underlines"""
     def __init__(self, dlist: List[DataValue], plot: 'Plot'):
         super().__init__()
         lt = QGraphicsLinearLayout(Qt.Vertical, self)
+        lt.setContentsMargins(0, 0, 0, 0)
         lt.setSpacing(0)
-        lt.addItem(LayoutItem(HeaderItem(plot)))
         for row, d in enumerate(dlist):
             lt.addItem(LayoutItem(RowItem(d, plot)))
-        lt.addItem(LayoutItem(BottomItem(plot)))
         self.setLayout(lt)
 
     def update_sizes(self):
@@ -32,7 +73,8 @@ class TableItem(QGraphicsWidget):
 class Plot(GraphViewBase):
     __father: 'MainWindow'
     __portrait: bool
-    __table: TableItem
+    __canvas: TableCanvas
+    __payload: TablePayload
     # shortcuts
     __sc_close: QShortcut
     __sc_size0: QShortcut
@@ -43,8 +85,12 @@ class Plot(GraphViewBase):
         super().__init__()
         self.__father = father
         self.__portrait = False
-        self.__table = TableItem(DATA[:6], self)
-        self.scene().addItem(self.__table)
+        self.__canvas = TableCanvas(self)
+        self.__payload = TablePayload(DATA[:6], self)
+        self.__payload.setY(H_HEADER)
+        # layout
+        self.scene().addItem(self.__canvas)
+        self.scene().addItem(self.__payload)
         # shortcuts
         self.__sc_close = QShortcut("Ctrl+V", self)
         self.__sc_size0 = QShortcut("Ctrl+0", self)
@@ -60,6 +106,11 @@ class Plot(GraphViewBase):
     def w_full(self) -> int:
         """Current full table width"""
         return W_PAGE[int(self.__portrait)]
+
+    @property
+    def h_full(self) -> int:
+        """Current full table width"""
+        return W_PAGE[1 - int(self.__portrait)]
 
     @property
     def h_row_base(self) -> int:
@@ -78,7 +129,8 @@ class Plot(GraphViewBase):
         # FIXME: shrink width
         if self.__portrait ^ v:
             self.__portrait = v
-            self.__table.update_sizes()
+            self.__canvas.update_sizes()
+            self.__payload.update_sizes()
             # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
             # self.slot_reset_size()
 

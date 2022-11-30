@@ -6,7 +6,7 @@ import math
 from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
-    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLayoutItem
+    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLayoutItem, QGraphicsLineItem
 # 3. local
 from gfx_ppreview_const import FONT_MAIN, DataValue, SAMPLES, W_LABEL, DEBUG, HEADER_TXT, H_BOTTOM, TICS
 
@@ -59,7 +59,7 @@ class RectTextItem(QGraphicsItemGroup):
     """Text in border.
     Result: something strange."""
     text: TextItem
-    rect: QGraphicsRectItem
+    rect: QGraphicsRectItem  # TODO: replace with clippath
 
     def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__()
@@ -162,41 +162,43 @@ class HeaderItem(RectTextItem):
 
 
 class RowItem(QGraphicsItemGroup):
-    __plot: 'Plot'
-    __label: RectTextItem
-    __wide: bool
-    __graph: GraphItem
+    __plot: 'Plot'  # ref to father
+    __label: RectTextItem  # left side
+    __graph: GraphItem  # right side
+    __uline: QGraphicsLineItem  # underline
+    __wide: bool  # A/B indictor
 
     def __init__(self, d: DataValue, plot: 'Plot'):
         super().__init__()
         self.__plot = plot
         self.__label = RectTextItem(d[0], d[2])
         self.__graph = GraphItem(d)
+        self.__uline = QGraphicsLineItem()
         self.__wide = d[3]
+        # initial positions/sizes
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
         self.update_size()
         self.addToGroup(self.__label)
         self.addToGroup(self.__graph)
+        self.addToGroup(self.__uline)
 
     def update_size(self):
         w = self.__plot.w_full - W_LABEL  # 1077, 695
         h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
-        # print(f"W={w}, H={h}")
         self.__label.set_height(h)
         self.__graph.set_size(QSizeF(w, h))
+        self.__uline.setLine(0, h, self.__plot.w_full, h)
 
 
 class BottomItem(QGraphicsItemGroup):
-    class LeftRect(QGraphicsRectItem):
-        def __init__(self):
-            super().__init__(0, 0, W_LABEL, H_BOTTOM)
-            self.setPen(Qt.GlobalColor.transparent)
-
+    """Bottom scale.
+    :todo: replace RightRect with text clippath
+    """
     class RightRect(QGraphicsRectItem):
         def __init__(self):
             super().__init__(W_LABEL, 0, SAMPLES, H_BOTTOM)
-            self.setPen(ThinPen(Qt.GlobalColor.black))
+            self.setPen(ThinPen(Qt.GlobalColor.transparent))
             self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
 
         def set_width(self, w: float):
@@ -227,16 +229,17 @@ class BottomItem(QGraphicsItemGroup):
             self.setX(W_LABEL + w * self.__x / SAMPLES)
 
     __plot: 'Plot'
+    __aline: QGraphicsLineItem
     __rect: QGraphicsRectItem
-    __tics: List[Tic]  # TODO: top-h-centered
+    __tics: List[Tic]
 
     def __init__(self, plot: 'Plot'):
         super().__init__()
         self.__plot = plot
-        # left side
-        self.addToGroup(self.LeftRect())
-        # right side
+        self.__aline = QGraphicsLineItem()
         self.__rect = self.RightRect()
+        # layout
+        self.addToGroup(self.__aline)
         self.addToGroup(self.__rect)
         # - tics
         self.__tics = list()
@@ -249,11 +252,13 @@ class BottomItem(QGraphicsItemGroup):
 
     def update_size(self):
         w = self.__plot.w_full - W_LABEL
+        self.__aline.setLine(0, 0, self.__plot.w_full, 0)
         self.__rect.set_width(w)
         for tic in self.__tics:
             tic.set_width(w)
 
 
+# ---- Wrappers
 class LayoutItem(QGraphicsLayoutItem):
     """QGraphicsLayoutItem(QGraphicsItem) based."""
     __subj: QGraphicsItem  # must live
