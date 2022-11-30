@@ -1,3 +1,4 @@
+"""gfx_ppreview widgets"""
 # 1. std
 from typing import Union, List
 import math
@@ -29,6 +30,12 @@ def mk_sin(o: int = 0) -> list[float]:
     :return: list of y (0..1)
     """
     return [(1 + math.sin((i + o) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
+
+
+class ThinPen(QPen):
+    def __init__(self, color: Qt.GlobalColor):
+        super().__init__(color)
+        self.setCosmetic(True)
 
 
 # ---- QGraphicsItem ----
@@ -63,10 +70,9 @@ class RectTextItem(QGraphicsItemGroup):
         self.rect = QGraphicsRectItem(self.text.boundingRect())  # default size == text size
         self.rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # YES!!!
         if DEBUG:
-            pen = QPen(color or Qt.GlobalColor.black)
-            pen.setCosmetic(True)
+            pen = ThinPen(color or Qt.GlobalColor.black)
         else:
-            pen = QPen(Qt.GlobalColor.transparent)
+            pen = ThinPen(Qt.GlobalColor.transparent)
         self.rect.setPen(pen)
         self.addToGroup(self.rect)
         # clip label
@@ -96,9 +102,7 @@ class GraphItem(QGraphicsPathItem):
     def __init__(self, d: DataValue):
         super().__init__()
         self.__y = mk_sin(d[1])
-        pen = QPen(d[2])
-        pen.setCosmetic(True)
-        self.setPen(pen)
+        self.setPen(ThinPen(d[2]))
         pp = QPainterPath()
         # default: x=0..SAMPLES, y=0..1
         pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))  # default
@@ -192,9 +196,7 @@ class BottomItem(QGraphicsItemGroup):
     class RightRect(QGraphicsRectItem):
         def __init__(self):
             super().__init__(W_LABEL, 0, SAMPLES, H_BOTTOM)
-            pen = QPen(Qt.GlobalColor.black)
-            pen.setCosmetic(True)
-            self.setPen(pen)
+            self.setPen(ThinPen(Qt.GlobalColor.black))
             self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
 
         def set_width(self, w: float):

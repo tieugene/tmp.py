@@ -3,15 +3,14 @@
 # 1. std
 import sys
 from typing import List
-
 # 2. 3rd
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCloseEvent, QKeySequence
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
-    QGraphicsWidget, QGraphicsLinearLayout, QActionGroup, QShortcut
+from PyQt5.QtGui import QIcon, QCloseEvent
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsWidget,\
+    QGraphicsLinearLayout, QActionGroup, QShortcut
 # 3. local
 from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, qsize2str, BottomItem
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, BottomItem
 
 
 class TableItem(QGraphicsWidget):

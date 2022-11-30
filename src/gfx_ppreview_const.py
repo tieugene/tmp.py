@@ -1,5 +1,7 @@
+"""gfx_ppreview constants"""
+# 1. std
 from typing import Tuple
-
+# 2. 3rd
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
