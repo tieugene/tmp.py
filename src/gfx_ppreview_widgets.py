@@ -62,13 +62,13 @@ class RectTextItem(QGraphicsItemGroup):
         # rect
         self.rect = QGraphicsRectItem(self.text.boundingRect())  # default size == text size
         self.rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # YES!!!
-        self.addToGroup(self.rect)
         if DEBUG:
             pen = QPen(color or Qt.GlobalColor.black)
             pen.setCosmetic(True)
         else:
             pen = QPen(Qt.GlobalColor.transparent)
         self.rect.setPen(pen)
+        self.addToGroup(self.rect)
         # clip label
         self.text.setParentItem(self.rect)
 
@@ -239,10 +239,9 @@ class BottomItem(QGraphicsItemGroup):
         # - tics
         self.__tics = list()
         for x, num in TICS.items():
-            item = self.Tic(x, num)
-            item.setParentItem(self.__rect)
-            self.__tics.append(item)
-            self.addToGroup(item)
+            self.__tics.append(self.Tic(x, num))
+            self.addToGroup(self.__tics[-1])
+            self.__tics[-1].setParentItem(self.__rect)
         # refresh all
         self.update_size()
 
