@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 
 DEBUG = False
+PORTRAIT = True  # initial orientation
 W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
 W_LABEL = 53  # Label column width
 H_HEADER = 56
@@ -27,7 +28,7 @@ DATA = (  # name, x-offset, color, wide
     ("Signal 5", 4, Qt.GlobalColor.magenta, True),
     ("Signal 6", 5, Qt.GlobalColor.yellow, True),
 )
-TICS = {  # scale tics
+TICS = {  # scale tics {sample_no: text}
     0: 123,
     5: 456,
     SAMPLES * 0.98: 789

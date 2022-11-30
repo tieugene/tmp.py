@@ -4,13 +4,14 @@
 import sys
 from typing import List
 # 2. 3rd
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCloseEvent
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsWidget, \
-    QGraphicsLinearLayout, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem
+    QGraphicsLinearLayout, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, \
+    QStyleOptionGraphicsItem, QWidget
 # 3. local
-from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, BottomItem, ThinPen
+from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, PORTRAIT
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TextItem
 
 
 class TableCanvas(QGraphicsItemGroup):
@@ -20,38 +21,88 @@ class TableCanvas(QGraphicsItemGroup):
     - columns separator
     - bottom underline
     - bottom scale
-    - grid (?)
+    - grid
     """
+
+    class GridItem(QGraphicsItemGroup):
+        class TicText(TextItem):
+            __br: QRectF  # boundingRect()
+
+            def __init__(self, num: int):
+                super().__init__(str(num))
+                self.__br = super().boundingRect()
+
+            def boundingRect(self) -> QRectF:
+                self.__br = super().boundingRect()
+                self.__br.translate(-self.__br.width() / 2, 0.0)
+                return self.__br
+
+            def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
+                """H-center"""
+                painter.translate(self.__br.left(), -self.__br.top())
+                super().paint(painter, option, widget)
+
+        __plot: 'Plot'
+        __x: float
+        __line: QGraphicsLineItem
+        __text: TextItem
+
+        def __init__(self, x: float, num: int, plot: 'Plot'):
+            super().__init__()
+            self.__x = x
+            self.__plot = plot
+            self.__line = QGraphicsLineItem()
+            self.__line.setPen(ThinPen(Qt.GlobalColor.lightGray))
+            self.__text = self.TicText(num)
+            # layout
+            self.addToGroup(self.__line)
+            self.addToGroup(self.__text)
+
+        def update_size(self):
+            x = W_LABEL + (self.__plot.w_full - W_LABEL) * self.__x / SAMPLES
+            y = self.__plot.h_full - H_BOTTOM
+            self.__line.setLine(x, H_HEADER, x, y)
+            self.__text.setPos(x, y)
+
     __plot: 'Plot'
     __header: HeaderItem
-    __bottom: BottomItem
-    __frame: QGraphicsRectItem  # external border
+    __frame: QGraphicsRectItem  # external border; TODO: clip all inners (header, tic labels) by this
     __colsep: QGraphicsLineItem  # columns separator
+    __btmsep: QGraphicsLineItem  # bottom separator
+    __grid: List[GridItem]
 
     def __init__(self, plot: 'Plot'):
         super().__init__()
         self.__plot = plot
         self.__header = HeaderItem(plot)
-        self.__bottom = BottomItem(plot)
         pen = ThinPen(Qt.GlobalColor.gray)
         self.__frame = QGraphicsRectItem()
         self.__frame.setPen(pen)
         self.__colsep = QGraphicsLineItem()
         self.__colsep.setPen(pen)
+        self.__btmsep = QGraphicsLineItem()
+        self.__btmsep.setPen(pen)
         # layout
         self.addToGroup(self.__header)
-        self.addToGroup(self.__bottom)
         self.addToGroup(self.__frame)
         self.addToGroup(self.__colsep)
+        self.addToGroup(self.__btmsep)
+        # grid
+        self.__grid = list()
+        for x, num in TICS.items():
+            self.__grid.append(self.GridItem(x, num, plot))
+            self.addToGroup(self.__grid[-1])
+            # TODO: setParentItem
         # go
         self.update_sizes()
 
     def update_sizes(self):
         self.__header.update_size()
-        self.__bottom.setY(self.__plot.h_full - H_BOTTOM)
-        self.__bottom.update_size()
         self.__frame.setRect(0, H_HEADER, self.__plot.w_full, self.__plot.h_full - H_HEADER)
-        self.__colsep.setLine(W_LABEL, H_HEADER, W_LABEL, self.__plot.h_full)
+        self.__colsep.setLine(W_LABEL, H_HEADER, W_LABEL, self.__plot.h_full - H_BOTTOM)
+        self.__btmsep.setLine(0, self.__plot.h_full - H_BOTTOM, self.__plot.w_full, self.__plot.h_full - H_BOTTOM)
+        for g in self.__grid:
+            g.update_size()
 
 
 class TablePayload(QGraphicsWidget):  # <(QGraphicsObject<QGraphicsItem, QGraphicsLayoutItem)
@@ -84,7 +135,7 @@ class Plot(GraphViewBase):
     def __init__(self, father: 'MainWindow'):
         super().__init__()
         self.__father = father
-        self.__portrait = False
+        self.__portrait = PORTRAIT
         self.__canvas = TableCanvas(self)
         self.__payload = TablePayload(DATA[:6], self)
         self.__payload.setY(H_HEADER)

@@ -33,6 +33,7 @@ def mk_sin(o: int = 0) -> list[float]:
 
 
 class ThinPen(QPen):
+    """Non-scalable QPen"""
     def __init__(self, color: Qt.GlobalColor):
         super().__init__(color)
         self.setCosmetic(True)
@@ -41,10 +42,12 @@ class ThinPen(QPen):
 # ---- QGraphicsItem ----
 class TextItem(QGraphicsSimpleTextItem):
     """
+    Non-scalable plain text
     Warn: on resize:
     - not changed: boundingRect(), pos(), scenePos()
     - not call: deviceTransform(), itemTransform(), transform(), boundingRegion()
     - call: paint()
+    :todo: add align
     """
     def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__(txt)
