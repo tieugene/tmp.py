@@ -14,7 +14,7 @@ class HLine(QFrame):
     __row: int
 
     def __init__(self, row: int, parent=None):
-        """Parents: QWidget<MainWidget"""
+        """Parents: QWidget<TableView"""
         super().__init__(parent)
         self.__row = row
         self.setGeometry(QRect(0, 0, 0, 0))  # size is not the matter

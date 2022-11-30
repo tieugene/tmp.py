@@ -6,11 +6,11 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 # x. consts
 # - user defined
-DEBUG = False
+DEBUG = False  # paint borders around some items
 PORTRAIT = False  # initial orientation
 AUTOFILL = False
 # -- ...
-SAMPLES = 24
+SAMPLES = 24  # samples per signal
 SIGNALS = 10  # Number of signals for autofill
 # - hardcoded
 W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
@@ -40,7 +40,7 @@ COLORS = (
 )
 # y. data
 HEADER_TXT = '''This is the header with 3[4] lines.
-Use "Ctrl+0" to original size, "Ctr-P" to portrait, "Ctr+L" to landscape (default), "Ctrl+V" to close.
+Hotkeys: ^0: original size, ^P portrait, ^L: landscape, ^V: close, ^↑: page 1st, ^←: page back, ^→: page next, ^↓: page last
 Last line.
 '''
 TICS = {  # scale tics {sample_no: text}

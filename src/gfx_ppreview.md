@@ -32,10 +32,11 @@
 ### ToDo:
 - [ ] View:
   + [ ] Paging:
-    + [ ] switch between scenes
+    + […] switch between scenes
   + [ ] FIXME: Bad PlotView size after L/P switching
   + [ ] FIXME: QTableWidget's graphs too small
   + [ ] TODO: text clippath
+- [ ] TODO: MW.toolbar
 - [ ] Print
 
 ### Done:

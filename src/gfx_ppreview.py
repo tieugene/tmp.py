@@ -160,35 +160,51 @@ class PlotView(GraphViewBase):
     __father: 'MainWindow'
     __portrait: bool
     __scene: List[PlotScene]
+    scene_cur: int
     # shortcuts
     __sc_close: QShortcut
     __sc_size0: QShortcut
     __sc_o_L: QShortcut
     __sc_o_P: QShortcut
+    __sc_p_1st: QShortcut
+    __sc_p_prev: QShortcut
+    __sc_p_next: QShortcut
+    __sc_p_last: QShortcut
 
     def __init__(self, father: 'MainWindow'):
         super().__init__()
         self.__father = father
         self.__portrait = PORTRAIT
-        pieces = data_split()
-        # fill scenes
         self.__scene = list()
+        # fill scenes
         i0 = 0
-        for k in pieces:
+        for k in data_split():
             self.__scene.append(PlotScene(DATA[i0:i0+k], self))
             i0 += k
         # set default scene
-        self.setScene(self.__scene[0])
+        self.__set_scene(0)
         # shortcuts
         self.__sc_close = QShortcut("Ctrl+V", self)
         self.__sc_size0 = QShortcut("Ctrl+0", self)
         self.__sc_o_L = QShortcut("Ctrl+L", self)
         self.__sc_o_P = QShortcut("Ctrl+P", self)
+        self.__sc_p_1st = QShortcut("Ctrl+Up", self)
+        self.__sc_p_prev = QShortcut("Ctrl+Left", self)
+        self.__sc_p_next = QShortcut("Ctrl+Right", self)
+        self.__sc_p_last = QShortcut("Ctrl+Down", self)
         # ...and their connections
         self.__sc_close.activated.connect(self.close)
         self.__sc_size0.activated.connect(self.slot_reset_size)
         self.__sc_o_L.activated.connect(self.__slot_set_o_l)
         self.__sc_o_P.activated.connect(self.__slot_set_o_p)
+        self.__sc_p_1st.activated.connect(self.slot_p_1st)
+        self.__sc_p_prev.activated.connect(self.slot_p_prev)
+        self.__sc_p_next.activated.connect(self.slot_p_next)
+        self.__sc_p_last.activated.connect(self.slot_p_next)
+
+    def closeEvent(self, _: QCloseEvent):
+        """Masq closing with switch off"""
+        self.__father.act_view.setChecked(False)
 
     @property
     def w_full(self) -> int:
@@ -217,12 +233,14 @@ class PlotView(GraphViewBase):
         # FIXME: shrink width
         if self.__portrait ^ v:
             self.__portrait = v
-            # self.__canvas.update_sizes()
-            # self.__payload.update_sizes()
             self.scene().update_sizes()
             # skip
             # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
             # self.slot_reset_size()
+
+    @property
+    def scene_count(self) -> int:
+        return len(self.__scene)
 
     def __slot_set_o_l(self):
         self.portrait = False
@@ -234,12 +252,28 @@ class PlotView(GraphViewBase):
         """[Re]set view to original size."""
         self.resize(self.scene().itemsBoundingRect().size().toSize())
 
-    def closeEvent(self, _: QCloseEvent):
-        """Masq closing with switch off"""
-        self.__father.act_view.setChecked(False)
+    def __set_scene(self, i: int):
+        self.scene_cur = i
+        self.setScene(self.__scene[self.scene_cur])
+
+    def slot_p_1st(self):
+        if self.scene_cur:
+            self.__set_scene(0)
+
+    def slot_p_prev(self):
+        if self.scene_cur:
+            self.__set_scene(self.scene_cur - 1)
+
+    def slot_p_next(self):
+        if self.scene_cur + 1 < self.scene_count:
+            self.__set_scene(self.scene_cur + 1)
+
+    def slot_p_last(self):
+        if self.scene_cur < self.scene_count - 1:
+            self.__set_scene(self.scene_count - 1)
 
 
-class MainWidget(QTableWidget):
+class TableView(QTableWidget):
     def __init__(self, parent: 'MainWindow'):
         super().__init__(parent)
         self.horizontalHeader().setStretchLastSection(True)
@@ -259,7 +293,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setCentralWidget(MainWidget(self))
+        self.setCentralWidget(TableView(self))
         self.view = PlotView(self)
         self.__mk_actions()
 
@@ -288,6 +322,7 @@ class MainWindow(QMainWindow):
                                     triggered=self.view.slot_reset_size))
         menu_view.addAction(self.act_o_l)
         menu_view.addAction(self.act_o_p)
+        # menu_view.addAction(QAction())
 
     def __do_o(self, a: QAction):
         """Switch page orientation"""

@@ -119,7 +119,7 @@ class SignalBar(QWidget):
     """One signal's things.
     TODO: color up
     """
-    def __init__(self, name: str, color: QColor, parent: 'MainWidget'):
+    def __init__(self, name: str, color: QColor, parent: 'TableView'):
         super().__init__(parent)
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(SignalTitleBar(name, color, self))
