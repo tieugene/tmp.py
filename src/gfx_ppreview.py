@@ -4,15 +4,13 @@
 import sys
 from typing import List
 # 2. 3rd
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsWidget, \
-    QGraphicsLinearLayout, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, \
-    QStyleOptionGraphicsItem, QWidget, QGraphicsItem
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QCloseEvent
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsLinearLayout,\
+    QGraphicsWidget, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem
 # 3. local
 from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, PORTRAIT
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TextItem, \
-    TCTextItem
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem
 
 
 class TableCanvas(QGraphicsItemGroup):

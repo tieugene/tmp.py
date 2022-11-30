@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLayoutItem, QGraphicsLineItem
 # 3. local
-from gfx_ppreview_const import FONT_MAIN, DataValue, SAMPLES, W_LABEL, DEBUG, HEADER_TXT, H_BOTTOM, TICS
+from gfx_ppreview_const import FONT_MAIN, DataValue, SAMPLES, W_LABEL, DEBUG, HEADER_TXT
 
 
 def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
