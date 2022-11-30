@@ -12,7 +12,7 @@ W_LABEL = 53  # Label column width
 H_HEADER = 56
 H_ROW_BASE = 28  # Base (slick) row height in landscape mode
 H_BOTTOM = 20  # Bottom scale height
-SAMPLES = 12
+SAMPLES = 24
 PPP = 5  # plots per page
 FONT_MAIN = QFont('mono', 8)  # 7×14
 HEADER_TXT = '''This is the header with 3[4] lines.
@@ -20,12 +20,12 @@ Use "Ctrl+0" to original size, "Ctr-P" to portrait, "Ctr+L" to landscape (defaul
 Last line.
 '''
 DataValue = Tuple[str, int, Qt.GlobalColor, bool]
-DATA = (  # name, x-offset, color, wide
+DATA = (  # name, x-offset, color, analog
     ("Signal 1", 0, Qt.GlobalColor.black, True),
     ("Signal 22", 1, Qt.GlobalColor.red, True),
     ("Signal 333", 2, Qt.GlobalColor.blue, False),
     ("Signal 4444", 3, Qt.GlobalColor.green, True),
-    ("Signal 5", 4, Qt.GlobalColor.magenta, True),
+    ("Signal 5", 4, Qt.GlobalColor.magenta, False),
     ("Signal 6", 5, Qt.GlobalColor.yellow, True),
 )
 TICS = {  # scale tics {sample_no: text}

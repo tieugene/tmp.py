@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
 from gfx_ppreview_const import FONT_MAIN, DataValue, SAMPLES, W_LABEL, DEBUG, HEADER_TXT
 
 
+# ---- Utility
 def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
     if isinstance(size, QRectF):
         v = size.size().toSize()
@@ -23,13 +24,21 @@ def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
     return f"({v.width()}, {v.height()})"
 
 
-def mk_sin(o: int = 0) -> list[float]:
+def mk_sin(o: int = 0) -> List[float]:
     """
     Make sinusoide graph coordinates. Y=0..1
     :param o: Offset, points
     :return: list of y (0..1)
     """
     return [(1 + math.sin((i + o) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
+
+
+def mk_meander(p: int) -> List[float]:
+    """Make meander. Starts from 0.
+    :param p: Period
+    """
+    p = p % SAMPLES or 1
+    return [int(i / p) % 2 for i in range(SAMPLES + 1)]
 
 
 class ThinPen(QPen):
@@ -123,7 +132,7 @@ class GraphItem(QGraphicsPathItem):
 
     def __init__(self, d: DataValue):
         super().__init__()
-        self.__y = mk_sin(d[1])
+        self.__y = mk_sin(d[1]) if d[3] else mk_meander(d[1])
         self.setPen(ThinPen(d[2]))
         pp = QPainterPath()
         # default: x=0..SAMPLES, y=0..1
