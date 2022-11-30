@@ -9,8 +9,25 @@ from PyQt5.QtGui import QIcon, QCloseEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsLinearLayout,\
     QGraphicsWidget, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem
 # 3. local
-from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, PORTRAIT
+from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, \
+    PORTRAIT, DATA_PREDEF, AUTOFILL, SIGNALS, COLORS
 from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem
+
+
+def fill_data():
+    """Fill data witth predefined or auto"""
+    if AUTOFILL:
+        import random
+        random.seed()
+        for i in range(SIGNALS):
+            DATA.append((
+                f"Signal {i}",
+                random.randint(0, SAMPLES-1),
+                COLORS[random.randint(0, len(COLORS)-1)],
+                bool(random.randint(0, 1))
+            ))
+    else:
+        DATA.extend(DATA_PREDEF)
 
 
 class TableCanvas(QGraphicsItemGroup):
@@ -120,7 +137,7 @@ class Plot(GraphViewBase):
         self.__father = father
         self.__portrait = PORTRAIT
         self.__canvas = TableCanvas(self)
-        self.__payload = TablePayload(DATA[:6], self)
+        self.__payload = TablePayload(DATA, self)
         self.__payload.setY(H_HEADER)
         # layout
         self.scene().addItem(self.__canvas)
@@ -246,6 +263,7 @@ class MainWindow(QMainWindow):
 
 
 def main() -> int:
+    fill_data()
     app = QApplication(sys.argv)
     mw = MainWindow()
     mw.show()
