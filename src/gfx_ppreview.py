@@ -6,9 +6,9 @@ from typing import List
 
 # 2. 3rd
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCloseEvent
+from PyQt5.QtGui import QIcon, QCloseEvent, QKeySequence
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, \
-    QGraphicsWidget, QGraphicsLinearLayout, QActionGroup
+    QGraphicsWidget, QGraphicsLinearLayout, QActionGroup, QShortcut
 # 3. local
 from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE
 from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, qsize2str, BottomItem
@@ -34,6 +34,11 @@ class Plot(GraphViewBase):
     __father: 'MainWindow'
     __portrait: bool
     __table: TableItem
+    # shortcuts
+    __sc_close: QShortcut
+    __sc_size0: QShortcut
+    __sc_o_L: QShortcut
+    __sc_o_P: QShortcut
 
     def __init__(self, father: 'MainWindow'):
         super().__init__()
@@ -41,6 +46,16 @@ class Plot(GraphViewBase):
         self.__portrait = False
         self.__table = TableItem(DATA[:6], self)
         self.scene().addItem(self.__table)
+        # shortcuts
+        self.__sc_close = QShortcut("Ctrl+V", self)
+        self.__sc_size0 = QShortcut("Ctrl+0", self)
+        self.__sc_o_L = QShortcut("Ctrl+L", self)
+        self.__sc_o_P = QShortcut("Ctrl+P", self)
+        # ...and their connections
+        self.__sc_close.activated.connect(self.close)
+        self.__sc_size0.activated.connect(self.slot_reset_size)
+        self.__sc_o_L.activated.connect(self.__slot_set_o_l)
+        self.__sc_o_P.activated.connect(self.__slot_set_o_p)
 
     @property
     def w_full(self) -> int:
@@ -62,16 +77,23 @@ class Plot(GraphViewBase):
     @portrait.setter
     def portrait(self, v: bool):
         # FIXME: shrink width
-        self.__portrait = v
-        self.__table.update_sizes()
-        # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
-        # self.slot_reset_size()
+        if self.__portrait ^ v:
+            self.__portrait = v
+            self.__table.update_sizes()
+            # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
+            # self.slot_reset_size()
+
+    def __slot_set_o_l(self):
+        self.portrait = False
+
+    def __slot_set_o_p(self):
+        self.portrait = True
 
     def slot_reset_size(self):
         """[Re]set view to original size."""
         self.resize(self.scene().itemsBoundingRect().size().toSize())
 
-    def closeEvent(self, e: QCloseEvent):
+    def closeEvent(self, _: QCloseEvent):
         """Masq closing with switch off"""
         self.__father.act_view.setChecked(False)
 
