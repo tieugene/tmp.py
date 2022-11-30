@@ -8,8 +8,6 @@ W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
 W_LABEL = 53  # Label column width
 H_ROW_BASE = 28  # Base (slick) row height in landscape mode
 H_BOTTOM = 20  # Bottom scale height
-# W_GRAPH_STEP = W_LABEL // 4
-# H_GRAPH = 14  # bigger makes label b-cutted
 SAMPLES = 12
 PPP = 5  # plots per page
 FONT_MAIN = QFont('mono', 8)  # 7×14
@@ -29,5 +27,5 @@ DATA = (  # name, x-offset, color, wide
 TICS = {  # scale tics
     0: 123,
     5: 456,
-    11.8: 789
+    SAMPLES * 0.98: 789
 }
