@@ -6,14 +6,12 @@ from typing import List
 # 2. 3rd
 from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QIcon, QCloseEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsLinearLayout, \
-    QGraphicsWidget, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem, \
-    QGraphicsScene
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsItemGroup,\
+    QActionGroup, QShortcut, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem, QGraphicsScene
 # 3. local
-from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, \
-    PORTRAIT, DATA_PREDEF, AUTOFILL, SIGNALS, COLORS
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem, \
-    qsize2str
+from gfx_ppreview_const import PORTRAIT, AUTOFILL, SAMPLES, SIGNALS, DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER,\
+    H_BOTTOM, W_LABEL, TICS, DATA_PREDEF, COLORS
+from gfx_ppreview_widgets import GraphView, RowItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem, qsize2str
 
 
 def data_fill():
@@ -122,36 +120,38 @@ class TableCanvas(QGraphicsItemGroup):
         return self.childrenBoundingRect()
 
     def update_sizes(self):
-        # print("Canvas 0:", qsize2str(self.boundingRect()), qsize2str(self.childrenBoundingRect()))
         self.__header.update_size()
         self.__frame.setRect(0, H_HEADER, self.__plot.w_full, self.__plot.h_full - H_HEADER)
         self.__colsep.setLine(W_LABEL, H_HEADER, W_LABEL, self.__plot.h_full - H_BOTTOM)
         self.__btmsep.setLine(0, self.__plot.h_full - H_BOTTOM, self.__plot.w_full, self.__plot.h_full - H_BOTTOM)
         for g in self.__grid:
             g.update_size()
-        # print("Canvas 1:", qsize2str(self.boundingRect()), qsize2str(self.childrenBoundingRect()))
 
 
-class TablePayload(QGraphicsWidget):  # <(QGraphicsObject<QGraphicsItem, QGraphicsLayoutItem)
+class TablePayload(QGraphicsItemGroup):
+    __rowitem: list[RowItem]
+
     """Just rows with underlines"""
     def __init__(self, dlist: List[DataValue], plot: 'PlotView'):
         super().__init__()
-        lt = QGraphicsLinearLayout(Qt.Vertical, self)
-        lt.setContentsMargins(0, 0, 0, 0)
-        lt.setSpacing(0)
-        for row, d in enumerate(dlist):
-            lt.addItem(LayoutItem(RowItem(d, plot)))
-        self.setLayout(lt)
+        self.__rowitem = list()
+        y = 0
+        for d in dlist:
+            item = RowItem(d, plot)
+            item.setY(y)
+            y += item.boundingRect().height()
+            self.__rowitem.append(item)
+            self.addToGroup(self.__rowitem[-1])
 
     def boundingRect(self) -> QRectF:  # update_sizes() fix
         return self.childrenBoundingRect()
 
     def update_sizes(self):
-        self.layout().invalidate()  # FIXME: not helps
-        for i in range(self.layout().count()):
-            self.layout().itemAt(i).graphicsItem().update_size()
-        self.layout().activate()  # not helps
-        self.adjustSize()  # not helps
+        y = self.__rowitem[0].boundingRect().y()
+        for item in self.__rowitem:
+            item.update_size()
+            item.setY(y)
+            y += item.boundingRect().height()
 
 
 class PlotScene(QGraphicsScene):
@@ -167,16 +167,9 @@ class PlotScene(QGraphicsScene):
         self.addItem(self.__payload)
 
     def update_sizes(self):
-        def __diagnostics(title: str):
-            print(title, qsize2str(self.sceneRect()), qsize2str(self.itemsBoundingRect()))
-            for item in self.items():
-                print(int(item.boundingRect().width()), type(item))
-            print()
-        # __diagnostics("B4:")
         self.__canvas.update_sizes()
         self.__payload.update_sizes()
         self.setSceneRect(self.itemsBoundingRect())
-        # __diagnostics("After:")
 
 
 class PlotView(GraphViewBase):
@@ -257,9 +250,7 @@ class PlotView(GraphViewBase):
         if self.__portrait ^ v:
             self.__portrait = v
             self.scene().update_sizes()
-            # skip
-            # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
-            self.slot_reset_size()
+            # self.slot_reset_size()  # optional
 
     @property
     def scene_count(self) -> int:

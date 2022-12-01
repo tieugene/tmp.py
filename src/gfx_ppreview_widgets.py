@@ -6,9 +6,9 @@ import math
 from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
-    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLayoutItem, QGraphicsLineItem
+    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem
 # 3. local
-from gfx_ppreview_const import FONT_MAIN, DataValue, SAMPLES, W_LABEL, DEBUG, HEADER_TXT
+from gfx_ppreview_const import DEBUG, SAMPLES, FONT_MAIN, DataValue, W_LABEL, HEADER_TXT
 
 
 # ---- Utility
@@ -64,7 +64,6 @@ class TextItem(QGraphicsSimpleTextItem):
         if color:
             self.setBrush(color)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIgnoresTransformations)
-        # print(qsize2str(self.boundingRect()))
 
 
 class TCTextItem(TextItem):
@@ -230,36 +229,8 @@ class RowItem(QGraphicsItemGroup):
         return self.childrenBoundingRect()
 
     def update_size(self):
-        w = self.__plot.w_full - W_LABEL  # 1077, 695
+        w = self.__plot.w_full - W_LABEL
         h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
         self.__label.set_height(h)
         self.__graph.set_size(QSizeF(w, h))
         self.__uline.setLine(0, h, self.__plot.w_full, h)
-
-
-# ---- Wrappers
-class LayoutItem(QGraphicsLayoutItem):
-    """QGraphicsLayoutItem(QGraphicsItem) based."""
-    __subj: QGraphicsItem  # must live
-
-    def __init__(self, subj: QGraphicsItem):
-        super().__init__()
-        self.__subj = subj
-        self.setGraphicsItem(self.__subj)
-        # experiments:
-        # self.__subj.setFlag(QGraphicsItem.ItemClipsToShape, True)
-        # self.__subjsetFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
-        # self.__subj.setFlag(QGraphicsItem.ItemContainsChildrenInShape)
-        # self.setMinimumHeight(self.__subj.boundingRect().height())
-        # self.setPreferredHeight(self.__subj.boundingRect().height())
-        # self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)  # ✗
-
-    def sizeHint(self, which: Qt.SizeHint, constraint: QSizeF = ...) -> QSizeF:
-        if which in {Qt.SizeHint.MinimumSize, Qt.SizeHint.PreferredSize}:
-            return self.graphicsItem().boundingRect().size()
-        return constraint
-
-    def setGeometry(self, rect: QRectF):  # Warn: Calling once on init
-        self.graphicsItem().prepareGeometryChange()
-        super().setGeometry(rect)
-        self.graphicsItem().setPos(rect.topLeft())

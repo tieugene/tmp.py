@@ -30,10 +30,6 @@
 - [ ] размеры - ~200×287, 2×3~ 748×1130
 
 ### ToDo:
-- [ ] View:
-  + [ ] FIXME: Bad PlotView size after L/P switching:
-    + [ ] Rm linear layout
-  + [ ] Check: group.addToGroup += addToScene
 - [ ] Print
 - [ ] TODO: MW.toolbar
 - [ ] FIXME: QTableWidget's graphs too small
@@ -69,6 +65,7 @@
     + [x] switch pages (hotkey/menu)
     + [x] HeaderItem width: clip (Warn: with parent rect only)
   + [x] Text clippath (by parent only)
+  + [x] Rm linear layout
 
 ### Switch orientation:
 - PlotView:
