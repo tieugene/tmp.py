@@ -31,8 +31,7 @@
 
 ### ToDo:
 - [ ] Print:
-  - [ ] FIXME: skip last newPage()
-  - [ ] Fixme: text too small
+  - [ ] FIXME: text too small
 - [ ] TODO: MW.toolbar
 - [ ] FIXME: QTableWidget's graphs too small
 
@@ -42,7 +41,7 @@
   + [x] ~Grid~ (QGraphicsGridLayout; no samples)
   + [x] ~Linear~ (QGraphicsLinearLayout; `animation/states/states.py`)
   + [x] ~Anchor~ (QGraphicsAnchorLayout; `graphicsview/anchorlayout.py`)
-- [ ] View:
+- [x] View:
   + [x] Real sizes
   + [x] Var heights
   + [x] Landscape/Portrait (row height, graph width/step)
@@ -68,9 +67,10 @@
     + [x] HeaderItem width: clip (Warn: with parent rect only)
   + [x] Text clippath (by parent only)
   + [x] Rm linear layout
-- [x] ^P/^L => ^O (switch orientation)
-- [ ] Print:
-  - [ ] Fixed: Default orientation
+  + [x] ^P/^L => ^O (switch orientation)
+- [x] Print:
+  - [x] Fixed: Default orientation
+  - [x] Fixed: Skip last newPage()
 
 ### Switch orientation:
 - PlotView:

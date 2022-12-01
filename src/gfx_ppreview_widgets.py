@@ -98,7 +98,7 @@ class RectTextItem(QGraphicsItemGroup):
     """Text in border.
     Result: something strange."""
     text: ClipedTextITem
-    rect: QGraphicsRectItem  # TODO: replace with clippath
+    rect: QGraphicsRectItem
 
     def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__()
@@ -286,7 +286,7 @@ class TableCanvas(QGraphicsItemGroup):
         pen = ThinPen(Qt.GlobalColor.gray)
         self.__frame = QGraphicsRectItem()
         self.__frame.setPen(pen)
-        self.__frame.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # clip inners into this
+        self.__frame.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)
         self.__colsep = QGraphicsLineItem()
         self.__colsep.setPen(pen)
         self.__btmsep = QGraphicsLineItem()

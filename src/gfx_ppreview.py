@@ -161,7 +161,6 @@ class PlotView(PlotBase):
 
 class PrintRender(PlotBase):
     """
-    :todo: update portrait from dialog
     :todo: just scene container; can be replaced with QObject
     """
     def __init__(self, parent: 'MainWindow'):
@@ -177,9 +176,10 @@ class PrintRender(PlotBase):
         # print("Render.print_(): start")
         self.slot_set_portrait(printer.orientation() == QPrinter.Orientation.Portrait)
         painter = QPainter(printer)
-        for scene in self._scene:
-            scene.render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
-            printer.newPage()  # FIXME: skip if last
+        self._scene[0].render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
+        for scene in self._scene[1:]:
+            printer.newPage()
+            scene.render(painter)
         # print("Render.print_(): end")
 
 
@@ -192,12 +192,13 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
         self.paintRequested.connect(self.__render.print_)
 
     def exec_(self):
-        """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed"""
-        # TODO: mk render, connect
+        """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
+        :todo: mk render | connect | exec | disconnect | del render
+        """
+        #
         # rnd = PrintRender(self.parent())
         # self.paintRequested.connect(rnd.print_)
         retvalue = super().exec_()
-        # TODO: disconnect, del render
         return retvalue
 
 
