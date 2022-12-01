@@ -31,7 +31,7 @@
 
 ### ToDo:
 - [ ] Print:
-  - [ ] FIXME: text too small
+  - [ ] TODO: tmp render
 - [ ] TODO: MW.toolbar
 - [ ] FIXME: QTableWidget's graphs too small
 
@@ -71,6 +71,7 @@
 - [x] Print:
   - [x] Fixed: Default orientation
   - [x] Fixed: Skip last newPage()
+  - [x] Fixed: text too small
 
 ### Switch orientation:
 - PlotView:

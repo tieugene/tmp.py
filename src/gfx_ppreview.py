@@ -159,7 +159,7 @@ class PlotView(PlotBase):
             self.__set_scene(self.scene_count - 1)
 
 
-class PrintRender(PlotBase):
+class PlotPrint(PlotBase):
     """
     :todo: just scene container; can be replaced with QObject
     """
@@ -174,6 +174,7 @@ class PrintRender(PlotBase):
         :param printer: Where to draw to
         """
         # print("Render.print_(): start")
+        # print("Res:", printer.resolution())
         self.slot_set_portrait(printer.orientation() == QPrinter.Orientation.Portrait)
         painter = QPainter(printer)
         self._scene[0].render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
@@ -184,11 +185,11 @@ class PrintRender(PlotBase):
 
 
 class PDFOutPreviewDialog(QPrintPreviewDialog):
-    __render: PrintRender
+    __render: PlotPrint
 
     def __init__(self, __printer: QPrinter, parent: 'MainWindow'):
         super().__init__(__printer, parent)
-        self.__render = PrintRender(parent)
+        self.__render = PlotPrint(parent)
         self.paintRequested.connect(self.__render.print_)
 
     def exec_(self):
@@ -196,7 +197,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
         :todo: mk render | connect | exec | disconnect | del render
         """
         #
-        # rnd = PrintRender(self.parent())
+        # rnd = PlotPrint(self.parent())
         # self.paintRequested.connect(rnd.print_)
         retvalue = super().exec_()
         return retvalue
@@ -214,9 +215,17 @@ class TableView(QTableWidget):
 
 
 class MainWindow(QMainWindow):
+    class PdfPrinter(QPrinter):
+        def __init__(self):
+            super().__init__(QPrinter.PrinterMode.HighResolution)
+            self.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+            self.setResolution(100)
+            self.setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
+            self.setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
+
     view: PlotView
-    __printer: QPrinter
-    print_preview: PDFOutPreviewDialog
+    __printer: PdfPrinter
+    __print_preview: PDFOutPreviewDialog
     # actionas
     act_view: QAction
     act_o_p: QAction
@@ -225,14 +234,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setCentralWidget(TableView(self))
         self.view = PlotView(self)
-        # <prn>
-        # - set defaults
-        self.__printer: QPrinter = QPrinter(QPrinter.PrinterMode.HighResolution)
-        self.__printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
-        self.__printer.setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
-        self.__printer.setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
-        self.print_preview = PDFOutPreviewDialog(self.__printer, self)
-        # </prn>
+        self.__printer = self.PdfPrinter()
+        self.__print_preview = PDFOutPreviewDialog(self.__printer, self)
         self.__mk_actions()
 
     def __mk_actions(self):
@@ -246,7 +249,7 @@ class MainWindow(QMainWindow):
         menu_file = self.menuBar().addMenu("&File")
         menu_file.addAction(self.act_view)
         menu_file.addAction(QAction(QIcon.fromTheme("document-print-preview"), "&Print", self, shortcut="Ctrl+P",
-                                    triggered=self.print_preview.exec_))
+                                    triggered=self.__print_preview.exec_))
         menu_file.addAction(QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
                                     triggered=self.close))
         menu_view = self.menuBar().addMenu("&View")
