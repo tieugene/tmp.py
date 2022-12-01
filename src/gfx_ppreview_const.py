@@ -7,7 +7,7 @@ from PyQt5.QtGui import QFont
 # x. consts
 # - user defined
 DEBUG = False  # paint borders around some items
-PORTRAIT = True  # initial orientation
+PORTRAIT = False  # initial orientation
 AUTOFILL = False
 # -- ...
 SAMPLES = 24  # samples per signal

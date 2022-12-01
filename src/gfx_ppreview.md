@@ -32,9 +32,7 @@
 ### ToDo:
 - [ ] View:
   + [ ] FIXME: Bad PlotView size after L/P switching:
-    + [ ] TextItem width: clip
     + [ ] Rm linear layout
-  + [ ] TODO: text clippath
   + [ ] Check: group.addToGroup += addToScene
 - [ ] Print
 - [ ] TODO: MW.toolbar
@@ -69,6 +67,8 @@
     + [x] mk scenes
     + [x] set to 1st
     + [x] switch pages (hotkey/menu)
+    + [x] HeaderItem width: clip (Warn: with parent rect only)
+  + [x] Text clippath (by parent only)
 
 ### Switch orientation:
 - PlotView:

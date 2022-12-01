@@ -87,15 +87,24 @@ class TCTextItem(TextItem):
 
 
 class RectTextItem(QGraphicsItemGroup):
+    class ClipedTextITem(TextItem):
+        def __init__(self, txt: str, color: Qt.GlobalColor = None):
+            super().__init__(txt, color)
+
+        def boundingRect(self) -> QRectF:  # fix for upper br: return clipped size
+            if self.isClipped():
+                return self.parentItem().boundingRect()
+            return super().boundingRect()
+
     """Text in border.
     Result: something strange."""
-    text: TextItem
+    text: ClipedTextITem
     rect: QGraphicsRectItem  # TODO: replace with clippath
 
     def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__()
         # text
-        self.text = TextItem(txt, color)
+        self.text = self.ClipedTextITem(txt, color)
         self.addToGroup(self.text)
         # rect
         self.rect = QGraphicsRectItem(self.text.boundingRect())  # default size == text size
