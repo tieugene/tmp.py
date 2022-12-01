@@ -167,13 +167,13 @@ class PlotPrint(PlotBase):
         super().__init__(parent)
         # print("Render init")
 
-    def print_(self, printer: QPrinter):
+    def slot_paint_request(self, printer: QPrinter):
         """
         Call _B4_ show dialog
         Use printer.pageRect(QPrinter.Millimeter/DevicePixel).
         :param printer: Where to draw to
         """
-        # print("Render.print_(): start")
+        # print("Render.slot_paint_request(): start")
         # print("Res:", printer.resolution())
         self.slot_set_portrait(printer.orientation() == QPrinter.Orientation.Portrait)
         painter = QPainter(printer)
@@ -181,7 +181,7 @@ class PlotPrint(PlotBase):
         for scene in self._scene[1:]:
             printer.newPage()
             scene.render(painter)
-        # print("Render.print_(): end")
+        # print("Render.slot_paint_request(): end")
 
 
 class PDFOutPreviewDialog(QPrintPreviewDialog):
@@ -190,7 +190,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
     def __init__(self, __printer: QPrinter, parent: 'MainWindow'):
         super().__init__(__printer, parent)
         self.__render = PlotPrint(parent)
-        self.paintRequested.connect(self.__render.print_)
+        self.paintRequested.connect(self.__render.slot_paint_request)
 
     def exec_(self):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
@@ -198,7 +198,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
         """
         #
         # rnd = PlotPrint(self.parent())
-        # self.paintRequested.connect(rnd.print_)
+        # self.paintRequested.connect(rnd.slot_paint_request)
         retvalue = super().exec_()
         return retvalue
 

@@ -192,9 +192,9 @@ class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
 
 # ---- Containers
 class HeaderItem(RectTextItem):
-    __plot: 'PlotView'
+    __plot: 'PlotBase'
 
-    def __init__(self, plot: 'PlotView'):
+    def __init__(self, plot: 'PlotBase'):
         super().__init__(HEADER_TXT)
         self.__plot = plot
         self.update_size()
@@ -204,13 +204,13 @@ class HeaderItem(RectTextItem):
 
 
 class RowItem(QGraphicsItemGroup):
-    __plot: 'PlotView'  # ref to father
+    __plot: 'PlotBase'  # ref to father
     __label: RectTextItem  # left side
     __graph: GraphItem  # right side
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
-    def __init__(self, d: DataValue, plot: 'PlotView'):
+    def __init__(self, d: DataValue, plot: 'PlotBase'):
         super().__init__()
         self.__plot = plot
         self.__label = RectTextItem(d[0], d[2])
