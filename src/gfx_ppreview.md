@@ -31,7 +31,11 @@
 
 ### ToDo:
 - [ ] Print
+- [ ] TODO: ^P/^L => ^O (switch orientation)
 - [ ] TODO: MW.toolbar
+- [ ] TODO: cache view:
+  - [ ] don't refresh if hidden
+  - [ ] refresh on show
 - [ ] FIXME: QTableWidget's graphs too small
 
 ### Done:

@@ -5,9 +5,10 @@ import sys
 from typing import List
 # 2. 3rd
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QIcon, QCloseEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsItemGroup,\
-    QActionGroup, QShortcut, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem, QGraphicsScene
+from PyQt5.QtGui import QIcon, QCloseEvent, QPageLayout, QPainter
+from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsItemGroup, \
+    QActionGroup, QShortcut, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem, QGraphicsScene, QGraphicsView
 # 3. local
 from gfx_ppreview_const import PORTRAIT, AUTOFILL, SAMPLES, SIGNALS, DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER,\
     H_BOTTOM, W_LABEL, TICS, DATA_PREDEF, COLORS
@@ -287,6 +288,46 @@ class PlotView(GraphViewBase):
             self.__set_scene(self.scene_count - 1)
 
 
+class PrintRender(QGraphicsView):  # TODO: just scene container; can be replaced with QObject
+    def __init__(self, parent='MainWindow'):
+        super().__init__(parent)
+        self.setScene(QGraphicsScene())
+        print("Render init")
+
+    def print_(self, printer: QPrinter):
+        """
+        Use printer.pageRect(QPrinter.Millimeter/DevicePixel).
+        :param printer: Where to draw to
+        # TODO: while(signals) plot | pagebreak
+        """
+        print("Render.print_(): start")
+        self.scene().clear()
+        painter = QPainter(printer)
+        self.scene().render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
+        # printer.newPage()
+        # self.scene().render(painter)
+        print("Render.print_(): end")
+
+
+class PDFOutPreviewDialog(QPrintPreviewDialog):
+    __render: PrintRender
+
+    def __init__(self, __printer: QPrinter, parent='MainWindow'):
+        super().__init__(__printer, parent)
+        self.__render = PrintRender(parent)
+        self.paintRequested.connect(self.__render.print_)
+
+    def exec_(self):
+        """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed"""
+        # self.printer().setPageMargins(10, 10, 10, 10, QPageLayout.Unit.Millimeter)
+        # TODO: set Landscape
+        # rnd = PrintRender(self.parent())
+        # self.paintRequested.connect(rnd.print_)
+        retvalue = super().exec_()
+        # TODO: disconnect, del
+        return retvalue
+
+
 class TableView(QTableWidget):
     def __init__(self, parent: 'MainWindow'):
         super().__init__(parent)
@@ -300,6 +341,9 @@ class TableView(QTableWidget):
 
 class MainWindow(QMainWindow):
     view: PlotView
+    __printer: QPrinter
+    print_preview: PDFOutPreviewDialog
+    # actionas
     act_view: QAction
     act_o_l: QAction
     act_o_p: QAction
@@ -309,6 +353,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setCentralWidget(TableView(self))
         self.view = PlotView(self)
+        # <prn>
+        self.__printer: QPrinter = QPrinter(QPrinter.PrinterMode.HighResolution)
+        self.__printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        self.print_preview = PDFOutPreviewDialog(self.__printer, self)
+        # </prn>
         self.__mk_actions()
 
     def __mk_actions(self):
@@ -328,7 +377,7 @@ class MainWindow(QMainWindow):
         menu_file = self.menuBar().addMenu("&File")
         menu_file.addAction(self.act_view)
         menu_file.addAction(QAction(QIcon.fromTheme("document-print-preview"), "&Print", self, shortcut="Ctrl+P",
-                                    triggered=self.__do_print))
+                                    triggered=self.print_preview.exec_))
         menu_file.addAction(QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
                                     triggered=self.close))
         menu_view = self.menuBar().addMenu("&View")
@@ -352,9 +401,6 @@ class MainWindow(QMainWindow):
     def __do_view(self, v: bool):
         """Switch View on/off"""
         self.view.setVisible(v)
-
-    def __do_print(self):
-        ...
 
 
 def main() -> int:
