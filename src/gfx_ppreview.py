@@ -59,12 +59,12 @@ class TableCanvas(QGraphicsItemGroup):
     """
 
     class GridItem(QGraphicsItemGroup):
-        __plot: 'PlotView'
+        __plot: 'PlotBase'
         __x: float
         __line: QGraphicsLineItem
         __text: TCTextItem
 
-        def __init__(self, x: float, num: int, plot: 'PlotView'):
+        def __init__(self, x: float, num: int, plot: 'PlotBase'):
             super().__init__()
             self.__x = x
             self.__plot = plot
@@ -84,14 +84,14 @@ class TableCanvas(QGraphicsItemGroup):
             self.__line.setLine(x, H_HEADER, x, y)
             self.__text.setPos(x, y)
 
-    __plot: 'PlotView'
+    __plot: 'PlotBase'
     __header: HeaderItem
     __frame: QGraphicsRectItem  # external border; TODO: clip all inners (header, tic labels) by this
     __colsep: QGraphicsLineItem  # columns separator
     __btmsep: QGraphicsLineItem  # bottom separator
     __grid: List[GridItem]  # tics (v-line+label)
 
-    def __init__(self, plot: 'PlotView'):
+    def __init__(self, plot: 'PlotBase'):
         super().__init__()
         self.__plot = plot
         self.__header = HeaderItem(plot)
@@ -133,7 +133,7 @@ class TablePayload(QGraphicsItemGroup):
     __rowitem: list[RowItem]
 
     """Just rows with underlines"""
-    def __init__(self, dlist: List[DataValue], plot: 'PlotView'):
+    def __init__(self, dlist: List[DataValue], plot: 'PlotBase'):
         super().__init__()
         self.__rowitem = list()
         y = 0
@@ -159,7 +159,7 @@ class PlotScene(QGraphicsScene):
     __canvas: TableCanvas
     __payload: TablePayload
 
-    def __init__(self, data: List[DataValue], plot: 'PlotView'):
+    def __init__(self, data: List[DataValue], plot: 'PlotBase'):
         super().__init__()
         self.__canvas = TableCanvas(plot)
         self.__payload = TablePayload(data, plot)
@@ -173,10 +173,56 @@ class PlotScene(QGraphicsScene):
         self.setSceneRect(self.itemsBoundingRect())
 
 
-class PlotView(GraphViewBase):
-    __father: 'MainWindow'
-    __portrait: bool
-    __scene: List[PlotScene]
+class PlotBase(GraphViewBase):
+    _father: 'MainWindow'
+    _portrait: bool
+    _scene: List[PlotScene]
+
+    def __init__(self, father: 'MainWindow'):
+        super().__init__()
+        self._father = father
+        self._portrait = PORTRAIT
+        self._scene = list()
+        i0 = 0
+        for k in data_split():
+            self._scene.append(PlotScene(DATA[i0:i0 + k], self))
+            i0 += k
+
+    @property
+    def portrait(self) -> bool:
+        return self._portrait
+
+    @property
+    def w_full(self) -> int:
+        """Current full table width"""
+        return W_PAGE[int(self.portrait)]
+
+    @property
+    def h_full(self) -> int:
+        """Current full table width"""
+        return W_PAGE[1 - int(self.portrait)]
+
+    @property
+    def h_row_base(self) -> int:
+        """Current base (short) row height.
+        :note: in theory must be (W_PAGE - header - footer) / num
+        :todo: cache it
+        """
+        return round(H_ROW_BASE * 1.5) if self.portrait else H_ROW_BASE
+
+    @property
+    def scene_count(self) -> int:
+        return len(self._scene)
+
+    def slot_set_portrait(self, v: bool):
+        if self._portrait ^ v:
+            self._portrait = v
+            for scene in self._scene:
+                scene.update_sizes()
+            # self.slot_reset_size()  # optional
+
+
+class PlotView(PlotBase):
     scene_cur: int
     # shortcuts
     __sc_close: QShortcut
@@ -188,16 +234,7 @@ class PlotView(GraphViewBase):
     __sc_p_last: QShortcut
 
     def __init__(self, father: 'MainWindow'):
-        super().__init__()
-        self.__father = father
-        self.__portrait = PORTRAIT
-        self.__scene = list()
-        # fill scenes
-        i0 = 0
-        for k in data_split():
-            self.__scene.append(PlotScene(DATA[i0:i0+k], self))
-            i0 += k
-        # set default scene
+        super().__init__(father)
         self.__set_scene(0)
         # shortcuts
         self.__sc_close = QShortcut("Ctrl+V", self)
@@ -218,50 +255,19 @@ class PlotView(GraphViewBase):
 
     def closeEvent(self, _: QCloseEvent):
         """Masq closing with switch off"""
-        self.__father.act_view.setChecked(False)
-
-    @property
-    def w_full(self) -> int:
-        """Current full table width"""
-        return W_PAGE[int(self.__portrait)]
-
-    @property
-    def h_full(self) -> int:
-        """Current full table width"""
-        return W_PAGE[1 - int(self.__portrait)]
-
-    @property
-    def h_row_base(self) -> int:
-        """Current base (short) row height.
-        :note: in theory must be (W_PAGE - header - footer) / num
-        :todo: cache it
-        """
-        return round(H_ROW_BASE * 1.5) if self.__portrait else H_ROW_BASE
-
-    @property
-    def portrait(self) -> bool:
-        return self.__portrait
-
-    @property
-    def scene_count(self) -> int:
-        return len(self.__scene)
+        self._father.act_view.setChecked(False)
 
     def slot_reset_size(self):
         """[Re]set view to original size."""
         self.resize(self.scene().itemsBoundingRect().size().toSize())
 
-    def slot_set_portrait(self, v: bool):
-        if self.__portrait ^ v:
-            self.__portrait = v
-            self.scene().update_sizes()
-            # self.slot_reset_size()  # optional
-
     def __slot_o(self):
-        self.__father.act_o_p.toggle()
+        """To avoid loopback"""
+        self._father.act_o_p.toggle()
 
     def __set_scene(self, i: int):
         self.scene_cur = i
-        self.setScene(self.__scene[self.scene_cur])
+        self.setScene(self._scene[self.scene_cur])
 
     def slot_p_1st(self):
         if self.scene_cur:
@@ -280,43 +286,48 @@ class PlotView(GraphViewBase):
             self.__set_scene(self.scene_count - 1)
 
 
-class PrintRender(QGraphicsView):  # TODO: just scene container; can be replaced with QObject
-    def __init__(self, parent='MainWindow'):
+class PrintRender(PlotBase):
+    """
+    :todo: update portrait from dialog
+    :todo: just scene container; can be replaced with QObject
+    """
+    def __init__(self, parent: 'MainWindow'):
         super().__init__(parent)
         self.setScene(QGraphicsScene())
-        print("Render init")
+        # print("Render init")
 
     def print_(self, printer: QPrinter):
         """
+        Call _B4_ show dialog
         Use printer.pageRect(QPrinter.Millimeter/DevicePixel).
         :param printer: Where to draw to
-        # TODO: while(signals) plot | pagebreak
         """
-        print("Render.print_(): start")
-        self.scene().clear()
+        # print("Render.print_(): start")
+        self.slot_set_portrait(printer.orientation() == QPrinter.Orientation.Portrait)
         painter = QPainter(printer)
-        self.scene().render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
-        # printer.newPage()
-        # self.scene().render(painter)
-        print("Render.print_(): end")
+        for scene in self._scene:
+            scene.render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
+            printer.newPage()  # FIXME: skip if last
+        # print("Render.print_(): end")
 
 
 class PDFOutPreviewDialog(QPrintPreviewDialog):
     __render: PrintRender
 
-    def __init__(self, __printer: QPrinter, parent='MainWindow'):
+    def __init__(self, __printer: QPrinter, parent: 'MainWindow'):
         super().__init__(__printer, parent)
         self.__render = PrintRender(parent)
         self.paintRequested.connect(self.__render.print_)
 
     def exec_(self):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed"""
-        # self.printer().setPageMargins(10, 10, 10, 10, QPageLayout.Unit.Millimeter)
-        # TODO: set Landscape
+        self.printer().setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
+        self.printer().setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
+        # TODO: tmp render
         # rnd = PrintRender(self.parent())
         # self.paintRequested.connect(rnd.print_)
         retvalue = super().exec_()
-        # TODO: disconnect, del
+        # TODO: disconnect, del render
         return retvalue
 
 

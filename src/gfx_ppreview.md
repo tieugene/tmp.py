@@ -30,7 +30,9 @@
 - [ ] размеры - ~200×287, 2×3~ 748×1130
 
 ### ToDo:
-- [ ] Print
+- [ ] Print:
+  - [ ] FIXME: Default orientation always Portrait
+  - [ ] FIXME: skip last newPage()
 - [ ] TODO: MW.toolbar
 - [ ] FIXME: QTableWidget's graphs too small
 
