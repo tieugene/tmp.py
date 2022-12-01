@@ -4,15 +4,13 @@
 import sys
 from typing import List
 # 2. 3rd
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QIcon, QCloseEvent, QPageLayout, QPainter
+from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsItemGroup, \
-    QActionGroup, QShortcut, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem, QGraphicsScene, QGraphicsView
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, \
+    QGraphicsScene
 # 3. local
-from gfx_ppreview_const import PORTRAIT, AUTOFILL, SAMPLES, SIGNALS, DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER,\
-    H_BOTTOM, W_LABEL, TICS, DATA_PREDEF, COLORS
-from gfx_ppreview_widgets import GraphView, RowItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem, qsize2str
+from gfx_ppreview_const import PORTRAIT, AUTOFILL, SAMPLES, SIGNALS, DATA, W_PAGE, H_ROW_BASE, DATA_PREDEF, COLORS
+from gfx_ppreview_widgets import GraphView, GraphViewBase, PlotScene
 
 
 def data_fill():
@@ -46,131 +44,6 @@ def data_split() -> List[int]:
         cur_height += h
     retvalue.append(cur_num)
     return retvalue
-
-
-class TableCanvas(QGraphicsItemGroup):
-    """Table frame with:
-    - header
-    - border
-    - columns separator
-    - bottom underline
-    - bottom scale
-    - grid
-    """
-
-    class GridItem(QGraphicsItemGroup):
-        __plot: 'PlotBase'
-        __x: float
-        __line: QGraphicsLineItem
-        __text: TCTextItem
-
-        def __init__(self, x: float, num: int, plot: 'PlotBase'):
-            super().__init__()
-            self.__x = x
-            self.__plot = plot
-            self.__line = QGraphicsLineItem()
-            self.__line.setPen(ThinPen(Qt.GlobalColor.lightGray))
-            self.__text = TCTextItem(str(num))
-            # layout
-            self.addToGroup(self.__line)
-            self.addToGroup(self.__text)
-
-        def boundingRect(self) -> QRectF:  # update_size() fix
-            return self.childrenBoundingRect()
-
-        def update_size(self):
-            x = W_LABEL + (self.__plot.w_full - W_LABEL) * self.__x / SAMPLES
-            y = self.__plot.h_full - H_BOTTOM
-            self.__line.setLine(x, H_HEADER, x, y)
-            self.__text.setPos(x, y)
-
-    __plot: 'PlotBase'
-    __header: HeaderItem
-    __frame: QGraphicsRectItem  # external border; TODO: clip all inners (header, tic labels) by this
-    __colsep: QGraphicsLineItem  # columns separator
-    __btmsep: QGraphicsLineItem  # bottom separator
-    __grid: List[GridItem]  # tics (v-line+label)
-
-    def __init__(self, plot: 'PlotBase'):
-        super().__init__()
-        self.__plot = plot
-        self.__header = HeaderItem(plot)
-        pen = ThinPen(Qt.GlobalColor.gray)
-        self.__frame = QGraphicsRectItem()
-        self.__frame.setPen(pen)
-        self.__frame.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape)  # clip inners into this
-        self.__colsep = QGraphicsLineItem()
-        self.__colsep.setPen(pen)
-        self.__btmsep = QGraphicsLineItem()
-        self.__btmsep.setPen(pen)
-        # layout
-        self.addToGroup(self.__header)
-        self.addToGroup(self.__frame)
-        self.addToGroup(self.__colsep)
-        self.addToGroup(self.__btmsep)
-        # grid
-        self.__grid = list()
-        for x, num in TICS.items():
-            self.__grid.append(self.GridItem(x, num, plot))
-            self.addToGroup(self.__grid[-1])
-            self.__grid[-1].setParentItem(self.__frame)
-        # go
-        self.update_sizes()
-
-    def boundingRect(self) -> QRectF:  # update_sizes() fix
-        return self.childrenBoundingRect()
-
-    def update_sizes(self):
-        self.__header.update_size()
-        self.__frame.setRect(0, H_HEADER, self.__plot.w_full, self.__plot.h_full - H_HEADER)
-        self.__colsep.setLine(W_LABEL, H_HEADER, W_LABEL, self.__plot.h_full - H_BOTTOM)
-        self.__btmsep.setLine(0, self.__plot.h_full - H_BOTTOM, self.__plot.w_full, self.__plot.h_full - H_BOTTOM)
-        for g in self.__grid:
-            g.update_size()
-
-
-class TablePayload(QGraphicsItemGroup):
-    __rowitem: list[RowItem]
-
-    """Just rows with underlines"""
-    def __init__(self, dlist: List[DataValue], plot: 'PlotBase'):
-        super().__init__()
-        self.__rowitem = list()
-        y = 0
-        for d in dlist:
-            item = RowItem(d, plot)
-            item.setY(y)
-            y += item.boundingRect().height()
-            self.__rowitem.append(item)
-            self.addToGroup(self.__rowitem[-1])
-
-    def boundingRect(self) -> QRectF:  # update_sizes() fix
-        return self.childrenBoundingRect()
-
-    def update_sizes(self):
-        y = self.__rowitem[0].boundingRect().y()
-        for item in self.__rowitem:
-            item.update_size()
-            item.setY(y)
-            y += item.boundingRect().height()
-
-
-class PlotScene(QGraphicsScene):
-    __canvas: TableCanvas
-    __payload: TablePayload
-
-    def __init__(self, data: List[DataValue], plot: 'PlotBase'):
-        super().__init__()
-        self.__canvas = TableCanvas(plot)
-        self.__payload = TablePayload(data, plot)
-        self.__payload.setY(H_HEADER)
-        self.addItem(self.__canvas)
-        self.addItem(self.__payload)
-
-    def update_sizes(self):
-        self.__canvas.update_sizes()
-        self.__payload.update_sizes()
-        self.setSceneRect(self.itemsBoundingRect())
 
 
 class PlotBase(GraphViewBase):
@@ -293,7 +166,6 @@ class PrintRender(PlotBase):
     """
     def __init__(self, parent: 'MainWindow'):
         super().__init__(parent)
-        self.setScene(QGraphicsScene())
         # print("Render init")
 
     def print_(self, printer: QPrinter):
@@ -321,9 +193,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
 
     def exec_(self):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed"""
-        self.printer().setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
-        self.printer().setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
-        # TODO: tmp render
+        # TODO: mk render, connect
         # rnd = PrintRender(self.parent())
         # self.paintRequested.connect(rnd.print_)
         retvalue = super().exec_()
@@ -355,8 +225,11 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(TableView(self))
         self.view = PlotView(self)
         # <prn>
+        # - set defaults
         self.__printer: QPrinter = QPrinter(QPrinter.PrinterMode.HighResolution)
         self.__printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        self.__printer.setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
+        self.__printer.setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
         self.print_preview = PDFOutPreviewDialog(self.__printer, self)
         # </prn>
         self.__mk_actions()

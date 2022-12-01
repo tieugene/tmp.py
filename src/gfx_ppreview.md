@@ -31,8 +31,8 @@
 
 ### ToDo:
 - [ ] Print:
-  - [ ] FIXME: Default orientation always Portrait
   - [ ] FIXME: skip last newPage()
+  - [ ] Fixme: text too small
 - [ ] TODO: MW.toolbar
 - [ ] FIXME: QTableWidget's graphs too small
 
@@ -69,6 +69,8 @@
   + [x] Text clippath (by parent only)
   + [x] Rm linear layout
 - [x] ^P/^L => ^O (switch orientation)
+- [ ] Print:
+  - [ ] Fixed: Default orientation
 
 ### Switch orientation:
 - PlotView:
