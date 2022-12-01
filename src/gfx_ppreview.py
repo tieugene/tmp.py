@@ -4,7 +4,7 @@
 import sys
 from typing import List
 # 2. 3rd
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QIcon, QCloseEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QGraphicsLinearLayout, \
     QGraphicsWidget, QActionGroup, QShortcut, QGraphicsItemGroup, QGraphicsRectItem, QGraphicsLineItem, QGraphicsItem, \
@@ -12,7 +12,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
 # 3. local
 from gfx_ppreview_const import DATA, DataValue, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, W_LABEL, TICS, SAMPLES, \
     PORTRAIT, DATA_PREDEF, AUTOFILL, SIGNALS, COLORS
-from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem
+from gfx_ppreview_widgets import GraphView, RowItem, LayoutItem, GraphViewBase, HeaderItem, ThinPen, TCTextItem, \
+    qsize2str
 
 
 def data_fill():
@@ -75,6 +76,9 @@ class TableCanvas(QGraphicsItemGroup):
             self.addToGroup(self.__line)
             self.addToGroup(self.__text)
 
+        def boundingRect(self) -> QRectF:  # update_size() fix
+            return self.childrenBoundingRect()
+
         def update_size(self):
             x = W_LABEL + (self.__plot.w_full - W_LABEL) * self.__x / SAMPLES
             y = self.__plot.h_full - H_BOTTOM
@@ -114,13 +118,18 @@ class TableCanvas(QGraphicsItemGroup):
         # go
         self.update_sizes()
 
+    def boundingRect(self) -> QRectF:  # update_sizes() fix
+        return self.childrenBoundingRect()
+
     def update_sizes(self):
+        # print("Canvas 0:", qsize2str(self.boundingRect()), qsize2str(self.childrenBoundingRect()))
         self.__header.update_size()
         self.__frame.setRect(0, H_HEADER, self.__plot.w_full, self.__plot.h_full - H_HEADER)
         self.__colsep.setLine(W_LABEL, H_HEADER, W_LABEL, self.__plot.h_full - H_BOTTOM)
         self.__btmsep.setLine(0, self.__plot.h_full - H_BOTTOM, self.__plot.w_full, self.__plot.h_full - H_BOTTOM)
         for g in self.__grid:
             g.update_size()
+        # print("Canvas 1:", qsize2str(self.boundingRect()), qsize2str(self.childrenBoundingRect()))
 
 
 class TablePayload(QGraphicsWidget):  # <(QGraphicsObject<QGraphicsItem, QGraphicsLayoutItem)
@@ -134,9 +143,15 @@ class TablePayload(QGraphicsWidget):  # <(QGraphicsObject<QGraphicsItem, QGraphi
             lt.addItem(LayoutItem(RowItem(d, plot)))
         self.setLayout(lt)
 
+    def boundingRect(self) -> QRectF:  # update_sizes() fix
+        return self.childrenBoundingRect()
+
     def update_sizes(self):
+        self.layout().invalidate()  # FIXME: not helps
         for i in range(self.layout().count()):
             self.layout().itemAt(i).graphicsItem().update_size()
+        self.layout().activate()  # not helps
+        self.adjustSize()  # not helps
 
 
 class PlotScene(QGraphicsScene):
@@ -152,8 +167,16 @@ class PlotScene(QGraphicsScene):
         self.addItem(self.__payload)
 
     def update_sizes(self):
+        def __diagnostics(title: str):
+            print(title, qsize2str(self.sceneRect()), qsize2str(self.itemsBoundingRect()))
+            for item in self.items():
+                print(int(item.boundingRect().width()), type(item))
+            print()
+        # __diagnostics("B4:")
         self.__canvas.update_sizes()
         self.__payload.update_sizes()
+        self.setSceneRect(self.itemsBoundingRect())
+        # __diagnostics("After:")
 
 
 class PlotView(GraphViewBase):
@@ -236,7 +259,7 @@ class PlotView(GraphViewBase):
             self.scene().update_sizes()
             # skip
             # self.setSceneRect(self.scene().itemsBoundingRect())  # not works
-            # self.slot_reset_size()
+            self.slot_reset_size()
 
     @property
     def scene_count(self) -> int:

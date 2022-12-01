@@ -109,6 +109,9 @@ class RectTextItem(QGraphicsItemGroup):
         # clip label
         self.text.setParentItem(self.rect)
 
+    def boundingRect(self) -> QRectF:  # set_size() fix
+        return self.childrenBoundingRect()
+
     def set_width(self, w: float):
         r = self.rect.rect()
         r.setWidth(w)
@@ -213,6 +216,9 @@ class RowItem(QGraphicsItemGroup):
         self.addToGroup(self.__label)
         self.addToGroup(self.__graph)
         self.addToGroup(self.__uline)
+
+    def boundingRect(self) -> QRectF:  # update_size() fix
+        return self.childrenBoundingRect()
 
     def update_size(self):
         w = self.__plot.w_full - W_LABEL  # 1077, 695

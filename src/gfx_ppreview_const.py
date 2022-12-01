@@ -7,7 +7,7 @@ from PyQt5.QtGui import QFont
 # x. consts
 # - user defined
 DEBUG = False  # paint borders around some items
-PORTRAIT = False  # initial orientation
+PORTRAIT = True  # initial orientation
 AUTOFILL = False
 # -- ...
 SAMPLES = 24  # samples per signal
@@ -39,9 +39,9 @@ COLORS = (
     Qt.GlobalColor.lightGray
 )
 # y. data
-HEADER_TXT = '''This is the header with 3[4] lines.
-Hotkeys: ^0: original size, ^P portrait, ^L: landscape, ^V: close, ^↑: page 1st, ^←: page back, ^→: page next, ^↓: page last
-Last line.
+HEADER_TXT = '''This is the header with 3 lines.
+Hotkeys: ^0: original size, ^P portrait, ^L: landscape, ^V: close,
+Pageing: ^↑: 1st page, ^←: Prev. page, ^→: Next page, ^↓: Last page.
 '''
 TICS = {  # scale tics {sample_no: text}
     0: 123,

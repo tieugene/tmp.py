@@ -31,11 +31,14 @@
 
 ### ToDo:
 - [ ] View:
-  + [ ] FIXME: Bad PlotView size after L/P switching
-  + [ ] FIXME: QTableWidget's graphs too small
+  + [ ] FIXME: Bad PlotView size after L/P switching:
+    + [ ] TextItem width: clip
+    + [ ] Rm linear layout
   + [ ] TODO: text clippath
+  + [ ] Check: group.addToGroup += addToScene
 - [ ] Print
 - [ ] TODO: MW.toolbar
+- [ ] FIXME: QTableWidget's graphs too small
 
 ### Done:
 - [x] Label cut
@@ -66,3 +69,14 @@
     + [x] mk scenes
     + [x] set to 1st
     + [x] switch pages (hotkey/menu)
+
+### Switch orientation:
+- PlotView:
+  + sceneRect
+  + setcSceneRect
+  + updateSceneRect(rect)
+  + rubberBandRect()
+- PlotScene:
+  + sceneRect() == itemsBoundingRect()
+
+After: width/height stay old
