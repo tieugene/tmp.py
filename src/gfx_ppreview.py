@@ -181,8 +181,7 @@ class PlotView(GraphViewBase):
     # shortcuts
     __sc_close: QShortcut
     __sc_size0: QShortcut
-    __sc_o_L: QShortcut
-    __sc_o_P: QShortcut
+    __sc_o: QShortcut
     __sc_p_1st: QShortcut
     __sc_p_prev: QShortcut
     __sc_p_next: QShortcut
@@ -203,8 +202,7 @@ class PlotView(GraphViewBase):
         # shortcuts
         self.__sc_close = QShortcut("Ctrl+V", self)
         self.__sc_size0 = QShortcut("Ctrl+0", self)
-        self.__sc_o_L = QShortcut("Ctrl+L", self)
-        self.__sc_o_P = QShortcut("Ctrl+P", self)
+        self.__sc_o = QShortcut("Ctrl+O", self)
         self.__sc_p_1st = QShortcut("Ctrl+Up", self)
         self.__sc_p_prev = QShortcut("Ctrl+Left", self)
         self.__sc_p_next = QShortcut("Ctrl+Right", self)
@@ -212,8 +210,7 @@ class PlotView(GraphViewBase):
         # ...and their connections
         self.__sc_close.activated.connect(self.close)
         self.__sc_size0.activated.connect(self.slot_reset_size)
-        self.__sc_o_L.activated.connect(self.__slot_set_o_l)
-        self.__sc_o_P.activated.connect(self.__slot_set_o_p)
+        self.__sc_o.activated.connect(self.__slot_o)
         self.__sc_p_1st.activated.connect(self.slot_p_1st)
         self.__sc_p_prev.activated.connect(self.slot_p_prev)
         self.__sc_p_next.activated.connect(self.slot_p_next)
@@ -245,27 +242,22 @@ class PlotView(GraphViewBase):
     def portrait(self) -> bool:
         return self.__portrait
 
-    @portrait.setter
-    def portrait(self, v: bool):
-        # FIXME: shrink width
+    @property
+    def scene_count(self) -> int:
+        return len(self.__scene)
+
+    def slot_reset_size(self):
+        """[Re]set view to original size."""
+        self.resize(self.scene().itemsBoundingRect().size().toSize())
+
+    def slot_set_portrait(self, v: bool):
         if self.__portrait ^ v:
             self.__portrait = v
             self.scene().update_sizes()
             # self.slot_reset_size()  # optional
 
-    @property
-    def scene_count(self) -> int:
-        return len(self.__scene)
-
-    def __slot_set_o_l(self):
-        self.portrait = False
-
-    def __slot_set_o_p(self):
-        self.portrait = True
-
-    def slot_reset_size(self):
-        """[Re]set view to original size."""
-        self.resize(self.scene().itemsBoundingRect().size().toSize())
+    def __slot_o(self):
+        self.__father.act_o_p.toggle()
 
     def __set_scene(self, i: int):
         self.scene_cur = i
@@ -345,9 +337,7 @@ class MainWindow(QMainWindow):
     print_preview: PDFOutPreviewDialog
     # actionas
     act_view: QAction
-    act_o_l: QAction
     act_o_p: QAction
-    act_o: QActionGroup
 
     def __init__(self):
         super().__init__()
@@ -362,16 +352,10 @@ class MainWindow(QMainWindow):
 
     def __mk_actions(self):
         # grouping
-        self.act_o_l = QAction(QIcon.fromTheme("object-flip-horizontal"), "Landscape", self, shortcut="Ctrl+L",
-                               checkable=True)
-        self.act_o_p = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+P",
-                               checkable=True)
-        self.act_o = QActionGroup(self)
-        self.act_o.addAction(self.act_o_l).setChecked(True)
-        self.act_o.addAction(self.act_o_p)
-        self.act_o.triggered.connect(self.__do_o)
-        self.act_view = QAction(QIcon.fromTheme("view-fullscreen"), "&View", self, shortcut="Ctrl+V", checkable=True,
-                                toggled=self.__do_view)
+        self.act_o_p = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+O",
+                               checkable=True, toggled=self.view.slot_set_portrait)
+        self.act_view = QAction(QIcon.fromTheme("view-fullscreen"), "&View", self, shortcut="Ctrl+V",
+                                checkable=True, toggled=self.view.setVisible)
         # menu
         self.menuBar().setVisible(True)
         menu_file = self.menuBar().addMenu("&File")
@@ -383,7 +367,6 @@ class MainWindow(QMainWindow):
         menu_view = self.menuBar().addMenu("&View")
         menu_view.addAction(QAction(QIcon.fromTheme("zoom-original"), "Original size", self, shortcut="Ctrl+0",
                                     triggered=self.view.slot_reset_size))
-        menu_view.addAction(self.act_o_l)
         menu_view.addAction(self.act_o_p)
         menu_view.addAction(QAction(QIcon.fromTheme("go-first"), "1st page", self, shortcut="Ctrl+Up",
                                     triggered=self.view.slot_p_1st))
@@ -393,14 +376,6 @@ class MainWindow(QMainWindow):
                                     triggered=self.view.slot_p_next))
         menu_view.addAction(QAction(QIcon.fromTheme("go-last"), "Last page", self, shortcut="Ctrl+Down",
                                     triggered=self.view.slot_p_last))
-
-    def __do_o(self, a: QAction):
-        """Switch page orientation"""
-        self.view.portrait = (a == self.act_o_p)
-
-    def __do_view(self, v: bool):
-        """Switch View on/off"""
-        self.view.setVisible(v)
 
 
 def main() -> int:

@@ -31,11 +31,7 @@
 
 ### ToDo:
 - [ ] Print
-- [ ] TODO: ^P/^L => ^O (switch orientation)
 - [ ] TODO: MW.toolbar
-- [ ] TODO: cache view:
-  - [ ] don't refresh if hidden
-  - [ ] refresh on show
 - [ ] FIXME: QTableWidget's graphs too small
 
 ### Done:
@@ -70,6 +66,7 @@
     + [x] HeaderItem width: clip (Warn: with parent rect only)
   + [x] Text clippath (by parent only)
   + [x] Rm linear layout
+- [x] ^P/^L => ^O (switch orientation)
 
 ### Switch orientation:
 - PlotView:

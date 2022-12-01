@@ -40,8 +40,8 @@ COLORS = (
 )
 # y. data
 HEADER_TXT = '''This is the header with 3 lines.
-Hotkeys: ^0: original size, ^P portrait, ^L: landscape, ^V: close,
-Pageing: ^↑: 1st page, ^←: Prev. page, ^→: Next page, ^↓: Last page.
+Hotkeys: ^0: Original size, ^O: Switch landscape/portrait, ^V: Close (hide),
+Go page: ^↑: 1st, ^←: Prev., ^→: Next, ^↓: Last.
 '''
 TICS = {  # scale tics {sample_no: text}
     0: 123,
