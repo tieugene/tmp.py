@@ -1,37 +1,19 @@
 # gfx_ppreview
 
-## RTFM:
+20221126..1201
 
-- QSplineSeries
-- [spline](https://www.toptal.com/c-plus-plus/rounded-corners-bezier-curves-qpainter)
-- **QGraphicsGridLayout**
-- [disable transform](https://stackoverflow.com/questions/1222914/qgraphicsview-and-qgraphicsitem-don%C2%B4t-scale-item-when-scaling-the-view-rect)
-- [Scene border](https://www.qtcentre.org/threads/13814-how-to-enable-borders-in-QGraphicsScene)
-- [Tic align](https://www.qtcentre.org/threads/51168-QGraphicsTextItem-center-based-coordinates)
+## 20221127:
 
-## 20221126. Ideas (tmp.py):
+Resume: Сделать *полностью* резиновый дизайно *сейчас* сложно (freeze).
+Поэтому делать 2 predefined designs (landscape/portrait) + IgnoreAspectRatio + небольшой запас для резины:
 
-- [x] TextItem: += rect (cut, border). Ok
-- [x] find: TextItem setClip. Ok
-- [x] ~try fill graph bg (== cut labels)~
-- [ ] TextItem.paint: transform (freeze v-size (header, footer)
-- [ ] GraphItem.paint: transform (resize, stretchfactor)
-- [ ] Scene: add grid
-- [ ] try anchor layout (fix header/footer)
-- [ ] FIXME: remove margins of QGraphicsItem (see _pure)
-
-## 20221127.
-
-Сделать *полностью* резиновый дизайно *сейчас* сложно (freeze).
-Поэтому делать 2 predefined дизайна (landscape/portrait) + IgnoreAspectRation + небольшой запас для резины:
-
-- [ ] Основа - liners layout + pure items
-- [ ] grid - hand made
-- [ ] размеры - ~200×287, 2×3~ 748×1130
+- Base: pure items
+- Grid: hand made
+- Size: 748×1130 (A4-10mm @ 100 dpi)
 
 ### ToDo:
-- [ ] Print:
-  - [ ] TODO: tmp render
+- [ ] TODO: PyQt6 complain
+- [ ] Find: render not call after 2+ __init__()
 - [ ] TODO: MW.toolbar
 - [ ] FIXME: QTableWidget's graphs too small
 
@@ -72,14 +54,12 @@
   - [x] Fixed: Default orientation
   - [x] Fixed: Skip last newPage()
   - [x] Fixed: text too small
+  - [x] Done: Tmp render
 
-### Switch orientation:
-- PlotView:
-  + sceneRect
-  + setcSceneRect
-  + updateSceneRect(rect)
-  + rubberBandRect()
-- PlotScene:
-  + sceneRect() == itemsBoundingRect()
+## RTFM:
 
-After: width/height stay old
+- QSplineSeries
+- [spline](https://www.toptal.com/c-plus-plus/rounded-corners-bezier-curves-qpainter)
+- [disable transform](https://stackoverflow.com/questions/1222914/qgraphicsview-and-qgraphicsitem-don%C2%B4t-scale-item-when-scaling-the-view-rect)
+- [Scene border](https://www.qtcentre.org/threads/13814-how-to-enable-borders-in-QGraphicsScene)
+- [Tic align](https://www.qtcentre.org/threads/51168-QGraphicsTextItem-center-based-coordinates)

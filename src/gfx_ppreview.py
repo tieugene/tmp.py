@@ -6,8 +6,7 @@ from typing import List
 # 2. 3rd
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, \
-    QGraphicsScene
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut
 # 3. local
 from gfx_ppreview_const import PORTRAIT, AUTOFILL, SAMPLES, SIGNALS, DATA, W_PAGE, H_ROW_BASE, DATA_PREDEF, COLORS
 from gfx_ppreview_widgets import GraphView, GraphViewBase, PlotScene
@@ -47,13 +46,11 @@ def data_split() -> List[int]:
 
 
 class PlotBase(GraphViewBase):
-    _father: 'MainWindow'
     _portrait: bool
     _scene: List[PlotScene]
 
-    def __init__(self, father: 'MainWindow'):
+    def __init__(self):
         super().__init__()
-        self._father = father
         self._portrait = PORTRAIT
         self._scene = list()
         i0 = 0
@@ -96,6 +93,7 @@ class PlotBase(GraphViewBase):
 
 
 class PlotView(PlotBase):
+    _father: 'MainWindow'
     scene_cur: int
     # shortcuts
     __sc_close: QShortcut
@@ -107,7 +105,8 @@ class PlotView(PlotBase):
     __sc_p_last: QShortcut
 
     def __init__(self, father: 'MainWindow'):
-        super().__init__(father)
+        super().__init__()
+        self._father = father
         self.__set_scene(0)
         # shortcuts
         self.__sc_close = QShortcut("Ctrl+V", self)
@@ -163,9 +162,9 @@ class PlotPrint(PlotBase):
     """
     :todo: just scene container; can be replaced with QObject
     """
-    def __init__(self, parent: 'MainWindow'):
-        super().__init__(parent)
-        # print("Render init")
+    def __init__(self):
+        super().__init__()
+        # print("Render__init__")
 
     def slot_paint_request(self, printer: QPrinter):
         """
@@ -173,33 +172,28 @@ class PlotPrint(PlotBase):
         Use printer.pageRect(QPrinter.Millimeter/DevicePixel).
         :param printer: Where to draw to
         """
-        # print("Render.slot_paint_request(): start")
-        # print("Res:", printer.resolution())
+        # print("Render.slot_paint_request()")
         self.slot_set_portrait(printer.orientation() == QPrinter.Orientation.Portrait)
         painter = QPainter(printer)
         self._scene[0].render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
         for scene in self._scene[1:]:
             printer.newPage()
             scene.render(painter)
-        # print("Render.slot_paint_request(): end")
 
 
 class PDFOutPreviewDialog(QPrintPreviewDialog):
-    __render: PlotPrint
-
-    def __init__(self, __printer: QPrinter, parent: 'MainWindow'):
-        super().__init__(__printer, parent)
-        self.__render = PlotPrint(parent)
-        self.paintRequested.connect(self.__render.slot_paint_request)
+    def __init__(self, __printer: QPrinter):
+        super().__init__(__printer)
 
     def exec_(self):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
         :todo: mk render | connect | exec | disconnect | del render
         """
-        #
-        # rnd = PlotPrint(self.parent())
-        # self.paintRequested.connect(rnd.slot_paint_request)
+        rnd = PlotPrint()
+        self.paintRequested.connect(rnd.slot_paint_request)
         retvalue = super().exec_()
+        self.paintRequested.disconnect(rnd.slot_paint_request)  # not helps
+        del rnd  # not helps
         return retvalue
 
 
@@ -235,7 +229,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(TableView(self))
         self.view = PlotView(self)
         self.__printer = self.PdfPrinter()
-        self.__print_preview = PDFOutPreviewDialog(self.__printer, self)
+        self.__print_preview = PDFOutPreviewDialog(self.__printer)
         self.__mk_actions()
 
     def __mk_actions(self):
