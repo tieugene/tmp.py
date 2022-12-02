@@ -1,4 +1,4 @@
-"""gfx_ppreview constants"""
+"""gfx_ppreview 0/3: constants"""
 # 1. std
 from typing import Tuple
 # 2. 3rd
@@ -8,15 +8,15 @@ from PyQt5.QtGui import QFont
 # - user defined
 DEBUG = False  # paint borders around some items
 PORTRAIT = False  # initial orientation
-AUTOFILL = False
+AUTOFILL = True
 # -- ...
 SAMPLES = 24  # samples per signal
-SIGNALS = 10  # Number of signals for autofill
+SIGNALS = 50  # Number of signals for autofill
 # - hardcoded
 W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
 W_LABEL = 53  # Label column width
-H_HEADER = 56
-H_ROW_BASE = 28  # Base (slick) row height in landscape mode
+H_HEADER = 56  # Header height, like 4×14
+H_ROW_BASE = 28  # Base (slick) row height in landscape mode; like 2×14
 H_BOTTOM = 20  # Bottom scale height
 PPP = 6  # plots per page
 FONT_MAIN = QFont('mono', 8)  # 7×14

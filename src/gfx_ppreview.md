@@ -13,7 +13,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] TODO: PyQt6 complain
-- [ ] Find: render not call after 2+ __init__()
+- [ ] Find: render not call after 2+ `__init__()`
 - [ ] TODO: MW.toolbar
 - [ ] FIXME: QTableWidget's graphs too small
 

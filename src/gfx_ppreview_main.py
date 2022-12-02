@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Test of rescaling print (and multipage)."""
+"""gfx_preview 1/3: main module.
+Test of rescaling print + multipage print."""
 # 1. std
 import sys
 from typing import List

@@ -1,4 +1,4 @@
-"""gfx_ppreview widgets"""
+"""gfx_ppreview 2/3: widgets"""
 # 1. std
 from typing import Union, List
 import math
