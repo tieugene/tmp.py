@@ -26,7 +26,7 @@ class ViewWindow(QDialog):
             self.scene().addItem(table := TableItem(DATA[:3]))
             table.setPos(0, header.boundingRect().height())
 
-        def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
+        def resizeEvent(self, event: QResizeEvent):  # !!! (resize __view to content)
             self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
 
     def __init__(self, parent: QMainWindow):
@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(MainWidget(self))
         self.view = ViewWindow(self)
         menu_file = self.menuBar().addMenu("&File")
-        menu_file.addAction(QAction(QIcon.fromTheme("view-fullscreen"), "&View", self, shortcut="Ctrl+V",
+        menu_file.addAction(QAction(QIcon.fromTheme("__view-fullscreen"), "&View", self, shortcut="Ctrl+V",
                                     triggered=self.__view))
         menu_file.addAction(QAction(QIcon.fromTheme("document-print-preview"), "&Print", self, shortcut="Ctrl+P",
                                     triggered=self.__print))

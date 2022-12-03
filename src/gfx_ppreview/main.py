@@ -10,9 +10,8 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, QToolBar
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import DATA
+from data import DATA, data_fill
 from gitems import GraphView, GraphViewBase, PlotScene
-from src.gfx_ppreview.data import data_fill
 
 
 def data_split() -> List[int]:
@@ -117,7 +116,7 @@ class PlotView(PlotBase):
         self._father.act_view.setChecked(False)
 
     def slot_reset_size(self):
-        """[Re]set view to original size."""
+        """[Re]set __view to original size."""
         self.resize(self.scene().itemsBoundingRect().size().toSize())
 
     def __slot_o(self):
@@ -205,7 +204,7 @@ class MainWindow(QMainWindow):
             self.setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
 
     __toolbar: QToolBar
-    view: PlotView
+    __view: PlotView
     __printer: PdfPrinter
     __print_preview: PDFOutPreviewDialog
     # actionas
@@ -222,7 +221,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setCentralWidget(TableView(self))
-        self.view = PlotView(self)
+        self.__view = PlotView(self)
         self.__printer = self.PdfPrinter()
         self.__print_preview = PDFOutPreviewDialog(self.__printer)
         self.__mk_actions()
@@ -232,23 +231,23 @@ class MainWindow(QMainWindow):
     def __mk_actions(self):
         # grouping
         self.act_view = QAction(QIcon.fromTheme("document-print-preview"), "&View", self, shortcut="Ctrl+V",
-                                checkable=True, toggled=self.view.setVisible)
+                                checkable=True, toggled=self.__view.setVisible)
         self.act_print = QAction(QIcon.fromTheme("document-print"), "&Print", self, shortcut="Ctrl+P",
                                  triggered=self.__print_preview.exec_)
         self.act_exit = QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
                                 triggered=self.close)
         self.act_size0 = QAction(QIcon.fromTheme("zoom-original"), "Original size", self, shortcut="Ctrl+0",
-                                 triggered=self.view.slot_reset_size)
+                                 triggered=self.__view.slot_reset_size)
         self.act_o_p = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+O",
-                               checkable=True, toggled=self.view.slot_set_portrait)
+                               checkable=True, toggled=self.__view.slot_set_portrait)
         self.act_go_1st = QAction(QIcon.fromTheme("go-first"), "1st page", self, shortcut="Ctrl+Up",
-                                  triggered=self.view.slot_p_1st)
+                                  triggered=self.__view.slot_p_1st)
         self.act_go_prev = QAction(QIcon.fromTheme("go-previous"), "Prev. page", self, shortcut="Ctrl+Left",
-                                   triggered=self.view.slot_p_prev)
+                                   triggered=self.__view.slot_p_prev)
         self.act_go_next = QAction(QIcon.fromTheme("go-next"), "Next page", self, shortcut="Ctrl+Right",
-                                   triggered=self.view.slot_p_next)
+                                   triggered=self.__view.slot_p_next)
         self.act_go_last = QAction(QIcon.fromTheme("go-last"), "Last page", self, shortcut="Ctrl+Down",
-                                   triggered=self.view.slot_p_last)
+                                   triggered=self.__view.slot_p_last)
 
     def __mk_menu(self):
         self.menuBar().setVisible(True)

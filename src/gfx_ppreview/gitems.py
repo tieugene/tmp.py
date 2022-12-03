@@ -147,7 +147,7 @@ class GraphViewBase(QGraphicsView):
         super().__init__(parent)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)
 
-    def resizeEvent(self, event: QResizeEvent):  # !!! (resize view to content)
+    def resizeEvent(self, event: QResizeEvent):  # !!! (resize __view to content)
         # super().resizeEvent(event)
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.IgnoreAspectRatio)  # expand to max
         # Note: KeepAspectRatioByExpanding is extremally CPU-greedy

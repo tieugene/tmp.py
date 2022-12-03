@@ -1,4 +1,4 @@
-"""Signal list view.
+"""Signal list __view.
 MVC version
 :todo: try QAbstractTableModelItem
 :todo: try wrap QVariant/QObject/QSomething(signal)

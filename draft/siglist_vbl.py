@@ -1,4 +1,4 @@
-"""Signal list view.
+"""Signal list __view.
 QVBoxLayout version"""
 # 2. 3rd
 from PySide2.QtCore import Qt
