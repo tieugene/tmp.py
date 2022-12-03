@@ -33,17 +33,19 @@ TICS = {  # scale tics {sample_no: text}
     5: 456,
     SAMPLES * 0.98: 789
 }
-DATA_PREDEF = (  # name, offset/period, color, is_bool
-    (False, "Signal 1", Qt.GlobalColor.black, 0),
-    (True, "Signal 22", Qt.GlobalColor.red, 1),
-    (False, "Signal 333", Qt.GlobalColor.blue, 2),
-    (True, "Signal 4444", Qt.GlobalColor.green, 3),
-    (True, "Signal 5", Qt.GlobalColor.magenta, 4),
-    (False, "Signal 6", Qt.GlobalColor.darkYellow, 5),
-    (False, "Signal 10", Qt.GlobalColor.cyan, 6),
-    (False, "Signal 11", Qt.GlobalColor.darkGreen, 7),
-    (False, "Signal 12", Qt.GlobalColor.yellow, 8),
-    (False, "Signal 13", Qt.GlobalColor.darkBlue, 9),
+# is_bool, name, color, offset(A)/period(B)  # TODO: h-offset/h-offset [0..SAMPLES], v-offset[0..9]/period[1...]
+_DataSource = Tuple[bool, str, Qt.GlobalColor, int, int]
+DATA_PREDEF = (
+    (False, "Signal 1", Qt.GlobalColor.black, 0, 0),
+    (True, "Signal 22", Qt.GlobalColor.red, 0, 1),
+    (False, "Signal 333", Qt.GlobalColor.blue, 2, 1),
+    (True, "Signal 4444", Qt.GlobalColor.green, 1, 3),
+    (True, "Signal 5", Qt.GlobalColor.magenta, 2, 4),
+    (False, "Signal 6", Qt.GlobalColor.darkYellow, 5, 2),
+    (False, "Signal 10", Qt.GlobalColor.cyan, 6, 3),
+    (False, "Signal 11", Qt.GlobalColor.darkGreen, 7, 4),
+    (False, "Signal 12", Qt.GlobalColor.yellow, 8, 5),
+    (False, "Signal 13", Qt.GlobalColor.darkBlue, 9, 6),
 )
 
 
@@ -60,11 +62,11 @@ SigSuitList: List[SigSuit] = list()
 
 def __data_fill():
     """Fill data with predefined or auto"""
-    def __gen_predef() -> Iterator[Tuple[bool, str, Qt.GlobalColor, int]]:  # generator of predefined data
+    def __gen_predef() -> Iterator[_DataSource]:  # generator of predefined data
         for __d in DATA_PREDEF:
             yield __d
 
-    def __gen_random() -> Iterator[Tuple[bool, str, Qt.GlobalColor, int]]:
+    def __gen_random() -> Iterator[_DataSource]:
         import random
         random.seed()
         for __i in range(SIGNALS):
@@ -73,17 +75,19 @@ def __data_fill():
                 f"Signal {__i}",
                 _COLORS[random.randint(0, len(_COLORS) - 1)],
                 random.randint(0, SAMPLES - 1),
+                random.randint(0, 9),
             )
 
-    def __mk_sin(o: int = 0) -> List[float]:  # FIXME: hide
+    def __mk_sin(ho: int, vo: int) -> List[float]:
         """
         Make sinusoide graph coordinates. Y=0..1
-        :param o: Offset, points
+        :param ho: H-Offset, points
+        :param vo: V-Offset, %x10
         :return: list of y (0..1)
         """
-        return [(1 + math.sin((i + o) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
+        return [(1 + math.sin((i + ho) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
 
-    def __mk_meander(p: int) -> List[float]:  # FIXME: hide
+    def __mk_meander(ho: int, p: int) -> List[float]:
         """Make meander. Starts from 0.
         :param p: Period
         """
@@ -95,7 +99,7 @@ def __data_fill():
             is_bool=d[0],
             name=d[1],
             color=d[2],
-            value=__mk_meander(d[3]) if d[0] else __mk_sin(d[3])
+            value=__mk_meander(d[3], d[4]) if d[0] else __mk_sin(d[3], d[4])
         ))
 
 
