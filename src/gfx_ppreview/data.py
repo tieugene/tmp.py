@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import math
 # 2. 3rd
 from PyQt5.QtCore import Qt
-
 # 3. local
 # x. consts
 AUTOFILL = False
@@ -35,16 +34,16 @@ TICS = {  # scale tics {sample_no: text}
     SAMPLES * 0.98: 789
 }
 DATA_PREDEF = (  # name, offset/period, color, is_bool
-    ("Signal 1", 0, Qt.GlobalColor.black, False),
-    ("Signal 22", 1, Qt.GlobalColor.red, True),
-    ("Signal 333", 2, Qt.GlobalColor.blue, False),
-    ("Signal 4444", 3, Qt.GlobalColor.green, True),
-    ("Signal 5", 4, Qt.GlobalColor.magenta, True),
-    ("Signal 6", 5, Qt.GlobalColor.darkYellow, False),
-    ("Signal 10", 6, Qt.GlobalColor.cyan, False),
-    ("Signal 11", 7, Qt.GlobalColor.darkGreen, False),
-    ("Signal 12", 8, Qt.GlobalColor.yellow, False),
-    ("Signal 13", 9, Qt.GlobalColor.darkBlue, False),
+    (False, "Signal 1", Qt.GlobalColor.black, 0),
+    (True, "Signal 22", Qt.GlobalColor.red, 1),
+    (False, "Signal 333", Qt.GlobalColor.blue, 2),
+    (True, "Signal 4444", Qt.GlobalColor.green, 3),
+    (True, "Signal 5", Qt.GlobalColor.magenta, 4),
+    (False, "Signal 6", Qt.GlobalColor.darkYellow, 5),
+    (False, "Signal 10", Qt.GlobalColor.cyan, 6),
+    (False, "Signal 11", Qt.GlobalColor.darkGreen, 7),
+    (False, "Signal 12", Qt.GlobalColor.yellow, 8),
+    (False, "Signal 13", Qt.GlobalColor.darkBlue, 9),
 )
 
 
@@ -61,19 +60,19 @@ SigSuitList: List[SigSuit] = list()
 
 def __data_fill():
     """Fill data with predefined or auto"""
-    def __gen_predef() -> Iterator[Tuple[str, int, Qt.GlobalColor, bool]]:  # generator of predefined data
+    def __gen_predef() -> Iterator[Tuple[bool, str, Qt.GlobalColor, int]]:  # generator of predefined data
         for __d in DATA_PREDEF:
             yield __d
 
-    def __gen_random() -> Iterator[Tuple[str, int, Qt.GlobalColor, bool]]:
+    def __gen_random() -> Iterator[Tuple[bool, str, Qt.GlobalColor, int]]:
         import random
         random.seed()
         for __i in range(SIGNALS):
             yield (
+                bool(random.randint(0, 1)),
                 f"Signal {__i}",
-                random.randint(0, SAMPLES - 1),
                 _COLORS[random.randint(0, len(_COLORS) - 1)],
-                bool(random.randint(0, 1))
+                random.randint(0, SAMPLES - 1),
             )
 
     def __mk_sin(o: int = 0) -> List[float]:  # FIXME: hide
@@ -93,10 +92,10 @@ def __data_fill():
 
     for d in __gen_random() if AUTOFILL else __gen_predef():
         SigSuitList.append(SigSuit(
-            is_bool=d[3],
-            name=d[0],
+            is_bool=d[0],
+            name=d[1],
             color=d[2],
-            value=__mk_meander(d[1]) if d[3] else __mk_sin(d[1])
+            value=__mk_meander(d[3]) if d[0] else __mk_sin(d[3])
         ))
 
 
