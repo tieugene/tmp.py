@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT,  H_BOTTOM, H_HEADER
-from data import SAMPLES, TICS, DataValue, mk_sin, mk_meander
+from data import SAMPLES, TICS, SigSuit, SigSuitList
 
 
 class ThinPen(QPen):
@@ -111,10 +111,10 @@ class RectTextItem(QGraphicsItemGroup):
 class GraphItem(QGraphicsPathItem):
     __y: List[float]
 
-    def __init__(self, d: DataValue):
+    def __init__(self, d: SigSuit):
         super().__init__()
-        self.__y = mk_sin(d[1]) if d[3] else mk_meander(d[1])
-        self.setPen(ThinPen(d[2]))
+        self.__y = d.value
+        self.setPen(ThinPen(d.color))
         pp = QPainterPath()
         # default: x=0..SAMPLES, y=0..1
         pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))  # default
@@ -154,7 +154,7 @@ class GraphViewBase(QGraphicsView):
 
 
 class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
-    def __init__(self, d: DataValue):
+    def __init__(self, d: SigSuit):
         super().__init__()
         self.setScene(QGraphicsScene())
         self.scene().addItem(GraphItem(d))
@@ -180,13 +180,13 @@ class RowItem(QGraphicsItemGroup):
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
-    def __init__(self, d: DataValue, plot: 'PlotBase'):
+    def __init__(self, d: SigSuit, plot: 'PlotBase'):
         super().__init__()
         self.__plot = plot
-        self.__label = RectTextItem(d[0], d[2])
+        self.__label = RectTextItem(d.name, d.color)
         self.__graph = GraphItem(d)
         self.__uline = QGraphicsLineItem()
-        self.__wide = d[3]
+        self.__wide = d.is_bool
         # initial positions/sizes
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
@@ -291,7 +291,7 @@ class TablePayload(QGraphicsItemGroup):
     __rowitem: list[RowItem]
 
     """Just rows with underlines"""
-    def __init__(self, dlist: List[DataValue], plot: 'PlotBase'):
+    def __init__(self, dlist: SigSuitList, plot: 'PlotBase'):
         super().__init__()
         self.__rowitem = list()
         y = 0
@@ -317,7 +317,7 @@ class PlotScene(QGraphicsScene):
     __canvas: TableCanvas
     __payload: TablePayload
 
-    def __init__(self, data: List[DataValue], plot: 'PlotBase'):
+    def __init__(self, data: SigSuitList, plot: 'PlotBase'):
         super().__init__()
         self.__canvas = TableCanvas(plot)
         self.__payload = TablePayload(data, plot)

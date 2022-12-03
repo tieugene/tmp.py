@@ -12,13 +12,13 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - Size: 748×1130 (A4-10mm @ 100 dpi)
 
 ### ToDo:
-- Multisig bars:
+- [ ] Multisig bars:
   + [ ] Y=0 line
   + [ ] Filled B-sig
   + [ ] V-shifted A-sig
   + [ ] Multisig
   + [ ] Bar v-gaps/pads
-- Options:
+- [ ] Options:
   + [ ] FIXME: too high (overlaped bottom)
   + [ ] TODO: PyQt6 complain
   + [ ] FIXME: render not call after 2+ `__init__()`
@@ -62,6 +62,9 @@ Resume: Сделать *полностью* резиновый дизайно *�
   - [x] Fixed: Skip last newPage()
   - [x] Fixed: text too small
   - [x] Done: Tmp render
+- [x] Multisig bars:
+  + [x] Data classed
+
 - Options:
   + [x] MW.toolbar
 

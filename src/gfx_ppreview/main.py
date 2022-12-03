@@ -10,7 +10,7 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, QToolBar
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import DATA, data_fill
+from data import SigSuitList
 from gitems import GraphView, GraphViewBase, PlotScene
 
 
@@ -20,8 +20,8 @@ def data_split() -> List[int]:
     """
     retvalue = list()
     cur_num = cur_height = 0  # heigth of current piece in basic (B) units
-    for i, d in enumerate(DATA):
-        h = 1 + int(d[3]) * 3
+    for i, d in enumerate(SigSuitList):
+        h = 1 + int(d.is_bool) * 3
         if cur_height + h > 24:
             retvalue.append(cur_num)
             cur_num = cur_height = 0
@@ -41,7 +41,7 @@ class PlotBase(GraphViewBase):
         self._scene = list()
         i0 = 0
         for k in data_split():
-            self._scene.append(PlotScene(DATA[i0:i0 + k], self))
+            self._scene.append(PlotScene(SigSuitList[i0:i0 + k], self))
             i0 += k
 
     @property
@@ -187,10 +187,10 @@ class TableView(QTableWidget):
     def __init__(self, parent: 'MainWindow'):
         super().__init__(parent)
         self.horizontalHeader().setStretchLastSection(True)
-        self.setRowCount(len(DATA))
+        self.setRowCount(len(SigSuitList))
         self.setColumnCount(2)
-        for r, d in enumerate(DATA):
-            self.setItem(r, 0, (QTableWidgetItem(d[0])))
+        for r, d in enumerate(SigSuitList):
+            self.setItem(r, 0, (QTableWidgetItem(d.name)))
             self.setCellWidget(r, 1, GraphView(d))
 
 
@@ -279,11 +279,8 @@ class MainWindow(QMainWindow):
 
 
 def main() -> int:
-    data_fill()
     app = QApplication(sys.argv)
-    mw = MainWindow()
-    mw.show()
-    # mw.resize(600, 600)
+    MainWindow().show()
     return app.exec()
 
 
