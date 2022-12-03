@@ -7,7 +7,7 @@ from typing import List
 # 2. 3rd
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, QToolBar
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
 from data import DATA
@@ -204,6 +204,7 @@ class MainWindow(QMainWindow):
             self.setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
             self.setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
 
+    __toolbar: QToolBar
     view: PlotView
     __printer: PdfPrinter
     __print_preview: PDFOutPreviewDialog
@@ -230,9 +231,9 @@ class MainWindow(QMainWindow):
 
     def __mk_actions(self):
         # grouping
-        self.act_view = QAction(QIcon.fromTheme("view-fullscreen"), "&View", self, shortcut="Ctrl+V",
+        self.act_view = QAction(QIcon.fromTheme("document-print-preview"), "&View", self, shortcut="Ctrl+V",
                                 checkable=True, toggled=self.view.setVisible)
-        self.act_print = QAction(QIcon.fromTheme("document-print-preview"), "&Print", self, shortcut="Ctrl+P",
+        self.act_print = QAction(QIcon.fromTheme("document-print"), "&Print", self, shortcut="Ctrl+P",
                                  triggered=self.__print_preview.exec_)
         self.act_exit = QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
                                 triggered=self.close)
@@ -264,7 +265,19 @@ class MainWindow(QMainWindow):
         menu_view.addAction(self.act_go_last)
 
     def __mk_toolbar(self):
-        ...
+        self.__toolbar = QToolBar(self)
+        self.__toolbar.addAction(self.act_view)
+        self.__toolbar.addAction(self.act_print)
+        self.__toolbar.addAction(self.act_size0)
+        self.__toolbar.addAction(self.act_o_p)
+        self.__toolbar.addAction(self.act_go_1st)
+        self.__toolbar.addAction(self.act_go_prev)
+        self.__toolbar.addAction(self.act_go_next)
+        self.__toolbar.addAction(self.act_go_last)
+        self.__toolbar.addSeparator()
+        self.__toolbar.addAction(self.act_exit)
+        self.addToolBar(self.__toolbar)
+
 
 def main() -> int:
     data_fill()

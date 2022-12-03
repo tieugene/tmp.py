@@ -19,7 +19,6 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [ ] Multisig
   + [ ] Bar v-gaps/pads
 - Options:
-  + [ ] TODO: MW.toolbar
   + [ ] FIXME: too high (overlaped bottom)
   + [ ] TODO: PyQt6 complain
   + [ ] FIXME: render not call after 2+ `__init__()`
@@ -63,6 +62,8 @@ Resume: Сделать *полностью* резиновый дизайно *�
   - [x] Fixed: Skip last newPage()
   - [x] Fixed: text too small
   - [x] Done: Tmp render
+- Options:
+  + [x] MW.toolbar
 
 ## RTFM:
 

@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt
 from src.gfx_ppreview.consts import COLORS
 
 # x. consts
-AUTOFILL = True
+AUTOFILL = False
 SAMPLES = 24  # samples per signal
 SIGNALS = 50  # Number of signals for autofill
 TICS = {  # scale tics {sample_no: text}
