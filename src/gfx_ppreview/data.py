@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt
 
 # 3. local
 # x. consts
-AUTOFILL = True
+AUTOFILL = False
 SAMPLES = 24  # samples per signal
 SIGNALS = 50  # Number of signals for autofill
 _COLORS = (
@@ -35,16 +35,16 @@ TICS = {  # scale tics {sample_no: text}
     SAMPLES * 0.98: 789
 }
 DATA_PREDEF = (  # name, offset/period, color, is_bool
-    ("Signal 1", 0, Qt.GlobalColor.black, True),
+    ("Signal 1", 0, Qt.GlobalColor.black, False),
     ("Signal 22", 1, Qt.GlobalColor.red, True),
-    ("Signal 333", 2, Qt.GlobalColor.blue, True),
-    ("Signal 4444", 3, Qt.GlobalColor.green, False),
-    ("Signal 5", 4, Qt.GlobalColor.magenta, False),
-    ("Signal 6", 5, Qt.GlobalColor.darkYellow, True),
-    ("Signal 10", 6, Qt.GlobalColor.cyan, True),
-    ("Signal 11", 7, Qt.GlobalColor.darkGreen, True),
-    ("Signal 12", 8, Qt.GlobalColor.yellow, True),
-    ("Signal 13", 9, Qt.GlobalColor.darkBlue, True),
+    ("Signal 333", 2, Qt.GlobalColor.blue, False),
+    ("Signal 4444", 3, Qt.GlobalColor.green, True),
+    ("Signal 5", 4, Qt.GlobalColor.magenta, True),
+    ("Signal 6", 5, Qt.GlobalColor.darkYellow, False),
+    ("Signal 10", 6, Qt.GlobalColor.cyan, False),
+    ("Signal 11", 7, Qt.GlobalColor.darkGreen, False),
+    ("Signal 12", 8, Qt.GlobalColor.yellow, False),
+    ("Signal 13", 9, Qt.GlobalColor.darkBlue, False),
 )
 
 
@@ -96,7 +96,7 @@ def __data_fill():
             is_bool=d[3],
             name=d[0],
             color=d[2],
-            value=__mk_sin(d[1]) if d[3] else __mk_meander(d[1])
+            value=__mk_meander(d[1]) if d[3] else __mk_sin(d[1])
         ))
 
 

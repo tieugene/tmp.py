@@ -3,7 +3,7 @@
 from typing import List
 # 2. 3rd
 from PyQt5.QtCore import QPointF, Qt, QRectF, QSizeF
-from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
+from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter, QBrush
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem
 # 3. local
@@ -116,11 +116,24 @@ class GraphItem(QGraphicsPathItem):
 
     def __init__(self, d: SigSuit):
         super().__init__()
-        self.__y = d.value
-        self.setPen(ThinPen(d.color))
+        if d.is_bool:
+            self.__y = [1 - v * 2 / 3 for v in d.value]
+            point_list = [QPointF(x, y) for x, y in enumerate(self.__y)]
+            if int(d.value[0]):  # always start with 0
+                self.__y.insert(0, 0)
+                point_list.insert(0, QPointF(0, 0))
+            if int(d.value[-1]):    # always end with 0
+                self.__y.append(0)
+                point_list.append(QPointF(0, 0))
+            self.setPen(ThinPen(d.color))
+            self.setBrush(QBrush(d.color, Qt.BrushStyle.Dense4Pattern))
+        else:
+            self.__y = [1 - v for v in d.value]
+            point_list = [QPointF(x, y) for x, y in enumerate(self.__y)]
+            self.setPen(ThinPen(d.color))
         pp = QPainterPath()
         # default: x=0..SAMPLES, y=0..1
-        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))
+        pp.addPolygon(QPolygonF(point_list))
         self.setPath(pp)
         self.__zpen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
 
@@ -199,7 +212,7 @@ class RowItem(QGraphicsItemGroup):
         self.__graph = GraphItem(d)
         self.__uline = QGraphicsLineItem()
         self.__uline.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DashLine))
-        self.__wide = d.is_bool
+        self.__wide = not d.is_bool
         # initial positions/sizes
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)

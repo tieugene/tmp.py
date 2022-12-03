@@ -13,10 +13,9 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] Filled B-sig
   + [ ] V-shifted A-sig
   + [ ] Multisig
-  + [ ] Bar v-gaps/pads
+  + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
   + [ ] FIXME: too high (overlaped bottom)
   + [ ] TODO: PyQt6 complain
@@ -64,6 +63,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - [x] Multisig bars:
   + [x] Data classed
   + [x] Y=0 line (signal, tmp)
+  + [x] Filled B-sig
 - Options:
   + [x] MW.toolbar
 
