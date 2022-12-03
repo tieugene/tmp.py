@@ -1,18 +1,19 @@
 """gfx_ppreview/gitems: QGraphicsItem successors"""
 # 1. std
-from typing import List
+from typing import List, Union
 # 2. 3rd
 from PyQt5.QtCore import QPointF, Qt, QRectF, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter, QBrush
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
-    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem
+    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem
 # 3. local
-from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT,  H_BOTTOM, H_HEADER
+from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
 from data import SAMPLES, TICS, SigSuit, SigSuitList
 
 
 class ThinPen(QPen):
     """Non-scalable QPen"""
+
     def __init__(self, color: Qt.GlobalColor, style: Qt.PenStyle = None):
         super().__init__(color)
         self.setCosmetic(True)
@@ -30,6 +31,7 @@ class TextItem(QGraphicsSimpleTextItem):
     - call: paint()
     :todo: add align
     """
+
     def __init__(self, txt: str, color: Qt.GlobalColor = None):
         super().__init__(txt)
         self.setFont(FONT_MAIN)
@@ -110,63 +112,75 @@ class RectTextItem(QGraphicsItemGroup):
         self.rect.setRect(r)
 
 
-class GraphItem(QGraphicsPathItem):
-    __bool: bool
+class AGraphItem(QGraphicsPathItem):
     __y: List[float]
     __zpen: QPen
 
     def __init__(self, d: SigSuit):
         super().__init__()
-        self.__bool = d.is_bool
-        if d.is_bool:
-            self.__y = [1 - v * 2 / 3 for v in d.value]
-            point_list = [QPointF(x, y) for x, y in enumerate(self.__y)]
-            if int(d.value[0]):  # always start with 0
-                self.__y.insert(0, 0)
-                point_list.insert(0, QPointF(0, 0))
-            if int(d.value[-1]):    # always end with 0
-                self.__y.append(0)
-                point_list.append(QPointF(0, 0))
-            self.setPen(ThinPen(d.color))
-            self.setBrush(QBrush(d.color, Qt.BrushStyle.Dense4Pattern))
-        else:
-            self.__y = [1 - v for v in d.value]
-            point_list = [QPointF(x, y) for x, y in enumerate(self.__y)]
-            self.setPen(ThinPen(d.color))
-            self.__zpen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
+        self.__y = [1 - v for v in d.value]
+        self.__zpen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
+        self.setPen(ThinPen(d.color))
         pp = QPainterPath()
-        # default: x=0..SAMPLES, y=0..1
-        pp.addPolygon(QPolygonF(point_list))
+        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))   # default: x=0..SAMPLES, y=0..1
         self.setPath(pp)
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         """For debug only"""
         super().paint(painter, option, widget)
         # FIXME: tmp
-        if not self.__bool:
-            painter.setPen(self.__zpen)
-            painter.drawLine(
-                option.rect.left(),
-                option.rect.center().y(),
-                option.rect.right(),
-                option.rect.center().y(),
-            )
+        painter.setPen(self.__zpen)
+        painter.drawLine(
+            option.rect.left(),
+            option.rect.center().y(),
+            option.rect.right(),
+            option.rect.center().y(),
+        )
         if DEBUG:
             painter.setPen(self.pen())
             painter.drawRect(option.rect)
 
     def set_size(self, s: QSizeF):
         """
-
+        L: s=(1077 x 28/112)
         :param s: Size of graph
         :return:
         """
         self.prepareGeometryChange()  # not helps
+        # self.setScale()
+        # return
         pp = self.path()
         step = s.width() / (pp.elementCount() - 1)
         for i in range(pp.elementCount()):
             pp.setElementPositionAt(i, i * step, self.__y[i] * s.height())
         self.setPath(pp)
+
+
+class BGraphItem(QGraphicsPolygonItem):
+    __y: List[float]
+
+    def __init__(self, d: SigSuit):
+        super().__init__()
+        self.__y = [1 - v * 2 / 3 for v in d.value]
+        self.setPen(ThinPen(d.color))
+        self.setBrush(QBrush(d.color, Qt.BrushStyle.Dense1Pattern))  #
+        self.__set_size(1, 1)
+
+    def set_size(self, s: QSizeF):
+        """
+        L: s=(1077 x 28/112)
+        :param s: Size of graph
+        """
+        self.prepareGeometryChange()  # not helps
+        self.__set_size(s.width() / (len(self.__y) - 1), s.height())
+
+    def __set_size(self, kx: float, ky: float):
+        point_list = [QPointF(x * kx, y * ky) for x, y in enumerate(self.__y)]
+        if int(self.__y[0]) == 0:  # always start with 0
+            point_list.insert(0, QPointF(0, ky))
+        if int(self.__y[-1]) == 0:  # always end with 0
+            point_list.append(QPointF((len(self.__y)-1) * kx, ky))
+        self.setPolygon(QPolygonF(point_list))
 
 
 # ---- QGraphicsView
@@ -185,7 +199,7 @@ class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
     def __init__(self, d: SigSuit):
         super().__init__()
         self.setScene(QGraphicsScene())
-        self.scene().addItem(GraphItem(d))
+        self.scene().addItem(BGraphItem(d) if d.is_bool else AGraphItem(d))
 
 
 # ---- Containers
@@ -204,7 +218,7 @@ class HeaderItem(RectTextItem):
 class RowItem(QGraphicsItemGroup):
     __plot: 'PlotBase'  # ref to father
     __label: RectTextItem  # left side
-    __graph: GraphItem  # right side
+    __graph: Union[AGraphItem, BGraphItem]  # right side
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
@@ -212,7 +226,7 @@ class RowItem(QGraphicsItemGroup):
         super().__init__()
         self.__plot = plot
         self.__label = RectTextItem(d.name, d.color)
-        self.__graph = GraphItem(d)
+        self.__graph = BGraphItem(d) if d.is_bool else AGraphItem(d)
         self.__uline = QGraphicsLineItem()
         self.__uline.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DashLine))
         self.__wide = not d.is_bool
@@ -320,6 +334,7 @@ class TablePayload(QGraphicsItemGroup):
     __rowitem: list[RowItem]
 
     """Just rows with underlines"""
+
     def __init__(self, dlist: SigSuitList, plot: 'PlotBase'):
         super().__init__()
         self.__rowitem = list()

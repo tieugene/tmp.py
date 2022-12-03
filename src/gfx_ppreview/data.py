@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt
 # 3. local
 # x. consts
 AUTOFILL = False
-SAMPLES = 24  # samples per signal
+SAMPLES = 12  # samples per signal
 SIGNALS = 50  # Number of signals for autofill
 _COLORS = (
     Qt.GlobalColor.black,
@@ -44,7 +44,7 @@ DATA_PREDEF = (
     (True, "Signal 6b", Qt.GlobalColor.darkYellow, 2, 2),
     (False, "Signal 10", Qt.GlobalColor.cyan, 6, 3),
     (False, "Signal 11", Qt.GlobalColor.darkGreen, 7, 4),
-    (False, "Signal 12", Qt.GlobalColor.yellow, 8, 5),
+    (False, "Signal 12", Qt.GlobalColor.darkMagenta, 8, 5),
     (False, "Signal 13", Qt.GlobalColor.darkBlue, 9, 6),
 )
 
