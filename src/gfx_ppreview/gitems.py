@@ -111,11 +111,13 @@ class RectTextItem(QGraphicsItemGroup):
 
 
 class GraphItem(QGraphicsPathItem):
+    __bool: bool
     __y: List[float]
     __zpen: QPen
 
     def __init__(self, d: SigSuit):
         super().__init__()
+        self.__bool = d.is_bool
         if d.is_bool:
             self.__y = [1 - v * 2 / 3 for v in d.value]
             point_list = [QPointF(x, y) for x, y in enumerate(self.__y)]
@@ -131,23 +133,24 @@ class GraphItem(QGraphicsPathItem):
             self.__y = [1 - v for v in d.value]
             point_list = [QPointF(x, y) for x, y in enumerate(self.__y)]
             self.setPen(ThinPen(d.color))
+            self.__zpen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
         pp = QPainterPath()
         # default: x=0..SAMPLES, y=0..1
         pp.addPolygon(QPolygonF(point_list))
         self.setPath(pp)
-        self.__zpen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         """For debug only"""
         super().paint(painter, option, widget)
         # FIXME: tmp
-        painter.setPen(self.__zpen)
-        painter.drawLine(
-            option.rect.left(),
-            option.rect.center().y(),
-            option.rect.right(),
-            option.rect.center().y(),
-        )
+        if not self.__bool:
+            painter.setPen(self.__zpen)
+            painter.drawLine(
+                option.rect.left(),
+                option.rect.center().y(),
+                option.rect.right(),
+                option.rect.center().y(),
+            )
         if DEBUG:
             painter.setPen(self.pen())
             painter.drawRect(option.rect)

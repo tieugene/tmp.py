@@ -37,11 +37,11 @@ TICS = {  # scale tics {sample_no: text}
 _DataSource = Tuple[bool, str, Qt.GlobalColor, int, int]
 DATA_PREDEF = (
     (False, "Signal 1", Qt.GlobalColor.black, 0, 0),
-    (True, "Signal 22", Qt.GlobalColor.red, 0, 1),
-    (False, "Signal 333", Qt.GlobalColor.blue, 2, 1),
-    (True, "Signal 4444", Qt.GlobalColor.green, 1, 3),
-    (True, "Signal 5", Qt.GlobalColor.magenta, 2, 4),
-    (False, "Signal 6", Qt.GlobalColor.darkYellow, 5, 2),
+    (True, "Signal 2b", Qt.GlobalColor.red, 1, 1),
+    (False, "Signal 3aa", Qt.GlobalColor.blue, 2, 1),
+    (True, "Signal 4bbb", Qt.GlobalColor.green, 0, 2),
+    (False, "Signal 5aaaa", Qt.GlobalColor.magenta, 4, 0),
+    (True, "Signal 6b", Qt.GlobalColor.darkYellow, 2, 2),
     (False, "Signal 10", Qt.GlobalColor.cyan, 6, 3),
     (False, "Signal 11", Qt.GlobalColor.darkGreen, 7, 4),
     (False, "Signal 12", Qt.GlobalColor.yellow, 8, 5),
@@ -87,12 +87,13 @@ def __data_fill():
         """
         return [(1 + math.sin((i + ho) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
 
-    def __mk_meander(ho: int, p: int) -> List[float]:
+    def __mk_meander(ho: int, hp: int) -> List[float]:
         """Make meander. Starts from 0.
-        :param p: Period
+        :param ho: H-Offset, tics
+        :param hp: Half-Period, tics
         """
-        p = p % SAMPLES or 1
-        return [int(i / p) % 2 for i in range(SAMPLES + 1)]
+        hp = hp % SAMPLES or 1  # Deviding by 0 protection
+        return [int((i+ho) / hp) % 2 for i in range(SAMPLES + 1)]
 
     for d in __gen_random() if AUTOFILL else __gen_predef():
         SigSuitList.append(SigSuit(
