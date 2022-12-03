@@ -9,25 +9,10 @@ from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut
 # 3. local
-from consts import PORTRAIT, W_PAGE, H_ROW_BASE, COLORS
-from data import AUTOFILL, SAMPLES, SIGNALS, DATA_PREDEF, DATA
+from consts import PORTRAIT, W_PAGE, H_ROW_BASE
+from data import DATA
 from gitems import GraphView, GraphViewBase, PlotScene
-
-
-def data_fill():
-    """Fill data witth predefined or auto"""
-    if AUTOFILL:
-        import random
-        random.seed()
-        for i in range(SIGNALS):
-            DATA.append((
-                f"Signal {i}",
-                random.randint(0, SAMPLES-1),
-                COLORS[random.randint(0, len(COLORS)-1)],
-                bool(random.randint(0, 1))
-            ))
-    else:
-        DATA.extend(DATA_PREDEF)
+from src.gfx_ppreview.data import data_fill
 
 
 def data_split() -> List[int]:
@@ -226,7 +211,12 @@ class MainWindow(QMainWindow):
     act_view: QAction
     act_print: QAction
     act_exit: QAction
+    act_size0: QAction
     act_o_p: QAction
+    act_go_1st: QAction
+    act_go_prev: QAction
+    act_go_next: QAction
+    act_go_last: QAction
 
     def __init__(self):
         super().__init__()
@@ -235,34 +225,46 @@ class MainWindow(QMainWindow):
         self.__printer = self.PdfPrinter()
         self.__print_preview = PDFOutPreviewDialog(self.__printer)
         self.__mk_actions()
+        self.__mk_menu()
+        self.__mk_toolbar()
 
     def __mk_actions(self):
         # grouping
-        self.act_o_p = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+O",
-                               checkable=True, toggled=self.view.slot_set_portrait)
         self.act_view = QAction(QIcon.fromTheme("view-fullscreen"), "&View", self, shortcut="Ctrl+V",
                                 checkable=True, toggled=self.view.setVisible)
-        # menu
+        self.act_print = QAction(QIcon.fromTheme("document-print-preview"), "&Print", self, shortcut="Ctrl+P",
+                                 triggered=self.__print_preview.exec_)
+        self.act_exit = QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
+                                triggered=self.close)
+        self.act_size0 = QAction(QIcon.fromTheme("zoom-original"), "Original size", self, shortcut="Ctrl+0",
+                                 triggered=self.view.slot_reset_size)
+        self.act_o_p = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+O",
+                               checkable=True, toggled=self.view.slot_set_portrait)
+        self.act_go_1st = QAction(QIcon.fromTheme("go-first"), "1st page", self, shortcut="Ctrl+Up",
+                                  triggered=self.view.slot_p_1st)
+        self.act_go_prev = QAction(QIcon.fromTheme("go-previous"), "Prev. page", self, shortcut="Ctrl+Left",
+                                   triggered=self.view.slot_p_prev)
+        self.act_go_next = QAction(QIcon.fromTheme("go-next"), "Next page", self, shortcut="Ctrl+Right",
+                                   triggered=self.view.slot_p_next)
+        self.act_go_last = QAction(QIcon.fromTheme("go-last"), "Last page", self, shortcut="Ctrl+Down",
+                                   triggered=self.view.slot_p_last)
+
+    def __mk_menu(self):
         self.menuBar().setVisible(True)
         menu_file = self.menuBar().addMenu("&File")
         menu_file.addAction(self.act_view)
-        menu_file.addAction(QAction(QIcon.fromTheme("document-print-preview"), "&Print", self, shortcut="Ctrl+P",
-                                    triggered=self.__print_preview.exec_))
-        menu_file.addAction(QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
-                                    triggered=self.close))
+        menu_file.addAction(self.act_print)
+        menu_file.addAction(self.act_exit)
         menu_view = self.menuBar().addMenu("&View")
-        menu_view.addAction(QAction(QIcon.fromTheme("zoom-original"), "Original size", self, shortcut="Ctrl+0",
-                                    triggered=self.view.slot_reset_size))
+        menu_view.addAction(self.act_size0)
         menu_view.addAction(self.act_o_p)
-        menu_view.addAction(QAction(QIcon.fromTheme("go-first"), "1st page", self, shortcut="Ctrl+Up",
-                                    triggered=self.view.slot_p_1st))
-        menu_view.addAction(QAction(QIcon.fromTheme("go-previous"), "Prev. page", self, shortcut="Ctrl+Left",
-                                    triggered=self.view.slot_p_prev))
-        menu_view.addAction(QAction(QIcon.fromTheme("go-next"), "Next page", self, shortcut="Ctrl+Right",
-                                    triggered=self.view.slot_p_next))
-        menu_view.addAction(QAction(QIcon.fromTheme("go-last"), "Last page", self, shortcut="Ctrl+Down",
-                                    triggered=self.view.slot_p_last))
+        menu_view.addAction(self.act_go_1st)
+        menu_view.addAction(self.act_go_prev)
+        menu_view.addAction(self.act_go_next)
+        menu_view.addAction(self.act_go_last)
 
+    def __mk_toolbar(self):
+        ...
 
 def main() -> int:
     data_fill()

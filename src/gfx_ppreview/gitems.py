@@ -1,45 +1,14 @@
 """gfx_ppreview/gitems: QGraphicsItem successors"""
 # 1. std
-from typing import Union, List
-import math
+from typing import List
 # 2. 3rd
-from PyQt5.QtCore import QPointF, Qt, QRect, QRectF, QSize, QSizeF
+from PyQt5.QtCore import QPointF, Qt, QRectF, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT,  H_BOTTOM, H_HEADER
-from data import SAMPLES, TICS, DataValue
-
-
-# ---- Utility
-def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
-    if isinstance(size, QRectF):
-        v = size.size().toSize()
-    elif isinstance(size, QRect):
-        v = size.size()
-    elif isinstance(size, QSizeF):
-        v = size.toSize()
-    else:
-        v = size
-    return f"({v.width()}, {v.height()})"
-
-
-def mk_sin(o: int = 0) -> List[float]:
-    """
-    Make sinusoide graph coordinates. Y=0..1
-    :param o: Offset, points
-    :return: list of y (0..1)
-    """
-    return [(1 + math.sin((i + o) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
-
-
-def mk_meander(p: int) -> List[float]:
-    """Make meander. Starts from 0.
-    :param p: Period
-    """
-    p = p % SAMPLES or 1
-    return [int(i / p) % 2 for i in range(SAMPLES + 1)]
+from data import SAMPLES, TICS, DataValue, mk_sin, mk_meander
 
 
 class ThinPen(QPen):
