@@ -14,23 +14,6 @@ from data import SigSuitList
 from gitems import GraphView, GraphViewBase, PlotScene
 
 
-def data_split() -> List[int]:
-    """Split data to scene pieces (6/24).
-    :return: list of bar numbers
-    """
-    retvalue = list()
-    cur_num = cur_height = 0  # heigth of current piece in basic (B) units
-    for i, d in enumerate(SigSuitList):
-        h = 1 + int(d.is_bool) * 3
-        if cur_height + h > 24:
-            retvalue.append(cur_num)
-            cur_num = cur_height = 0
-        cur_num += 1
-        cur_height += h
-    retvalue.append(cur_num)
-    return retvalue
-
-
 class PlotBase(GraphViewBase):
     _portrait: bool
     _scene: List[PlotScene]
@@ -40,7 +23,7 @@ class PlotBase(GraphViewBase):
         self._portrait = PORTRAIT
         self._scene = list()
         i0 = 0
-        for k in data_split():
+        for k in self.__data_split(SigSuitList):
             self._scene.append(PlotScene(SigSuitList[i0:i0 + k], self))
             i0 += k
 
@@ -76,6 +59,22 @@ class PlotBase(GraphViewBase):
             for scene in self._scene:
                 scene.update_sizes()
             # self.slot_reset_size()  # optional
+
+    def __data_split(self, __dlist: SigSuitList) -> List[int]:
+        """Split data to scene pieces (6/24).
+        :return: list of bar numbers
+        """
+        retvalue = list()
+        cur_num = cur_height = 0  # heigth of current piece in basic (B) units
+        for i, d in enumerate(__dlist):
+            h = 1 + int(d.is_bool) * 3
+            if cur_height + h > 24:
+                retvalue.append(cur_num)
+                cur_num = cur_height = 0
+            cur_num += 1
+            cur_height += h
+        retvalue.append(cur_num)
+        return retvalue
 
 
 class PlotView(PlotBase):

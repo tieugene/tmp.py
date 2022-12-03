@@ -13,9 +13,11 @@ from data import SAMPLES, TICS, SigSuit, SigSuitList
 
 class ThinPen(QPen):
     """Non-scalable QPen"""
-    def __init__(self, color: Qt.GlobalColor):
+    def __init__(self, color: Qt.GlobalColor, style: Qt.PenStyle = None):
         super().__init__(color)
         self.setCosmetic(True)
+        if style is not None:
+            self.setStyle(style)
 
 
 # ---- QGraphicsItem ----
@@ -110,6 +112,7 @@ class RectTextItem(QGraphicsItemGroup):
 
 class GraphItem(QGraphicsPathItem):
     __y: List[float]
+    __zpen: QPen
 
     def __init__(self, d: SigSuit):
         super().__init__()
@@ -117,12 +120,21 @@ class GraphItem(QGraphicsPathItem):
         self.setPen(ThinPen(d.color))
         pp = QPainterPath()
         # default: x=0..SAMPLES, y=0..1
-        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))  # default
+        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))
         self.setPath(pp)
+        self.__zpen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         """For debug only"""
         super().paint(painter, option, widget)
+        # FIXME: tmp
+        painter.setPen(self.__zpen)
+        painter.drawLine(
+            option.rect.left(),
+            option.rect.center().y(),
+            option.rect.right(),
+            option.rect.center().y(),
+        )
         if DEBUG:
             painter.setPen(self.pen())
             painter.drawRect(option.rect)
@@ -186,6 +198,7 @@ class RowItem(QGraphicsItemGroup):
         self.__label = RectTextItem(d.name, d.color)
         self.__graph = GraphItem(d)
         self.__uline = QGraphicsLineItem()
+        self.__uline.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DashLine))
         self.__wide = d.is_bool
         # initial positions/sizes
         self.__label.set_width(W_LABEL)

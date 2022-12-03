@@ -13,7 +13,6 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] Y=0 line
   + [ ] Filled B-sig
   + [ ] V-shifted A-sig
   + [ ] Multisig
@@ -64,7 +63,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   - [x] Done: Tmp render
 - [x] Multisig bars:
   + [x] Data classed
-
+  + [x] Y=0 line (signal, tmp)
 - Options:
   + [x] MW.toolbar
 
