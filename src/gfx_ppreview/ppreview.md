@@ -12,10 +12,18 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - Size: 748×1130 (A4-10mm @ 100 dpi)
 
 ### ToDo:
-- [ ] TODO: PyQt6 complain
-- [ ] Find: render not call after 2+ `__init__()`
-- [ ] TODO: MW.toolbar
-- [ ] FIXME: QTableWidget's graphs too small
+- Multisig bars:
+  + [ ] Y=0 line
+  + [ ] Filled B-sig
+  + [ ] V-shifted A-sig
+  + [ ] Multisig
+  + [ ] Bar v-gaps/pads
+- Options:
+  + [ ] TODO: MW.toolbar
+  + [ ] FIXME: too high (overlaped bottom)
+  + [ ] TODO: PyQt6 complain
+  + [ ] FIXME: render not call after 2+ `__init__()`
+  + [ ] FIXME: QTableWidget's graphs too small
 
 ### Done:
 - [x] Label cut

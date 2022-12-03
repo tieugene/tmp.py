@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gfx_preview 1/3: main module.
+"""gfx_preview/main: main module.
 Test of rescaling print + multipage print."""
 # 1. std
 import sys
@@ -9,8 +9,9 @@ from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut
 # 3. local
-from gfx_ppreview_const import PORTRAIT, AUTOFILL, SAMPLES, SIGNALS, DATA, W_PAGE, H_ROW_BASE, DATA_PREDEF, COLORS
-from gfx_ppreview_widgets import GraphView, GraphViewBase, PlotScene
+from consts import PORTRAIT, W_PAGE, H_ROW_BASE, COLORS
+from data import AUTOFILL, SAMPLES, SIGNALS, DATA_PREDEF, DATA
+from gitems import GraphView, GraphViewBase, PlotScene
 
 
 def data_fill():
@@ -223,6 +224,8 @@ class MainWindow(QMainWindow):
     __print_preview: PDFOutPreviewDialog
     # actionas
     act_view: QAction
+    act_print: QAction
+    act_exit: QAction
     act_o_p: QAction
 
     def __init__(self):

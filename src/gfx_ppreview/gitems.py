@@ -1,4 +1,4 @@
-"""gfx_ppreview 2/3: widgets"""
+"""gfx_ppreview/gitems: QGraphicsItem successors"""
 # 1. std
 from typing import Union, List
 import math
@@ -8,7 +8,8 @@ from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem
 # 3. local
-from gfx_ppreview_const import DEBUG, SAMPLES, FONT_MAIN, DataValue, W_LABEL, HEADER_TXT,  H_BOTTOM, H_HEADER, TICS
+from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT,  H_BOTTOM, H_HEADER
+from data import SAMPLES, TICS, DataValue
 
 
 # ---- Utility
