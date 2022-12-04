@@ -242,9 +242,9 @@ class RowItem(QGraphicsItemGroup):
     def update_size(self):
         w = self.__plot.w_full - W_LABEL
         h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
-        self.__label.set_height(h)
-        self.__graph.set_size(QSizeF(w, h))
-        self.__uline.setLine(0, h, self.__plot.w_full, h)
+        self.__label.set_height(h-1)
+        self.__graph.set_size(QSizeF(w, h-1))
+        self.__uline.setLine(0, h-1, self.__plot.w_full, h-1)
 
 
 class TableCanvas(QGraphicsItemGroup):

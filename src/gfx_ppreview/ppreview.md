@@ -16,12 +16,11 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [ ] Multisig
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
-  + [ ] FIXME: View: signals too high (overlap bottom)
   + [ ] FIXME: QTableWidget: graphs too small
-  + [ ] TODO: PyQt6 complain
   + [ ] FIXME: Render: not call after 2+ `__init__()`
   + [ ] TODO: RectTextItem: rm rect (use .shear())
   + [ ] Try: transform
+  + [ ] PyQt6 complain
 
 ### Done:
 - [x] Label cut
@@ -68,6 +67,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [x] V-shifted A-sig
 - Options:
   + [x] MW.toolbar
+  + [x] Fixed: View/Print: signals too high (overlap bottom)
 
 ## RTFM:
 
