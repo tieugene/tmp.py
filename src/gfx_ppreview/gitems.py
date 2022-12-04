@@ -142,16 +142,12 @@ class AGraphItem(QGraphicsPathItem):
     def set_size(self, s: QSizeF):
         """
         :param s: Dest size of graph (e.g. 1077 x 28/112 for Landscape
-        :todo: X/Y-transform (X-scale + Y-shift|norm|scale
         """
         self.prepareGeometryChange()  # not helps
-        # self.setScale()
-        # return
         # - prepare: X-scale factor, Y-shift, Y-scale factor
         kx = s.width() / (len(self.__y) - 1)  # 13-1=12
         ky = s.height() / (max(self.__y) - min(self.__y))
         self.__y0px = round(-min(self.__y) * ky)
-        # - transform
         pp = self.path()
         for i in range(pp.elementCount()):
             pp.setElementPositionAt(i, i * kx, self.__y[i] * ky + self.__y0px)
@@ -177,7 +173,6 @@ class BGraphItem(QGraphicsPolygonItem):
         self.__set_size(s.width() / (len(self.__y) - 1), s.height())
 
     def __set_size(self, kx: float, ky: float):
-        # TODO: X/Y-scale
         point_list = [QPointF(x * kx, y * ky) for x, y in enumerate(self.__y)]
         if int(self.__y[0]) == 0:  # always start with 0
             point_list.insert(0, QPointF(0, ky))

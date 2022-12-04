@@ -16,10 +16,12 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [ ] Multisig
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
-  + [ ] TODO: PyQt6 complain
-  + [ ] FIXME: Render: not call after 2+ `__init__()`
   + [ ] FIXME: View: signals too high (overlap bottom)
   + [ ] FIXME: QTableWidget: graphs too small
+  + [ ] TODO: PyQt6 complain
+  + [ ] FIXME: Render: not call after 2+ `__init__()`
+  + [ ] TODO: RectTextItem: rm rect (use .shear())
+  + [ ] Try: transform
 
 ### Done:
 - [x] Label cut
