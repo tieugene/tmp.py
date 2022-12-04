@@ -33,24 +33,24 @@ TICS = {  # scale tics {sample_no: text}
     5: 456,
     SAMPLES * 0.98: 789
 }
-# is_bool, name, color, offset(A)/period(B)  # TODO: h-offset/h-offset [0..SAMPLES], v-offset[0..9]/period[1...]
+# is_bool, name, color, h-offset/h-offset [0..SAMPLES], v-offset(%)/half-period[1+]
 _DataSource = Tuple[bool, str, Qt.GlobalColor, int, int]
 DATA_PREDEF = (
     (False, "Signal 1", Qt.GlobalColor.black, 0, 0),
     (True, "Signal 2b", Qt.GlobalColor.red, 1, 1),
-    (False, "Signal 3aa", Qt.GlobalColor.blue, 2, 1),
+    (False, "Signal 3aa", Qt.GlobalColor.blue, 2, 50),
     (True, "Signal 4bbb", Qt.GlobalColor.green, 0, 2),
-    (False, "Signal 5aaaa", Qt.GlobalColor.magenta, 4, 0),
+    (False, "Signal 5aaaa", Qt.GlobalColor.magenta, 4, -50),
     (True, "Signal 6b", Qt.GlobalColor.darkYellow, 2, 2),
-    (False, "Signal 10", Qt.GlobalColor.cyan, 6, 3),
-    (False, "Signal 11", Qt.GlobalColor.darkGreen, 7, 4),
-    (False, "Signal 12", Qt.GlobalColor.darkMagenta, 8, 5),
-    (False, "Signal 13", Qt.GlobalColor.darkBlue, 9, 6),
+    (False, "Signal 10", Qt.GlobalColor.cyan, 6, 90),
+    (False, "Signal 11", Qt.GlobalColor.darkGreen, 7, -90),
+    (False, "Signal 12", Qt.GlobalColor.darkMagenta, 8, 0),
+    (False, "Signal 13", Qt.GlobalColor.darkBlue, 9, 0),
 )
 
 
 @dataclass
-class SigSuit:
+class SigSuit:  # TODO: => ASigSuit + BSigSuit
     is_bool: bool
     name: str
     color: Qt.GlobalColor
@@ -70,12 +70,13 @@ def __data_fill():
         import random
         random.seed()
         for __i in range(SIGNALS):
+            __is_bool = bool(random.randint(0, 1))
             yield (
-                bool(random.randint(0, 1)),
+                __is_bool,
                 f"Signal {__i}",
                 _COLORS[random.randint(0, len(_COLORS) - 1)],
                 random.randint(0, SAMPLES - 1),
-                random.randint(0, 9),
+                random.randint(0, 9) if __is_bool else random.randint(-90, 90),
             )
 
     def __mk_sin(ho: int, vo: int) -> List[float]:
@@ -85,7 +86,7 @@ def __data_fill():
         :param vo: V-Offset, %x10
         :return: list of y (0..1)
         """
-        return [(1 + math.sin((i + ho) * 2 * math.pi / SAMPLES)) / 2 for i in range(SAMPLES + 1)]
+        return [(math.sin((i + ho) * 2 * math.pi / SAMPLES)) + vo / 100 for i in range(SAMPLES + 1)]
 
     def __mk_meander(ho: int, hp: int) -> List[float]:
         """Make meander. Starts from 0.

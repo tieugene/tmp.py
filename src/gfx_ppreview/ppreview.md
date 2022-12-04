@@ -13,11 +13,10 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] V-shifted A-sig
+  + [ ] FIXME: signals too high (overlap bottom)
   + [ ] Multisig
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
-  + [ ] FIXME: too high (overlaped bottom)
   + [ ] TODO: PyQt6 complain
   + [ ] FIXME: render not call after 2+ `__init__()`
   + [ ] FIXME: QTableWidget's graphs too small
@@ -64,6 +63,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [x] Data classed
   + [x] Y=0 line (signal, tmp)
   + [x] Filled B-sig
+  + [x] V-shifted A-sig
 - Options:
   + [x] MW.toolbar
 

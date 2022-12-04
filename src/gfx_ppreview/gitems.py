@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
 from data import SAMPLES, TICS, SigSuit, SigSuitList
+from utils import qsize2str
 
 
 class ThinPen(QPen):
@@ -114,12 +115,14 @@ class RectTextItem(QGraphicsItemGroup):
 
 class AGraphItem(QGraphicsPathItem):
     __y: List[float]
-    __zpen: QPen
+    __y0: float
+    __y0pen: QPen
 
     def __init__(self, d: SigSuit):
         super().__init__()
-        self.__y = [1 - v for v in d.value]
-        self.__zpen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
+        self.__y = [-v for v in d.value]
+        self.__y0px = 0  # current Y=0, px
+        self.__y0pen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
         self.setPen(ThinPen(d.color))
         pp = QPainterPath()
         pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))   # default: x=0..SAMPLES, y=0..1
@@ -129,30 +132,29 @@ class AGraphItem(QGraphicsPathItem):
         """For debug only"""
         super().paint(painter, option, widget)
         # FIXME: tmp
-        painter.setPen(self.__zpen)
-        painter.drawLine(
-            option.rect.left(),
-            option.rect.center().y(),
-            option.rect.right(),
-            option.rect.center().y(),
-        )
+        painter.setPen(self.__y0pen)
+        # print(option.rect.left(), option.rect.right(), option.rect.top(), option.rect.bottom())
+        painter.drawLine(option.rect.left(), self.__y0px, option.rect.right(), self.__y0px)
         if DEBUG:
             painter.setPen(self.pen())
             painter.drawRect(option.rect)
 
     def set_size(self, s: QSizeF):
         """
-        L: s=(1077 x 28/112)
-        :param s: Size of graph
-        :return:
+        :param s: Dest size of graph (e.g. 1077 x 28/112 for Landscape
+        :todo: X/Y-transform (X-scale + Y-shift|norm|scale
         """
         self.prepareGeometryChange()  # not helps
         # self.setScale()
         # return
+        # - prepare: X-scale factor, Y-shift, Y-scale factor
+        kx = s.width() / (len(self.__y) - 1)  # 13-1=12
+        ky = s.height() / (max(self.__y) - min(self.__y))
+        self.__y0px = round(-min(self.__y) * ky)
+        # - transform
         pp = self.path()
-        step = s.width() / (pp.elementCount() - 1)
         for i in range(pp.elementCount()):
-            pp.setElementPositionAt(i, i * step, self.__y[i] * s.height())
+            pp.setElementPositionAt(i, i * kx, self.__y[i] * ky + self.__y0px)
         self.setPath(pp)
 
 
@@ -175,6 +177,7 @@ class BGraphItem(QGraphicsPolygonItem):
         self.__set_size(s.width() / (len(self.__y) - 1), s.height())
 
     def __set_size(self, kx: float, ky: float):
+        # TODO: X/Y-scale
         point_list = [QPointF(x * kx, y * ky) for x, y in enumerate(self.__y)]
         if int(self.__y[0]) == 0:  # always start with 0
             point_list.insert(0, QPointF(0, ky))
