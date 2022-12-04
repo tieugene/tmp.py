@@ -36,16 +36,16 @@ TICS = {  # scale tics {sample_no: text}
 # is_bool, name, color, h-offset/h-offset [0..SAMPLES], v-offset(%)/half-period[1+]
 _DataSource = Tuple[bool, str, Qt.GlobalColor, int, int]
 DATA_PREDEF = (
-    (False, "Signal 1", Qt.GlobalColor.black, 0, 0),
-    (True, "Signal 2b", Qt.GlobalColor.red, 1, 1),
-    (False, "Signal 3aa", Qt.GlobalColor.blue, 2, 50),
-    (True, "Signal 4bbb", Qt.GlobalColor.green, 0, 2),
-    (False, "Signal 5aaaa", Qt.GlobalColor.magenta, 4, -50),
-    (True, "Signal 6b", Qt.GlobalColor.darkYellow, 2, 2),
-    (False, "Signal 10", Qt.GlobalColor.cyan, 6, 90),
-    (False, "Signal 11", Qt.GlobalColor.darkGreen, 7, -90),
-    (False, "Signal 12", Qt.GlobalColor.darkMagenta, 8, 0),
-    (False, "Signal 13", Qt.GlobalColor.darkBlue, 9, 0),
+    (False, "Sig 1", Qt.GlobalColor.black, 0, 0),
+    (True, "Sign 2 b", Qt.GlobalColor.red, 1, 1),
+    (False, "Sig 3 aa", Qt.GlobalColor.blue, 2, 50),
+    (True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2),
+    (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50),
+    (True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2),
+    (False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90),
+    (True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, -90),
+    (False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, 0),
+    (False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0),
 )
 
 

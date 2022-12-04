@@ -13,13 +13,13 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] FIXME: signals too high (overlap bottom)
   + [ ] Multisig
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
   + [ ] TODO: PyQt6 complain
-  + [ ] FIXME: render not call after 2+ `__init__()`
-  + [ ] FIXME: QTableWidget's graphs too small
+  + [ ] FIXME: Render: not call after 2+ `__init__()`
+  + [ ] FIXME: View: signals too high (overlap bottom)
+  + [ ] FIXME: QTableWidget: graphs too small
 
 ### Done:
 - [x] Label cut

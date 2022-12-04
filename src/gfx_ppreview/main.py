@@ -60,14 +60,15 @@ class PlotBase(GraphViewBase):
                 scene.update_sizes()
             # self.slot_reset_size()  # optional
 
-    def __data_split(self, __dlist: SigSuitList) -> List[int]:
+    @staticmethod
+    def __data_split(__dlist: SigSuitList) -> List[int]:
         """Split data to scene pieces (6/24).
         :return: list of bar numbers
         """
         retvalue = list()
         cur_num = cur_height = 0  # heigth of current piece in basic (B) units
         for i, d in enumerate(__dlist):
-            h = 1 + int(d.is_bool) * 3
+            h = 1 + int(not d.is_bool) * 3
             if cur_height + h > 24:
                 retvalue.append(cur_num)
                 cur_num = cur_height = 0
