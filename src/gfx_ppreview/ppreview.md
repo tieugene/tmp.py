@@ -68,6 +68,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - Options:
   + [x] MW.toolbar
   + [x] Fixed: View/Print: signals too high (overlap bottom)
+  + [ ] Fixed: View/Print: bad y0 if max < 0 or min > 0
 
 ## RTFM:
 
@@ -76,3 +77,14 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - [disable transform](https://stackoverflow.com/questions/1222914/qgraphicsview-and-qgraphicsitem-don%C2%B4t-scale-item-when-scaling-the-view-rect)
 - [Scene border](https://www.qtcentre.org/threads/13814-how-to-enable-borders-in-QGraphicsScene)
 - [Tic align](https://www.qtcentre.org/threads/51168-QGraphicsTextItem-center-based-coordinates)
+
+## 20221204. Multisig
+
+For each bar:
+
+- get all signals
+- normalize each signal (-1..+1):
+  + B: as is
+  + A: Ymin &le; 0, Ymax &ge; 0
+- Y0=0
+- on set_size() normalize all signals to 0..MAX

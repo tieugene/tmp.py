@@ -1,10 +1,11 @@
 """gfx_ppreview/data: data source"""
 # 1. std
-from typing import Tuple, List, Iterator
+from typing import Tuple, List, Iterator, Union
 from dataclasses import dataclass
 import math
 # 2. 3rd
 from PyQt5.QtCore import Qt
+
 # 3. local
 # x. consts
 AUTOFILL = False
@@ -43,25 +44,58 @@ DATA_PREDEF = (
     (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50),
     (True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2),
     (False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90),
-    (True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, -90),
-    (False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, 0),
+    (True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0),
+    (False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200),
     (False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0),
 )
 
 
 @dataclass
-class SigSuit:  # TODO: => ASigSuit + BSigSuit
-    is_bool: bool
+class SigSuitBase:
+    """
+    :note: Adjusted values: max >= 0, min <= 0
+    :note: n* members are for 'normalized' adjusted values (nmax - nmin = 1 const)
+    """
     name: str
     color: Qt.GlobalColor
-    value: list[float]
 
 
-SigSuitList: List[SigSuit] = list()
+@dataclass
+class ASigSuit(SigSuitBase):
+    value: List[float]
+    is_bool: bool = False
+
+    @property
+    def amin(self) -> float:
+        return min(0, min(self.value))
+
+    @property
+    def amax(self) -> float:
+        return max(0, max(self.value))
+
+    @property
+    def nvalue(self) -> List[float]:
+        return [v / (self.amax - self.amin) for v in self.value]
+
+
+@dataclass
+class BSigSuit(SigSuitBase):
+    value: List[int]
+    is_bool: bool = True
+
+    @property
+    def nvalue(self) -> List[float]:
+        return [v * 2 / 3 for v in self.value]
+
+
+USigSuit = Union[ASigSuit, BSigSuit]
+
+SigSuitList: List[USigSuit] = list()
 
 
 def __data_fill():
     """Fill data with predefined or auto"""
+
     def __gen_predef() -> Iterator[_DataSource]:  # generator of predefined data
         for __d in DATA_PREDEF:
             yield __d
@@ -88,21 +122,27 @@ def __data_fill():
         """
         return [(math.sin((i + ho) * 2 * math.pi / SAMPLES)) + vo / 100 for i in range(SAMPLES + 1)]
 
-    def __mk_meander(ho: int, hp: int) -> List[float]:
+    def __mk_meander(ho: int, hp: int) -> List[int]:
         """Make meander. Starts from 0.
         :param ho: H-Offset, tics
         :param hp: Half-Period, tics
         """
         hp = hp % SAMPLES or 1  # Deviding by 0 protection
-        return [int((i+ho) / hp) % 2 for i in range(SAMPLES + 1)]
+        return [int((i + ho) / hp) % 2 for i in range(SAMPLES + 1)]
 
     for d in __gen_random() if AUTOFILL else __gen_predef():
-        SigSuitList.append(SigSuit(
-            is_bool=d[0],
-            name=d[1],
-            color=d[2],
-            value=__mk_meander(d[3], d[4]) if d[0] else __mk_sin(d[3], d[4])
-        ))
+        if d[0]:
+            SigSuitList.append(BSigSuit(
+                name=d[1],
+                color=d[2],
+                value=__mk_meander(d[3], d[4])
+            ))
+        else:
+            SigSuitList.append(ASigSuit(
+                name=d[1],
+                color=d[2],
+                value=__mk_sin(d[3], d[4])
+            ))
 
 
 if not SigSuitList:

@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
-from data import SAMPLES, TICS, SigSuit, SigSuitList
-from utils import qsize2str
+from data import SAMPLES, TICS, ASigSuit, BSigSuit, USigSuit, SigSuitList
+# from utils import qsize2str
 
 
 class ThinPen(QPen):
@@ -118,9 +118,9 @@ class AGraphItem(QGraphicsPathItem):
     __y0: float
     __y0pen: QPen
 
-    def __init__(self, d: SigSuit):
+    def __init__(self, d: ASigSuit):
         super().__init__()
-        self.__y = [-v for v in d.value]
+        self.__y = [-v for v in d.nvalue]
         self.__y0px = 0  # current Y=0, px
         self.__y0pen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
         self.setPen(ThinPen(d.color))
@@ -146,8 +146,8 @@ class AGraphItem(QGraphicsPathItem):
         self.prepareGeometryChange()  # not helps
         # - prepare: X-scale factor, Y-shift, Y-scale factor
         kx = s.width() / (len(self.__y) - 1)  # 13-1=12
-        ky = s.height() / (max(self.__y) - min(self.__y))
-        self.__y0px = round(-min(self.__y) * ky)
+        ky = s.height()
+        self.__y0px = round(-min(0, min(self.__y)) * ky)
         pp = self.path()
         for i in range(pp.elementCount()):
             pp.setElementPositionAt(i, i * kx, self.__y[i] * ky + self.__y0px)
@@ -157,7 +157,7 @@ class AGraphItem(QGraphicsPathItem):
 class BGraphItem(QGraphicsPolygonItem):
     __y: List[float]
 
-    def __init__(self, d: SigSuit):
+    def __init__(self, d: BSigSuit):
         super().__init__()
         self.__y = [1 - v * 2 / 3 for v in d.value]
         self.setPen(ThinPen(d.color))
@@ -194,7 +194,7 @@ class GraphViewBase(QGraphicsView):
 
 
 class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
-    def __init__(self, d: SigSuit):
+    def __init__(self, d: USigSuit):
         super().__init__()
         self.setScene(QGraphicsScene())
         self.scene().addItem(BGraphItem(d) if d.is_bool else AGraphItem(d))
@@ -220,7 +220,7 @@ class RowItem(QGraphicsItemGroup):
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
-    def __init__(self, d: SigSuit, plot: 'PlotBase'):
+    def __init__(self, d: USigSuit, plot: 'PlotBase'):
         super().__init__()
         self.__plot = plot
         self.__label = RectTextItem(d.name, d.color)
