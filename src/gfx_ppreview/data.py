@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import math
 # 2. 3rd
 from PyQt5.QtCore import Qt
+# 3. local
+from utils import gc2str
 
 # 3. local
 # x. consts
@@ -120,6 +122,21 @@ BarSuit = List[USigSuitType]  # FIXME: mk class
 BarSuitListType = List[BarSuit]
 BarSuitList: BarSuitListType = list()
 
+
+def bs_is_bool(bs: BarSuit):
+    """Check BarSuit is pure B"""
+    for ss in bs:
+        if not ss.is_bool:
+            return False
+    return True
+
+
+def bs_to_html(bs: BarSuit):
+    # FIXME: ''.join([...])
+    lbl = ''
+    for ss in bs:
+        lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
+    return lbl
 
 def __data_fill():
     """Fill data with predefined or auto"""

@@ -18,7 +18,6 @@ def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
 
 def gc2str(c: Qt.GlobalColor) -> str:
     """
-
     :param c: Global color
     :return: HTML-compatible string representation
     """

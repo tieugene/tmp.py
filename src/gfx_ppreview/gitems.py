@@ -1,17 +1,19 @@
 """gfx_ppreview/gitems: QGraphicsItem successors"""
 # 1. std
-from typing import List, Union
+from typing import List
 # 2. 3rd
 from PyQt5.QtCore import QPointF, Qt, QRectF, QSizeF
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter, QBrush
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
-    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem
+    QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem, \
+    QGraphicsTextItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
-from data import SAMPLES, TICS, ASigSuit, BSigSuit, USigSuitType, SigSuitList, BarSuit
+from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitListType, bs_is_bool, bs_to_html
 # from utils import qsize2str
 
 
+# ---- Shortcuts ----
 class ThinPen(QPen):
     """Non-scalable QPen"""
 
@@ -199,17 +201,14 @@ class BarGraphView(GraphViewBase):
     """# <= QAbstractScrollArea <= QFrame
     Used in: main.TableView
     """
-    class Y0LineItem(QGraphicsLineItem):
-        def __init__(self):
-            super().__init__(0, 0, SAMPLES, 0)
-            self.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DotLine))
-
     def __init__(self, bs: BarSuit):
         super().__init__()
         self.setScene(QGraphicsScene())
         for ss in bs:
             self.scene().addItem(BGraphItem(ss) if ss.is_bool else AGraphItem(ss))
-        self.scene().addItem(self.Y0LineItem())
+        y0item = QGraphicsLineItem(0, 0, SAMPLES, 0)
+        y0item.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DotLine))
+        self.scene().addItem(y0item)
 
 
 # ---- Containers
@@ -227,38 +226,58 @@ class HeaderItem(RectTextItem):
 
 class BarLabelItem(QGraphicsItemGroup):
     """Label part of signal bar"""
+    __txt: QGraphicsTextItem
+
     def __init__(self, bs: BarSuit):
         super().__init__()
+        self.__txt = QGraphicsTextItem()
+        self.__txt.setFont(FONT_MAIN)
+        self.__txt.setHtml(bs_to_html(bs))
+        self.addToGroup(self.__txt)
+        # RectTextItem(d.name, d.color)
 
     def boundingRect(self) -> QRectF:  # update_size() fix
         return self.childrenBoundingRect()
+
+    def set_width(self, w: int):
+        ...
+
+    def set_size(self, s: QSizeF):
+        ...
 
 
 class BarGraphItem(QGraphicsItemGroup):
     """Graph part of signal bar"""
     def __init__(self, bs: BarSuit):
         super().__init__()
+        # BGraphItem(d) if d.is_bool else AGraphItem(d)
 
     def boundingRect(self) -> QRectF:  # update_size() fix
         return self.childrenBoundingRect()
+
+    def set_size(self, s: QSizeF):
+        ...
 
 
 class RowItem(QGraphicsItemGroup):
     """For View/Print"""
     __plot: 'PlotBase'  # ref to father
-    __label: RectTextItem  # left side
-    __graph: Union[AGraphItem, BGraphItem]  # right side
+    __label: BarLabelItem  # left side
+    __graph: BarGraphItem  # right side
+    __y0line: QGraphicsLineItem  # Y=0 line
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
-    def __init__(self, d: USigSuitType, plot: 'PlotBase'):
+    def __init__(self, bs: BarSuit, plot: 'PlotBase'):
         super().__init__()
         self.__plot = plot
-        self.__label = RectTextItem(d.name, d.color)
-        self.__graph = BGraphItem(d) if d.is_bool else AGraphItem(d)
+        self.__label = BarLabelItem(bs)
+        self.__graph = BarGraphItem(bs)
+        self.__y0line = QGraphicsLineItem()
+        self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
         self.__uline = QGraphicsLineItem()
         self.__uline.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DashLine))
-        self.__wide = not d.is_bool
+        self.__wide = not bs_is_bool(bs)
         # initial positions/sizes
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
@@ -273,8 +292,10 @@ class RowItem(QGraphicsItemGroup):
     def update_size(self):
         w = self.__plot.w_full - W_LABEL
         h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
-        self.__label.set_height(h-1)
-        self.__graph.set_size(QSizeF(w, h-1))
+        s = QSizeF(w, h-1)
+        self.__label.set_size(s)
+        self.__graph.set_size(s)
+        self.__y0line.setLine(0, h/2, self.__plot.w_full, h/2)
         self.__uline.setLine(0, h-1, self.__plot.w_full, h-1)
 
 
@@ -364,12 +385,12 @@ class TablePayload(QGraphicsItemGroup):
 
     """Just rows with underlines"""
 
-    def __init__(self, dlist: SigSuitList, plot: 'PlotBase'):
+    def __init__(self, bslist: BarSuitListType, plot: 'PlotBase'):
         super().__init__()
         self.__rowitem = list()
         y = 0
-        for d in dlist:
-            item = RowItem(d, plot)
+        for bs in bslist:
+            item = RowItem(bs, plot)
             item.setY(y)
             y += item.boundingRect().height()
             self.__rowitem.append(item)
@@ -390,10 +411,10 @@ class PlotScene(QGraphicsScene):
     __canvas: TableCanvas
     __payload: TablePayload
 
-    def __init__(self, data: SigSuitList, plot: 'PlotBase'):
+    def __init__(self, bslist: BarSuitListType, plot: 'PlotBase'):
         super().__init__()
         self.__canvas = TableCanvas(plot)
-        self.__payload = TablePayload(data, plot)
+        self.__payload = TablePayload(bslist, plot)
         self.__payload.setY(H_HEADER)
         self.addItem(self.__canvas)
         self.addItem(self.__payload)

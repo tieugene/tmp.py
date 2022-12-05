@@ -9,28 +9,26 @@ from PyQt5.QtCore import Qt
 # 2. 3rd
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, QToolBar, \
-    QGraphicsScene, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import SigSuitList, BarSuitList, BarSuitListType, BarSuit
+from data import BarSuitList, BarSuitListType, BarSuit, bs_is_bool, bs_to_html
 from gitems import BarGraphView, GraphViewBase, PlotScene
 from utils import gc2str
 
 
 class PlotBase(GraphViewBase):
+    """Used in: PlotView, PlotPrint"""
     _portrait: bool
     _scene: List[PlotScene]
 
-    def __init__(self):
+    def __init__(self, bslist: BarSuitListType):
         super().__init__()
         self._portrait = PORTRAIT
         self._scene = list()
-        self._scene.append(QGraphicsScene())  # FIXME: stub
-        return  # FIXME: stub
         i0 = 0
-        for k in self.__data_split(SigSuitList):
-            self._scene.append(PlotScene(SigSuitList[i0:i0 + k], self))
+        for k in self.__data_split(bslist):
+            self._scene.append(PlotScene(bslist[i0:i0 + k], self))
             i0 += k
 
     @property
@@ -67,14 +65,14 @@ class PlotBase(GraphViewBase):
             # self.slot_reset_size()  # optional
 
     @staticmethod
-    def __data_split(__dlist: SigSuitList) -> List[int]:
+    def __data_split(__bslist: BarSuitListType) -> List[int]:
         """Split data to scene pieces (6/24).
         :return: list of bar numbers
         """
         retvalue = list()
         cur_num = cur_height = 0  # heigth of current piece in basic (B) units
-        for i, d in enumerate(__dlist):
-            h = 1 + int(not d.is_bool) * 3
+        for i, bs in enumerate(__bslist):
+            h = 1 + int(not bs_is_bool(bs)) * 3
             if cur_height + h > 24:
                 retvalue.append(cur_num)
                 cur_num = cur_height = 0
@@ -96,8 +94,8 @@ class PlotView(PlotBase):
     __sc_p_next: QShortcut
     __sc_p_last: QShortcut
 
-    def __init__(self, father: 'MainWindow'):
-        super().__init__()
+    def __init__(self, bslist: BarSuitListType, father: 'MainWindow'):
+        super().__init__(bslist)
         self._father = father
         self.__set_scene(0)
         # shortcuts
@@ -154,8 +152,8 @@ class PlotPrint(PlotBase):
     """
     :todo: just scene container; can be replaced with QObject
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, bslist: BarSuitListType):
+        super().__init__(bslist)
         # print("Render__init__")
 
     def slot_paint_request(self, printer: QPrinter):
@@ -181,7 +179,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
         :todo: mk render | connect | exec | disconnect | del render
         """
-        rnd = PlotPrint()
+        rnd = PlotPrint(BarSuitList)
         self.paintRequested.connect(rnd.slot_paint_request)
         retvalue = super().exec_()
         self.paintRequested.disconnect(rnd.slot_paint_request)  # not helps
@@ -193,10 +191,7 @@ class TableView(QTableWidget):
     class MultisigLabel(QLabel):
         def __init__(self, bs: BarSuit):
             super().__init__()
-            lbl = ''
-            for ss in bs:
-                lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
-            self.setText(lbl)
+            self.setText(bs_to_html(bs))
             self.setTextFormat(Qt.TextFormat.RichText)
 
     def __init__(self, bslist: BarSuitListType, parent: 'MainWindow'):
@@ -239,7 +234,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(TableView(BarSuitList, self))
         # self.layout().setContentsMargins(QMargins())
         # self.layout().setSpacing(0)
-        self.__view = PlotView(self)
+        self.__view = PlotView(BarSuitList, self)
         self.__printer = self.PdfPrinter()
         self.__print_preview = PDFOutPreviewDialog(self.__printer)
         self.__mk_actions()
