@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
     QGraphicsScene, QLabel
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import SigSuitList, BarSuitList, BarSuitListType
+from data import SigSuitList, BarSuitList, BarSuitListType, BarSuit
 from gitems import GraphView, GraphViewBase, PlotScene
 from utils import gc2str
 
@@ -190,6 +190,15 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
 
 
 class TableView(QTableWidget):
+    class MultisigLabel(QLabel):
+        def __init__(self, bs: BarSuit):
+            super().__init__()
+            lbl = ''
+            for ss in bs:
+                lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
+            self.setText(lbl)
+            self.setTextFormat(Qt.TextFormat.RichText)
+
     def __init__(self, bslist: BarSuitListType, parent: 'MainWindow'):
         super().__init__(parent)
         self.horizontalHeader().setStretchLastSection(True)
@@ -197,16 +206,8 @@ class TableView(QTableWidget):
         self.setColumnCount(2)
         # self.setContentsMargins(0, 0, 0, 0)
         for r, bs in enumerate(bslist):
-            lbl = ''
-            for ss in bs:
-                # 1. label side
-                lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
-                # 2. graph side
-            # 3. altogether
-            qlbl = QLabel(lbl)
-            qlbl.setTextFormat(Qt.TextFormat.RichText)
-            self.setCellWidget(r, 0, qlbl)
-            # self.setCellWidget(r, 1, GraphView(d))
+            self.setCellWidget(r, 0, self.MultisigLabel(bs))
+            # self.setCellWidget(r, 1, GraphView(bs))
 
 
 class MainWindow(QMainWindow):

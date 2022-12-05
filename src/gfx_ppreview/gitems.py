@@ -9,8 +9,6 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
 from data import SAMPLES, TICS, ASigSuit, BSigSuit, USigSuitType, SigSuitList, BarSuit
-
-
 # from utils import qsize2str
 
 
@@ -185,6 +183,8 @@ class BGraphItem(QGraphicsPolygonItem):
 
 # ---- QGraphicsView
 class GraphViewBase(QGraphicsView):
+    """Basic QGraphicsView parent (auto-resizing)
+    """
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)
@@ -195,7 +195,10 @@ class GraphViewBase(QGraphicsView):
         # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
 
 
-class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
+class GraphView(GraphViewBase):
+    """# <= QAbstractScrollArea <= QFrame
+    Used in: main.TableView
+    """
     def __init__(self, d: USigSuitType):
         super().__init__()
         self.setScene(QGraphicsScene())
