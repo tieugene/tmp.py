@@ -4,14 +4,18 @@ Test of rescaling print + multipage print."""
 # 1. std
 import sys
 from typing import List
+
+from PyQt5.QtCore import Qt
 # 2. 3rd
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, QToolBar
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, QToolBar, \
+    QGraphicsScene, QLabel
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import SigSuitList
+from data import SigSuitList, BarSuitList, BarSuitListType
 from gitems import GraphView, GraphViewBase, PlotScene
+from utils import gc2str
 
 
 class PlotBase(GraphViewBase):
@@ -22,6 +26,8 @@ class PlotBase(GraphViewBase):
         super().__init__()
         self._portrait = PORTRAIT
         self._scene = list()
+        self._scene.append(QGraphicsScene())  # FIXME: stub
+        return  # FIXME: stub
         i0 = 0
         for k in self.__data_split(SigSuitList):
             self._scene.append(PlotScene(SigSuitList[i0:i0 + k], self))
@@ -184,14 +190,23 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
 
 
 class TableView(QTableWidget):
-    def __init__(self, parent: 'MainWindow'):
+    def __init__(self, bslist: BarSuitListType, parent: 'MainWindow'):
         super().__init__(parent)
         self.horizontalHeader().setStretchLastSection(True)
-        self.setRowCount(len(SigSuitList))
+        self.setRowCount(len(bslist))
         self.setColumnCount(2)
-        for r, d in enumerate(SigSuitList):
-            self.setItem(r, 0, (QTableWidgetItem(d.name)))
-            self.setCellWidget(r, 1, GraphView(d))
+        # self.setContentsMargins(0, 0, 0, 0)
+        for r, bs in enumerate(bslist):
+            lbl = ''
+            for ss in bs:
+                # 1. label side
+                lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
+                # 2. graph side
+            # 3. altogether
+            qlbl = QLabel(lbl)
+            qlbl.setTextFormat(Qt.TextFormat.RichText)
+            self.setCellWidget(r, 0, qlbl)
+            # self.setCellWidget(r, 1, GraphView(d))
 
 
 class MainWindow(QMainWindow):
@@ -220,7 +235,9 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setCentralWidget(TableView(self))
+        self.setCentralWidget(TableView(BarSuitList, self))
+        # self.layout().setContentsMargins(QMargins())
+        # self.layout().setSpacing(0)
         self.__view = PlotView(self)
         self.__printer = self.PdfPrinter()
         self.__print_preview = PDFOutPreviewDialog(self.__printer)

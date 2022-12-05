@@ -16,9 +16,13 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [ ] Multisig
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
+  + [ ] TODO: extra checkboxes
+  + [ ] TODO: A-sig: amplitude definition
   + [ ] FIXME: QTableWidget: graphs too small
   + [ ] FIXME: Render: not call after 2+ `__init__()`
+  + [ ] TODO: tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
   + [ ] TODO: RectTextItem: rm rect (use .shear())
+     *([sample](https://www.qtcentre.org/threads/57322-Adding-HTML-code-into-QTableWidget-cells))*
   + [ ] Try: transform
   + [ ] PyQt6 complain
 
@@ -46,7 +50,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
     - [x] Tics
   + [x] TODO: Analog/Binary graphs
   + [x] TODO: initial autofill DATA
-  + [ ] Paging:
+  + [x] Paging:
     + [x] split data
     + [x] mk scenes
     + [x] set to 1st
@@ -88,3 +92,10 @@ For each bar:
   + A: Ymin &le; 0, Ymax &ge; 0
 - Y0=0
 - on set_size() normalize all signals to 0..MAX
+
+Ver.2:
+
+- paint all signals normalized
+- set_size():
+  + shift on ...
+  + resize by ordinar base

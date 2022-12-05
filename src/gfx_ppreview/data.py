@@ -8,9 +8,11 @@ from PyQt5.QtCore import Qt
 
 # 3. local
 # x. consts
-AUTOFILL = False
 SAMPLES = 12  # samples per signal
-SIGNALS = 50  # Number of signals for autofill
+__AUTOFILL = False
+__SIGNALS = 50  # Number of signals for autofill
+__AUTOBARS = 50  # Number of signal bars
+__SPB = 3  # max signal per bar
 _COLORS = (
     Qt.GlobalColor.black,
     Qt.GlobalColor.red,
@@ -37,21 +39,21 @@ TICS = {  # scale tics {sample_no: text}
 # is_bool, name, color, h-offset/h-offset [0..SAMPLES], v-offset(%)/half-period[1+]
 _DataSource = Tuple[bool, str, Qt.GlobalColor, int, int]
 DATA_PREDEF = (
-    (False, "Sig 1", Qt.GlobalColor.black, 0, 0),
-    (True, "Sign 2 b", Qt.GlobalColor.red, 1, 1),
-    (False, "Sig 3 aa", Qt.GlobalColor.blue, 2, 50),
-    (True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2),
-    (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50),
-    (True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2),
-    (False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90),
-    (True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0),
-    (False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200),
-    (False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0),
+    [(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],
+    [(True, "Sign 1.0 b", Qt.GlobalColor.red, 1, 1),
+     (False, "Sig 1.1 aa", Qt.GlobalColor.blue, 2, 50)],
+    [(True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2)],
+    [(False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)],
+    [(True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2)],
+    [(False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90)],
+    [(True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0)],
+    [(False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200)],
+    [(False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0)],
 )
 
 
 @dataclass
-class SigSuitBase:
+class _SigSuitBase:
     """
     :note: Adjusted values: max >= 0, min <= 0
     :note: n* members are for 'normalized' adjusted values (nmax - nmin = 1 const)
@@ -61,7 +63,7 @@ class SigSuitBase:
 
 
 @dataclass
-class ASigSuit(SigSuitBase):
+class ASigSuit(_SigSuitBase):
     value: List[float]
     is_bool: bool = False
 
@@ -74,44 +76,72 @@ class ASigSuit(SigSuitBase):
         return max(0, max(self.value))
 
     @property
+    def nmin(self) -> float:
+        ...
+
+    @property
+    def nmax(self) -> float:
+        ...
+
+    @property
+    def anmin(self) -> float:
+        ...
+
+    @property
+    def anmax(self) -> float:
+        ...
+
+    @property
     def nvalue(self) -> List[float]:
         return [v / (self.amax - self.amin) for v in self.value]
 
 
 @dataclass
-class BSigSuit(SigSuitBase):
+class BSigSuit(_SigSuitBase):
     value: List[int]
     is_bool: bool = True
+    amin: int = 0
+    nmin: int = 0
+    anmin: int = 0
+    amax: int = 1
+    nmax: int = 1
+    anmax: int = 1
 
     @property
     def nvalue(self) -> List[float]:
         return [v * 2 / 3 for v in self.value]
 
 
-USigSuit = Union[ASigSuit, BSigSuit]
-
-SigSuitList: List[USigSuit] = list()
+USigSuitType = Union[ASigSuit, BSigSuit]
+SigSuitListType = List[USigSuitType]  # FIXME: rm
+SigSuitList: SigSuitListType = list()  # FIXME: rm
+BarSuit = List[USigSuitType]  # FIXME: mk class
+BarSuitListType = List[BarSuit]
+BarSuitList: BarSuitListType = list()
 
 
 def __data_fill():
     """Fill data with predefined or auto"""
 
-    def __gen_predef() -> Iterator[_DataSource]:  # generator of predefined data
+    def __gen_predef() -> Iterator[List[_DataSource]]:  # generator of predefined data
         for __d in DATA_PREDEF:
             yield __d
 
-    def __gen_random() -> Iterator[_DataSource]:
+    def __gen_random() -> Iterator[List[_DataSource]]:
         import random
         random.seed()
-        for __i in range(SIGNALS):
-            __is_bool = bool(random.randint(0, 1))
-            yield (
-                __is_bool,
-                f"Signal {__i}",
-                _COLORS[random.randint(0, len(_COLORS) - 1)],
-                random.randint(0, SAMPLES - 1),
-                random.randint(0, 9) if __is_bool else random.randint(-90, 90),
-            )
+        for __bn in range(__AUTOBARS):
+            __bar = list()
+            for __sn in range(random.randint(1, __SPB)):
+                __is_bool = bool(random.randint(0, 1))
+                __bar.append((
+                    __is_bool,
+                    f"Sig {__bn}.{__sn}",
+                    _COLORS[random.randint(0, len(_COLORS) - 1)],
+                    random.randint(0, SAMPLES - 1),
+                    random.randint(0, 9) if __is_bool else random.randint(-90, 90),
+                ))
+            yield __bar
 
     def __mk_sin(ho: int, vo: int) -> List[float]:
         """
@@ -130,20 +160,24 @@ def __data_fill():
         hp = hp % SAMPLES or 1  # Deviding by 0 protection
         return [int((i + ho) / hp) % 2 for i in range(SAMPLES + 1)]
 
-    for d in __gen_random() if AUTOFILL else __gen_predef():
-        if d[0]:
-            SigSuitList.append(BSigSuit(
-                name=d[1],
-                color=d[2],
-                value=__mk_meander(d[3], d[4])
-            ))
-        else:
-            SigSuitList.append(ASigSuit(
-                name=d[1],
-                color=d[2],
-                value=__mk_sin(d[3], d[4])
-            ))
+    for b in __gen_random() if __AUTOFILL else __gen_predef():
+        bs = list()
+        for d in b:
+            if d[0]:
+                ss = BSigSuit(
+                    name=d[1],
+                    color=d[2],
+                    value=__mk_meander(d[3], d[4])
+                )
+            else:
+                ss = ASigSuit(
+                    name=d[1],
+                    color=d[2],
+                    value=__mk_sin(d[3], d[4])
+                )
+            bs.append(ss)
+        BarSuitList.append(bs)
 
 
-if not SigSuitList:
+if not BarSuitList:
     __data_fill()

@@ -8,7 +8,9 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
-from data import SAMPLES, TICS, ASigSuit, BSigSuit, USigSuit, SigSuitList
+from data import SAMPLES, TICS, ASigSuit, BSigSuit, USigSuitType, SigSuitList, BarSuit
+
+
 # from utils import qsize2str
 
 
@@ -60,7 +62,7 @@ class TCTextItem(TextItem):
         super().paint(painter, option, widget)
 
 
-class RectTextItem(QGraphicsItemGroup):
+class RectTextItem(QGraphicsItemGroup):  # FIXME: rm
     class ClipedTextITem(TextItem):
         def __init__(self, txt: str, color: Qt.GlobalColor = None):
             super().__init__(txt, color)
@@ -194,7 +196,7 @@ class GraphViewBase(QGraphicsView):
 
 
 class GraphView(GraphViewBase):  # <= QAbstractScrollArea <= QFrame
-    def __init__(self, d: USigSuit):
+    def __init__(self, d: USigSuitType):
         super().__init__()
         self.setScene(QGraphicsScene())
         self.scene().addItem(BGraphItem(d) if d.is_bool else AGraphItem(d))
@@ -213,14 +215,33 @@ class HeaderItem(RectTextItem):
         self.set_width(self.__plot.w_full)
 
 
+class BarLabelItem(QGraphicsItemGroup):
+    """Label part of signal bar"""
+    def __init__(self, bs: BarSuit):
+        super().__init__()
+
+    def boundingRect(self) -> QRectF:  # update_size() fix
+        return self.childrenBoundingRect()
+
+
+class BarGraphItem(QGraphicsItemGroup):
+    """Graph part of signal bar"""
+    def __init__(self, bs: BarSuit):
+        super().__init__()
+
+    def boundingRect(self) -> QRectF:  # update_size() fix
+        return self.childrenBoundingRect()
+
+
 class RowItem(QGraphicsItemGroup):
+    """For View/Print"""
     __plot: 'PlotBase'  # ref to father
     __label: RectTextItem  # left side
     __graph: Union[AGraphItem, BGraphItem]  # right side
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
-    def __init__(self, d: USigSuit, plot: 'PlotBase'):
+    def __init__(self, d: USigSuitType, plot: 'PlotBase'):
         super().__init__()
         self.__plot = plot
         self.__label = RectTextItem(d.name, d.color)
