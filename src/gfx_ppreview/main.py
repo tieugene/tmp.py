@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QT
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
 from data import SigSuitList, BarSuitList, BarSuitListType, BarSuit
-from gitems import GraphView, GraphViewBase, PlotScene
+from gitems import BarGraphView, GraphViewBase, PlotScene
 from utils import gc2str
 
 
@@ -207,7 +207,7 @@ class TableView(QTableWidget):
         # self.setContentsMargins(0, 0, 0, 0)
         for r, bs in enumerate(bslist):
             self.setCellWidget(r, 0, self.MultisigLabel(bs))
-            # self.setCellWidget(r, 1, GraphView(bs))
+            self.setCellWidget(r, 1, BarGraphView(bs))
 
 
 class MainWindow(QMainWindow):

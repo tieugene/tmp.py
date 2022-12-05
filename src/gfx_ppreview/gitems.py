@@ -132,9 +132,9 @@ class AGraphItem(QGraphicsPathItem):
         """For debug only"""
         super().paint(painter, option, widget)
         # FIXME: tmp
-        painter.setPen(self.__y0pen)
+        # painter.setPen(self.__y0pen)
         # print(option.rect.left(), option.rect.right(), option.rect.top(), option.rect.bottom())
-        painter.drawLine(option.rect.left(), self.__y0px, option.rect.right(), self.__y0px)
+        # painter.drawLine(option.rect.left(), self.__y0px, option.rect.right(), self.__y0px)
         if DEBUG:
             painter.setPen(self.pen())
             painter.drawRect(option.rect)
@@ -159,7 +159,7 @@ class BGraphItem(QGraphicsPolygonItem):
 
     def __init__(self, d: BSigSuit):
         super().__init__()
-        self.__y = [1 - v * 2 / 3 for v in d.value]
+        self.__y = [-v for v in d.nvalue]
         self.setPen(ThinPen(d.color))
         self.setBrush(QBrush(d.color, Qt.BrushStyle.Dense1Pattern))  #
         self.__set_size(1, 1)
@@ -195,14 +195,21 @@ class GraphViewBase(QGraphicsView):
         # Note: KeepAspectRatioByExpanding is extremally CPU-greedy
 
 
-class GraphView(GraphViewBase):
+class BarGraphView(GraphViewBase):
     """# <= QAbstractScrollArea <= QFrame
     Used in: main.TableView
     """
-    def __init__(self, d: USigSuitType):
+    class Y0LineItem(QGraphicsLineItem):
+        def __init__(self):
+            super().__init__(0, 0, SAMPLES, 0)
+            self.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DotLine))
+
+    def __init__(self, bs: BarSuit):
         super().__init__()
         self.setScene(QGraphicsScene())
-        self.scene().addItem(BGraphItem(d) if d.is_bool else AGraphItem(d))
+        for ss in bs:
+            self.scene().addItem(BGraphItem(ss) if ss.is_bool else AGraphItem(ss))
+        self.scene().addItem(self.Y0LineItem())
 
 
 # ---- Containers

@@ -13,6 +13,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
+  + [ ] FIXME: B-signal too thick
   + [ ] Multisig
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:

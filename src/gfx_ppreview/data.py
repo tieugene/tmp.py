@@ -40,8 +40,9 @@ TICS = {  # scale tics {sample_no: text}
 _DataSource = Tuple[bool, str, Qt.GlobalColor, int, int]
 DATA_PREDEF = (
     [(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],
-    [(True, "Sign 1.0 b", Qt.GlobalColor.red, 1, 1),
-     (False, "Sig 1.1 aa", Qt.GlobalColor.blue, 2, 50)],
+    [(True, "Sign 1.0 b", Qt.GlobalColor.red, 1, 1)],  # 1, 1
+    [(False, "Sig 2.0 a", Qt.GlobalColor.cyan, 0, 0),
+     (False, "Sig 2.1 a", Qt.GlobalColor.blue, 4, 50)],
     [(True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2)],
     [(False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)],
     [(True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2)],
