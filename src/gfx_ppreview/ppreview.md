@@ -14,7 +14,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
 ### ToDo:
 - [ ] Multisig bars:
   + [ ] FIXME: B-signal too thick
-  + [ ] Multisig
+  + [ ] BarGraphItem
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
   + [ ] TODO: extra checkboxes
@@ -70,6 +70,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [x] Y=0 line (signal, tmp)
   + [x] Filled B-sig
   + [x] V-shifted A-sig
+  + [ ] BarLabelItem
 - Options:
   + [x] MW.toolbar
   + [x] Fixed: View/Print: signals too high (overlap bottom)
