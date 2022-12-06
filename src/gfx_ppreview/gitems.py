@@ -3,14 +3,14 @@
 from typing import List, Union
 # 2. 3rd
 from PyQt5.QtCore import QPointF, Qt, QRectF, QSizeF
-from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter, QBrush
+from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter, QBrush, QTransform
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem, \
     QGraphicsTextItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
 from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitListType, bs_is_bool, bs_to_html
-# from utils import qsize2str
+from utils import qsize2str
 
 
 # ---- Shortcuts ----
@@ -105,13 +105,11 @@ class ClipedRichTextItem(RichTextItem):
 class AGraphItem(QGraphicsPathItem):
     __y: List[float]
     __y0: float
-    __y0pen: QPen
 
     def __init__(self, d: ASigSuit):
         super().__init__()
         self.__y = [-v for v in d.nvalue]
         self.__y0px = 0  # current Y=0, px
-        self.__y0pen = ThinPen(Qt.GlobalColor.darkGray, Qt.PenStyle.DotLine)  # FIXME: tmp
         self.setPen(ThinPen(d.color))
         pp = QPainterPath()
         pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))   # default: x=0..SAMPLES, y=0..1
@@ -120,13 +118,17 @@ class AGraphItem(QGraphicsPathItem):
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         """For debug only"""
         super().paint(painter, option, widget)
-        # FIXME: tmp
-        # painter.setPen(self.__y0pen)
-        # print(option.rect.left(), option.rect.right(), option.rect.top(), option.rect.bottom())
-        # painter.drawLine(option.rect.left(), self.__y0px, option.rect.right(), self.__y0px)
         if DEBUG:
             painter.setPen(self.pen())
             painter.drawRect(option.rect)
+
+    @property
+    def ymin(self) -> float:
+        return min(self.__y)
+
+    @property
+    def ymax(self) -> float:
+        return max(self.__y)
 
     def set_size(self, s: QSizeF):
         """
@@ -152,6 +154,14 @@ class BGraphItem(QGraphicsPolygonItem):
         self.setPen(ThinPen(d.color))
         self.setBrush(QBrush(d.color, Qt.BrushStyle.Dense1Pattern))  #
         self.__set_size(1, 1)
+
+    @property
+    def ymin(self) -> float:
+        return min(self.__y)
+
+    @property
+    def ymax(self) -> float:
+        return max(self.__y)
 
     def set_size(self, s: QSizeF):
         """
@@ -221,11 +231,13 @@ class RectTextItem(GroupItem):  # FIXME: rm
         self.text.setParentItem(self.rect)
 
     def set_width(self, w: float):
+        self.prepareGeometryChange()  # not helps
         r = self.rect.rect()
         r.setWidth(w)
         self.rect.setRect(r)
 
     def set_height(self, h: float):
+        self.prepareGeometryChange()  # not helps
         r = self.rect.rect()
         r.setHeight(h)
         self.rect.setRect(r)
@@ -261,12 +273,34 @@ class BarLabelItem(RectTextItem):
 
 class BarGraphItem(GroupItem):
     """Graph part of signal bar"""
+    __graph: List[Union[AGraphItem, BGraphItem]]
+    __y0line: QGraphicsLineItem  # Y=0 line
+    __ymin: float
+    __ymax: float
+
     def __init__(self, bs: BarSuit):
         super().__init__()
-        # BGraphItem(d) if d.is_bool else AGraphItem(d)
+        self.__graph = list()
+        self.__ymin = self.__ymax = 0.0  # same as self.__y0line
+        for d in bs:
+            self.__graph.append(BGraphItem(d) if d.is_bool else AGraphItem(d))
+            self.addToGroup(self.__graph[-1])
+            self.__ymin = min(self.__ymin, self.__graph[-1].ymin)
+            self.__ymax = max(self.__ymax, self.__graph[-1].ymax)
+        self.__y0line = QGraphicsLineItem()
+        self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
+        self.__y0line.setLine(0, 0, SAMPLES, 0)
+        self.addToGroup(self.__y0line)
 
     def set_size(self, s: QSizeF):
-        ...
+        """Note: Children boundingRect() includes pen width.
+        :todo: chk pen width
+        """
+        ky = s.height()/(self.__ymax - self.__ymin)
+        self.resetTransform()
+        self.setTransform(QTransform().translate(0, -self.__ymin * ky))
+        self.setTransform(QTransform().scale(s.width()/SAMPLES, ky), True)
+        self.update()
 
 
 class RowItem(GroupItem):
@@ -274,7 +308,6 @@ class RowItem(GroupItem):
     __plot: 'PlotBase'  # ref to father
     __label: BarLabelItem  # left side
     __graph: BarGraphItem  # right side
-    __y0line: QGraphicsLineItem  # Y=0 line
     __uline: QGraphicsLineItem  # underline
     __wide: bool  # A/B indictor
 
@@ -283,8 +316,6 @@ class RowItem(GroupItem):
         self.__plot = plot
         self.__label = BarLabelItem(bs)
         self.__graph = BarGraphItem(bs)
-        self.__y0line = QGraphicsLineItem()
-        self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
         self.__uline = QGraphicsLineItem()
         self.__uline.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DashLine))
         self.__wide = not bs_is_bool(bs)
@@ -294,7 +325,6 @@ class RowItem(GroupItem):
         self.update_size()
         self.addToGroup(self.__label)
         self.addToGroup(self.__graph)
-        self.addToGroup(self.__y0line)
         self.addToGroup(self.__uline)
 
     def update_size(self):
@@ -302,7 +332,6 @@ class RowItem(GroupItem):
         h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
         self.__label.set_height(h-1)
         self.__graph.set_size(QSizeF(w, h-1))
-        self.__y0line.setLine(0, h/2, self.__plot.w_full, h/2)
         self.__uline.setLine(0, h-1, self.__plot.w_full, h-1)
 
 

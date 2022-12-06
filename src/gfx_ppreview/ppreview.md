@@ -13,13 +13,15 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] FIXME: B-signal too thick
   + [ ] BarGraphItem
+  + [ ] Through bar height
+  + [ ] FIXME: B-signal too thick
   + [ ] Bar v-gaps/pads (yz!)
 - [ ] Options:
   + [ ] TODO: extra checkboxes
   + [ ] TODO: A-sig: amplitude definition
-  + [ ] FIXME: QTableWidget: graphs too small
+  + [ ] FIXME: QTableWidget: graphs too small  
+     *(because transform includes pen width)*
   + [ ] FIXME: Render: not call after 2+ `__init__()`
   + [ ] TODO: tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
   + [ ] TODO: RectTextItem: rm rect (use .shear())
@@ -28,53 +30,53 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + [ ] PyQt6 complain
 
 ### Done:
-- [x] Label cut
-- [x] ~Try Layouts:~
-  + [x] ~Grid~ (QGraphicsGridLayout; no samples)
-  + [x] ~Linear~ (QGraphicsLinearLayout; `animation/states/states.py`)
-  + [x] ~Anchor~ (QGraphicsAnchorLayout; `graphicsview/anchorlayout.py`)
-- [x] View:
-  + [x] Real sizes
-  + [x] Var heights
-  + [x] Landscape/Portrait (row height, graph width/step)
-  + [x] Resize to original
-  + [x] ~ViewWindow~ PlotView as ViewWindow
-  + [x] View on/off
-  + [x] Bottom bar:
-    * [x] rect
-    * [x] text[]:
-      + [x] top-center
-      + [x] Fixed: clip
-  + [x] Hotkeys
-  + [x] Canvas (exact A4):
-    - [x] Base
-    - [x] Tics
-  + [x] TODO: Analog/Binary graphs
-  + [x] TODO: initial autofill DATA
-  + [x] Paging:
-    + [x] split data
-    + [x] mk scenes
-    + [x] set to 1st
-    + [x] switch pages (hotkey/menu)
-    + [x] HeaderItem width: clip (Warn: with parent rect only)
-  + [x] Text clippath (by parent only)
-  + [x] Rm linear layout
-  + [x] ^P/^L => ^O (switch orientation)
-- [x] Print:
-  - [x] Fixed: Default orientation
-  - [x] Fixed: Skip last newPage()
-  - [x] Fixed: text too small
-  - [x] Done: Tmp render
-- [x] Multisig bars:
-  + [x] Data classed
-  + [x] Y=0 line (signal, tmp)
-  + [x] Filled B-sig
-  + [x] V-shifted A-sig
-  + [ ] BarLabelItem
+- Label cut
+- ~Try Layouts:~
+  + ~Grid~ (QGraphicsGridLayout; no samples)
+  + ~Linear~ (QGraphicsLinearLayout; `animation/states/states.py`)
+  + ~Anchor~ (QGraphicsAnchorLayout; `graphicsview/anchorlayout.py`)
+- View:
+  + Real sizes
+  + Var heights
+  + Landscape/Portrait (row height, graph width/step)
+  + Resize to original
+  + ~ViewWindow~ PlotView as ViewWindow
+  + View on/off
+  + Bottom bar:
+    * rect
+    * text[]:
+      + top-center
+      + Fixed: clip
+  + Hotkeys
+  + Canvas (exact A4):
+    - Base
+    - Tics
+  + TODO: Analog/Binary graphs
+  + TODO: initial autofill DATA
+  + Paging:
+    + split data
+    + mk scenes
+    + set to 1st
+    + switch pages (hotkey/menu)
+    + HeaderItem width: clip (Warn: with parent rect only)
+  + Text clippath (by parent only)
+  + Rm linear layout
+  + ^P/^L => ^O (switch orientation)
+- Print:
+  - Fixed: Default orientation
+  - Fixed: Skip last newPage()
+  - Fixed: text too small
+  - Done: Tmp render
+- Multisig bars:
+  + Data classed
+  + Y=0 line (signal, tmp)
+  + Filled B-sig
+  + V-shifted A-sig
+  + BarLabelItem
 - Options:
-  + [x] MW.toolbar
-  + [x] Fixed: View/Print: signals too high (overlap bottom)
-  + [ ] Fixed: View/Print: bad y0 if max < 0 or min > 0
+  + MW.toolbar
+  + Fixed: View/Print: signals too high (overlap bottom)
+  + Fixed: View/Print: bad y0 if max < 0 or min > 0
 
 ## RTFM:
 
@@ -88,7 +90,10 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 For each bar:
 
-- get all signals
+- for all signals: get min, max (bounding rect?)
+- or boundingRect()?
+- shift by -min()
+- expand until given size
 - normalize each signal (-1..+1):
   + B: as is
   + A: Ymin &le; 0, Ymax &ge; 0
@@ -101,3 +106,10 @@ Ver.2:
 - set_size():
   + shift on ...
   + resize by ordinar base
+
+## debug
+
+Sig 0.0:
+
+- raw_src: (0, 0)…(3/-0.5)…(6, 0)…(9, 0.5)…(12, 0) => (0, -0.5)…(12, 0.5)
+- raw_dst: (-0.6, -1)…(13.2, 2) => raw_src +- (0.6, )
