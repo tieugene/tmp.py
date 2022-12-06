@@ -2,7 +2,7 @@
 # 1. std
 from typing import List, Union
 # 2. 3rd
-from PyQt5.QtCore import QPointF, Qt, QRectF, QSizeF
+from PyQt5.QtCore import QPointF, Qt, QRectF, QSizeF, QSize
 from PyQt5.QtGui import QPolygonF, QPainterPath, QPen, QResizeEvent, QPainter, QBrush, QTransform
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGraphicsScene, QGraphicsSimpleTextItem, \
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem, \
@@ -163,7 +163,7 @@ class BGraphItem(QGraphicsPolygonItem):
     def ymax(self) -> float:
         return max(self.__y)
 
-    def set_size(self, s: QSizeF):
+    def set_size(self, s: QSize):
         """
         L: s=(1077 x 28/112)
         :param s: Size of graph
@@ -292,15 +292,22 @@ class BarGraphItem(GroupItem):
         self.__y0line.setLine(0, 0, SAMPLES, 0)
         self.addToGroup(self.__y0line)
 
-    def set_size(self, s: QSizeF):
+    def __set_size_via_tr(self, s: QSize):
+        """Resize self using QTransform"""
+        ky = s.height() / (self.__ymax - self.__ymin)
+        # self.resetTransform()  # not helps
+        self.setTransform(QTransform().translate(0, -self.__ymin * ky))
+        self.setTransform(QTransform().scale(s.width() / SAMPLES, ky), True)
+        self.update()
+
+    def set_size(self, s: QSize):
         """Note: Children boundingRect() includes pen width.
         :todo: chk pen width
         """
-        ky = s.height()/(self.__ymax - self.__ymin)
-        self.resetTransform()
-        self.setTransform(QTransform().translate(0, -self.__ymin * ky))
-        self.setTransform(QTransform().scale(s.width()/SAMPLES, ky), True)
-        self.update()
+        for gi in self.__graph:
+            gi.set_size(s)
+        y0px = -self.__ymin * s.height()
+        self.__y0line.setLine(0, y0px, s.width(), y0px)
 
 
 class RowItem(GroupItem):
@@ -331,7 +338,7 @@ class RowItem(GroupItem):
         w = self.__plot.w_full - W_LABEL
         h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
         self.__label.set_height(h-1)
-        self.__graph.set_size(QSizeF(w, h-1))
+        self.__graph.set_size(QSize(w, h-1))
         self.__uline.setLine(0, h-1, self.__plot.w_full, h-1)
 
 

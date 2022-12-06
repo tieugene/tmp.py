@@ -13,7 +13,9 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] BarGraphItem
+  + [ ] BarGraphItem:
+    + [ ] View too wide
+    + [ ] ^O works not properly
   + [ ] Through bar height
   + [ ] FIXME: B-signal too thick
   + [ ] Bar v-gaps/pads (yz!)

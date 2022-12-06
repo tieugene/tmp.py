@@ -53,9 +53,7 @@ DATA_PREDEF = (
     [(False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200)],
     [(False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0)],
 )
-DATA_PREDEF = (
-    [(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],
-)
+# DATA_PREDEF = ([(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],)  # 1-line version
 
 @dataclass
 class _SigSuitBase:
