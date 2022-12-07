@@ -164,11 +164,11 @@ class BGraphItem(QGraphicsPolygonItem):
         self.__set_size(s.width() / (self.__ss.count - 1), s.height())
 
     def __set_size(self, kx: float, ky: float):
-        point_list = [QPointF(i * kx, (self.ymax - y) * ky) for i, y in enumerate(self.__ss.value)]
+        point_list = [QPointF(i * kx, -y * ky) for i, y in enumerate(self.__ss.value)]
         if self.__ss.value[0]:  # always start with 0
-            point_list.insert(0, QPointF(0, self.ymax * ky))
+            point_list.insert(0, QPointF(0, 0))
         if self.__ss.value[-1]:  # always end with 0
-            point_list.append(QPointF((self.__ss.count - 1) * kx, self.ymax * ky))
+            point_list.append(QPointF((self.__ss.count - 1) * kx, 0))
         self.setPolygon(QPolygonF(point_list))
 
 
@@ -192,9 +192,12 @@ class BarGraphView(GraphViewBase):
     """
     def __init__(self, bs: BarSuit):
         super().__init__()
+        is_bool = True
         self.setScene(QGraphicsScene())
         for ss in bs:
+            is_bool &= ss.is_bool
             self.scene().addItem(BGraphItem(ss) if ss.is_bool else AGraphItem(ss))
+        # if not is_bool:
         y0item = QGraphicsLineItem(0, 0, SAMPLES, 0)
         y0item.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DotLine))
         self.scene().addItem(y0item)
@@ -269,13 +272,16 @@ class BarGraphItem(GroupItem):
     __y0line: QGraphicsLineItem  # Y=0 line; TODO: skip if is_bool only
     __ymin: float
     __ymax: float
+    __is_bool: bool
 
     def __init__(self, bs: BarSuit):
         super().__init__()
         self.__graph = list()
         self.__ymin = self.__ymax = 0.0  # same as self.__y0line
+        self.__is_bool = True
         for d in bs:
             self.__graph.append(BGraphItem(d) if d.is_bool else AGraphItem(d))
+            self.__is_bool &= d.is_bool
             self.addToGroup(self.__graph[-1])
             self.__ymin = min(self.__ymin, self.__graph[-1].ymin)
             self.__ymax = max(self.__ymax, self.__graph[-1].ymax)
@@ -296,6 +302,7 @@ class BarGraphItem(GroupItem):
         """Note: Children boundingRect() includes pen width.
         :todo: chk pen width
         """
+        # calc dy,
         for gi in self.__graph:
             gi.set_size(s)
         y0px = -self.__ymin * s.height()

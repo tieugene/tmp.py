@@ -45,8 +45,8 @@ DATA_PREDEF = (
     [(True, "Sign 1.0 b", Qt.GlobalColor.red, 1, 1)],  # 1, 1
     [(False, "Sig 2.0 a", Qt.GlobalColor.cyan, 0, 0),
      (False, "Sig 2.1 a", Qt.GlobalColor.blue, 4, 50)],
-    [(True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2)],
-    [(False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)],
+    [(True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2),
+     (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)],
     [(True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2)],
     [(False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90)],
     [(True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0)],
