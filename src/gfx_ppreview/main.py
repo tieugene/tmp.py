@@ -12,7 +12,7 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import BarSuitList, BarSuitListType, BarSuit, bs_is_bool, bs_to_html
+from data import barsuit_list, BarSuitList, BarSuit, bs_is_bool, bs_to_html
 from gitems import BarGraphView, GraphViewBase, PlotScene
 from utils import gc2str
 
@@ -22,7 +22,7 @@ class PlotBase(GraphViewBase):
     _portrait: bool
     _scene: List[PlotScene]
 
-    def __init__(self, bslist: BarSuitListType):
+    def __init__(self, bslist: BarSuitList):
         super().__init__()
         self._portrait = PORTRAIT
         self._scene = list()
@@ -65,7 +65,7 @@ class PlotBase(GraphViewBase):
             # self.slot_reset_size()  # optional
 
     @staticmethod
-    def __data_split(__bslist: BarSuitListType) -> List[int]:
+    def __data_split(__bslist: BarSuitList) -> List[int]:
         """Split data to scene pieces (6/24).
         :return: list of bar numbers
         """
@@ -94,7 +94,7 @@ class PlotView(PlotBase):
     __sc_p_next: QShortcut
     __sc_p_last: QShortcut
 
-    def __init__(self, bslist: BarSuitListType, father: 'MainWindow'):
+    def __init__(self, bslist: BarSuitList, father: 'MainWindow'):
         super().__init__(bslist)
         self._father = father
         self.__set_scene(0)
@@ -152,7 +152,7 @@ class PlotPrint(PlotBase):
     """
     :todo: just scene container; can be replaced with QObject
     """
-    def __init__(self, bslist: BarSuitListType):
+    def __init__(self, bslist: BarSuitList):
         super().__init__(bslist)
         # print("Render__init__")
 
@@ -179,7 +179,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
         :todo: mk render | connect | exec | disconnect | del render
         """
-        rnd = PlotPrint(BarSuitList)
+        rnd = PlotPrint(barsuit_list)
         self.paintRequested.connect(rnd.slot_paint_request)
         retvalue = super().exec_()
         self.paintRequested.disconnect(rnd.slot_paint_request)  # not helps
@@ -194,7 +194,7 @@ class TableView(QTableWidget):
             self.setText(bs_to_html(bs))
             self.setTextFormat(Qt.TextFormat.RichText)
 
-    def __init__(self, bslist: BarSuitListType, parent: 'MainWindow'):
+    def __init__(self, bslist: BarSuitList, parent: 'MainWindow'):
         super().__init__(parent)
         self.horizontalHeader().setStretchLastSection(True)
         self.setRowCount(len(bslist))
@@ -231,10 +231,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setCentralWidget(TableView(BarSuitList, self))
+        self.setCentralWidget(TableView(barsuit_list, self))
         # self.layout().setContentsMargins(QMargins())
         # self.layout().setSpacing(0)
-        self.__view = PlotView(BarSuitList, self)
+        self.__view = PlotView(barsuit_list, self)
         self.__printer = self.PdfPrinter()
         self.__print_preview = PDFOutPreviewDialog(self.__printer)
         self.__mk_actions()

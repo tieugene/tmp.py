@@ -14,11 +14,9 @@ Resume: Сделать *полностью* резиновый дизайно *�
 ### ToDo:
 - [ ] Multisig bars:
   + [ ] BarGraphItem:
-    + [ ] View too wide
-    + [ ] ^O works not properly
+    + [ ] BGraphItem too thick
   + [ ] Through bar height
-  + [ ] FIXME: B-signal too thick
-  + [ ] Bar v-gaps/pads (yz!)
+  + [ ] Bar v-gaps/pads
 - [ ] Options:
   + [ ] TODO: extra checkboxes
   + [ ] TODO: A-sig: amplitude definition

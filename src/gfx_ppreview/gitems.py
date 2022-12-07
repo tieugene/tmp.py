@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QGraphicsTextItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
-from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitListType, bs_is_bool, bs_to_html
+from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitList, bs_is_bool, bs_to_html
 from utils import qsize2str
 
 
@@ -75,7 +75,7 @@ class TCPlainTextItem(PlainTextItem):
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
         """H-center"""
-        painter.translate(self.__br.left(), -self.__br.top())
+        painter.translate(self.__br.left(), -self.__br.top())  # shift to top
         super().paint(painter, option, widget)
 
 
@@ -104,12 +104,10 @@ class ClipedRichTextItem(RichTextItem):
 
 class AGraphItem(QGraphicsPathItem):
     __y: List[float]
-    __y0: float
 
     def __init__(self, d: ASigSuit):
         super().__init__()
         self.__y = [-v for v in d.nvalue]
-        self.__y0px = 0  # current Y=0, px
         self.setPen(ThinPen(d.color))
         pp = QPainterPath()
         pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))   # default: x=0..SAMPLES, y=0..1
@@ -138,10 +136,10 @@ class AGraphItem(QGraphicsPathItem):
         # - prepare: X-scale factor, Y-shift, Y-scale factor
         kx = s.width() / (len(self.__y) - 1)  # 13-1=12
         ky = s.height()
-        self.__y0px = round(-min(0, min(self.__y)) * ky)
+        y0px = round(-min(0.0, self.ymin) * ky)
         pp = self.path()
         for i in range(pp.elementCount()):
-            pp.setElementPositionAt(i, i * kx, self.__y[i] * ky + self.__y0px)
+            pp.setElementPositionAt(i, i * kx, self.__y[i] * ky + y0px)
         self.setPath(pp)
 
 
@@ -422,7 +420,7 @@ class TablePayload(GroupItem):
 
     """Just rows with underlines"""
 
-    def __init__(self, bslist: BarSuitListType, plot: 'PlotBase'):
+    def __init__(self, bslist: BarSuitList, plot: 'PlotBase'):
         super().__init__()
         self.__rowitem = list()
         y = 0
@@ -445,7 +443,7 @@ class PlotScene(QGraphicsScene):
     __canvas: TableCanvas
     __payload: TablePayload
 
-    def __init__(self, bslist: BarSuitListType, plot: 'PlotBase'):
+    def __init__(self, bslist: BarSuitList, plot: 'PlotBase'):
         super().__init__()
         self.__canvas = TableCanvas(plot)
         self.__payload = TablePayload(bslist, plot)

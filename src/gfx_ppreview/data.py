@@ -55,6 +55,7 @@ DATA_PREDEF = (
 )
 # DATA_PREDEF = ([(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],)  # 1-line version
 
+
 @dataclass
 class _SigSuitBase:
     """
@@ -72,30 +73,17 @@ class ASigSuit(_SigSuitBase):
 
     @property
     def amin(self) -> float:
+        """Adjusted absulute min value (min but ≤ 0)"""
         return min(0, min(self.value))
 
     @property
     def amax(self) -> float:
+        """Adjusted absulute max value (max but ≥ 0)"""
         return max(0, max(self.value))
 
     @property
-    def nmin(self) -> float:
-        ...
-
-    @property
-    def nmax(self) -> float:
-        ...
-
-    @property
-    def anmin(self) -> float:
-        ...
-
-    @property
-    def anmax(self) -> float:
-        ...
-
-    @property
     def nvalue(self) -> List[float]:
+        """Normalized adjusted values"""
         return [v / (self.amax - self.amin) for v in self.value]
 
 
@@ -104,23 +92,18 @@ class BSigSuit(_SigSuitBase):
     value: List[int]
     is_bool: bool = True
     amin: int = 0
-    nmin: int = 0
-    anmin: int = 0
     amax: int = 1
-    nmax: int = 1
-    anmax: int = 1
 
     @property
     def nvalue(self) -> List[float]:
-        return [v * 2 / 3 for v in self.value]
+        """B-sig is 0..0.25"""
+        return [v / 4 for v in self.value]
 
 
 USigSuitType = Union[ASigSuit, BSigSuit]
-SigSuitListType = List[USigSuitType]  # FIXME: rm
-SigSuitList: SigSuitListType = list()  # FIXME: rm
-BarSuit = List[USigSuitType]  # FIXME: mk class
-BarSuitListType = List[BarSuit]
-BarSuitList: BarSuitListType = list()
+BarSuit = List[USigSuitType]  # TODO: class
+BarSuitList = List[BarSuit]
+barsuit_list: BarSuitList = list()
 
 
 def bs_is_bool(bs: BarSuit):
@@ -137,6 +120,7 @@ def bs_to_html(bs: BarSuit):
     for ss in bs:
         lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
     return lbl
+
 
 def __data_fill():
     """Fill data with predefined or auto"""
@@ -194,8 +178,8 @@ def __data_fill():
                     value=__mk_sin(d[3], d[4])
                 )
             bs.append(ss)
-        BarSuitList.append(bs)
+        barsuit_list.append(bs)
 
 
-if not BarSuitList:
+if not barsuit_list:
     __data_fill()
