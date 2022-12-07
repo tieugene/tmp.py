@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
 from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitList, bs_is_bool, bs_to_html
-from utils import qsize2str
+# from utils import qsize2str
 
 
 # ---- Shortcuts ----
@@ -103,14 +103,15 @@ class ClipedRichTextItem(RichTextItem):
 
 
 class AGraphItem(QGraphicsPathItem):
-    __y: List[float]
+    __ss: ASigSuit
 
-    def __init__(self, d: ASigSuit):
+    def __init__(self, ss: ASigSuit):
         super().__init__()
-        self.__y = [-v for v in d.nvalue]
-        self.setPen(ThinPen(d.color))
+        self.__ss = ss
+        self.setPen(ThinPen(ss.color))
         pp = QPainterPath()
-        pp.addPolygon(QPolygonF([QPointF(x, y) for x, y in enumerate(self.__y)]))   # default: x=0..SAMPLES, y=0..1
+        # default: x=0..SAMPLES, y=(-1..0)..(0..1)
+        pp.addPolygon(QPolygonF([QPointF(x, -y) for x, y in enumerate(self.__ss.nvalue)]))
         self.setPath(pp)
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: QWidget):
@@ -122,11 +123,11 @@ class AGraphItem(QGraphicsPathItem):
 
     @property
     def ymin(self) -> float:
-        return min(self.__y)
+        return self.__ss.anmin
 
     @property
     def ymax(self) -> float:
-        return max(self.__y)
+        return self.__ss.anmax
 
     def set_size(self, s: QSizeF):
         """
@@ -134,47 +135,41 @@ class AGraphItem(QGraphicsPathItem):
         """
         self.prepareGeometryChange()  # not helps
         # - prepare: X-scale factor, Y-shift, Y-scale factor
-        kx = s.width() / (len(self.__y) - 1)  # 13-1=12
+        kx = s.width() / (self.__ss.count - 1)  # 13-1=12
         ky = s.height()
-        y0px = round(-min(0.0, self.ymin) * ky)
+        dy = -min(0.0, self.ymin)
         pp = self.path()
-        for i in range(pp.elementCount()):
-            pp.setElementPositionAt(i, i * kx, self.__y[i] * ky + y0px)
+        for i, y in enumerate(self.__ss.nvalue):
+            pp.setElementPositionAt(i, i * kx, (y + dy) * ky)
         self.setPath(pp)
 
 
 class BGraphItem(QGraphicsPolygonItem):
-    __y: List[float]
+    __ss: BSigSuit
+    ymin: float = 0.0
+    ymax: float = 1.0
 
-    def __init__(self, d: BSigSuit):
+    def __init__(self, ss: BSigSuit):
         super().__init__()
-        self.__y = [-v for v in d.nvalue]
-        self.setPen(ThinPen(d.color))
-        self.setBrush(QBrush(d.color, Qt.BrushStyle.Dense1Pattern))  #
+        self.__ss = ss
+        self.setPen(ThinPen(ss.color))
+        self.setBrush(QBrush(ss.color, Qt.BrushStyle.Dense1Pattern))  #
         self.__set_size(1, 1)
 
-    @property
-    def ymin(self) -> float:
-        return min(self.__y)
-
-    @property
-    def ymax(self) -> float:
-        return max(self.__y)
-
-    def set_size(self, s: QSize):
+    def set_size(self, s: QSize):  # FIXME: +dy/y0
         """
         L: s=(1077 x 28/112)
         :param s: Size of graph
         """
         self.prepareGeometryChange()  # not helps
-        self.__set_size(s.width() / (len(self.__y) - 1), s.height())
+        self.__set_size(s.width() / (self.__ss.count - 1), s.height())
 
     def __set_size(self, kx: float, ky: float):
-        point_list = [QPointF(x * kx, y * ky) for x, y in enumerate(self.__y)]
-        if int(self.__y[0]) == 0:  # always start with 0
-            point_list.insert(0, QPointF(0, ky))
-        if int(self.__y[-1]) == 0:  # always end with 0
-            point_list.append(QPointF((len(self.__y)-1) * kx, ky))
+        point_list = [QPointF(i * kx, (self.ymax - y) * ky) for i, y in enumerate(self.__ss.value)]
+        if self.__ss.value[0]:  # always start with 0
+            point_list.insert(0, QPointF(0, self.ymax * ky))
+        if self.__ss.value[-1]:  # always end with 0
+            point_list.append(QPointF((self.__ss.count - 1) * kx, self.ymax * ky))
         self.setPolygon(QPolygonF(point_list))
 
 
@@ -272,7 +267,7 @@ class BarLabelItem(RectTextItem):
 class BarGraphItem(GroupItem):
     """Graph part of signal bar"""
     __graph: List[Union[AGraphItem, BGraphItem]]
-    __y0line: QGraphicsLineItem  # Y=0 line
+    __y0line: QGraphicsLineItem  # Y=0 line; TODO: skip if is_bool only
     __ymin: float
     __ymax: float
 

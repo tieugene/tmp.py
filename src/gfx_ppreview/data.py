@@ -64,27 +64,46 @@ class _SigSuitBase:
     """
     name: str
     color: Qt.GlobalColor
+    value: Union[List[int], List[float]]
+    # amin: Union[int, float]  # Adjusted absulute min value (min but ≤ 0)
+    # amax: Union[int, float]  # Adjusted absulute max value (max but ≥ 0)
+    # anmin: Union[int, float]  # Adjusted normalized [nominal] min (-1..0)
+    # anmax: Union[int, float]  # Adjusted normalized [nominal] max (0..1)
+    # nvalue: Union[List[int], List[float]]  # (adjusted) Normalized values (amax-amin=1)
+
+    @property
+    def count(self) -> int:
+        return len(self.value)
 
 
 @dataclass
-class ASigSuit(_SigSuitBase):
+class ASigSuit(_SigSuitBase):  # TODO: calc helping vars in __init__
     value: List[float]
     is_bool: bool = False
 
     @property
     def amin(self) -> float:
-        """Adjusted absulute min value (min but ≤ 0)"""
         return min(0, min(self.value))
 
     @property
     def amax(self) -> float:
-        """Adjusted absulute max value (max but ≥ 0)"""
         return max(0, max(self.value))
 
     @property
+    def __asize(self) -> float:
+        return self.amax - self.amin
+
+    @property
+    def anmin(self) -> float:
+        return self.amin/self.__asize
+
+    @property
+    def anmax(self) -> float:
+        return self.amax/self.__asize
+
+    @property
     def nvalue(self) -> List[float]:
-        """Normalized adjusted values"""
-        return [v / (self.amax - self.amin) for v in self.value]
+        return [v / self.__asize for v in self.value]
 
 
 @dataclass
@@ -93,11 +112,12 @@ class BSigSuit(_SigSuitBase):
     is_bool: bool = True
     amin: int = 0
     amax: int = 1
+    anmin: int = 0
+    anmax: int = 1
 
     @property
-    def nvalue(self) -> List[float]:
-        """B-sig is 0..0.25"""
-        return [v / 4 for v in self.value]
+    def nvalue(self) -> List[int]:
+        return self.value
 
 
 USigSuitType = Union[ASigSuit, BSigSuit]
@@ -152,7 +172,7 @@ def __data_fill():
         :param vo: V-Offset, %x10
         :return: list of y (0..1)
         """
-        return [(math.sin((i + ho) * 2 * math.pi / SAMPLES)) + vo / 100 for i in range(SAMPLES + 1)]
+        return [round((math.sin((i + ho) * 2 * math.pi / SAMPLES)) + vo / 100, 3) for i in range(SAMPLES + 1)]
 
     def __mk_meander(ho: int, hp: int) -> List[int]:
         """Make meander. Starts from 0.

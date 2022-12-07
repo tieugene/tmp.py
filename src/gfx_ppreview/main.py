@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QS
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
 from data import barsuit_list, BarSuitList, BarSuit, bs_is_bool, bs_to_html
 from gitems import BarGraphView, GraphViewBase, PlotScene
-from utils import gc2str
+# from utils import gc2str
 
 
 class PlotBase(GraphViewBase):

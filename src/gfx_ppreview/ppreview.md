@@ -14,7 +14,8 @@ Resume: Сделать *полностью* резиновый дизайно *�
 ### ToDo:
 - [ ] Multisig bars:
   + [ ] BarGraphItem:
-    + [ ] BGraphItem too thick
+    - [ ] y-mirror AGraphItem
+    - [ ] BGraphItem too thick
   + [ ] Through bar height
   + [ ] Bar v-gaps/pads
 - [ ] Options:
@@ -113,3 +114,5 @@ Sig 0.0:
 
 - raw_src: (0, 0)…(3/-0.5)…(6, 0)…(9, 0.5)…(12, 0) => (0, -0.5)…(12, 0.5)
 - raw_dst: (-0.6, -1)…(13.2, 2) => raw_src +- (0.6, )
+
+&ge; &le;
