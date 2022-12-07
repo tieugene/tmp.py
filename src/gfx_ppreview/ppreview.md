@@ -14,8 +14,9 @@ Resume: Сделать *полностью* резиновый дизайно *�
 ### ToDo:
 - [ ] Multisig bars:
   + [ ] BarGraphItem:
-    - [ ] y-mirror AGraphItem
-    - [ ] BGraphItem too thick
+    - [ ] xGraphItem.set_size: y-shift
+    - [ ] BGraphItem: too thick
+    - [ ] rm Y0 if is_bool only
   + [ ] Through bar height
   + [ ] Bar v-gaps/pads
 - [ ] Options:

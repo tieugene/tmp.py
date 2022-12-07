@@ -129,7 +129,7 @@ class AGraphItem(QGraphicsPathItem):
     def ymax(self) -> float:
         return self.__ss.anmax
 
-    def set_size(self, s: QSizeF):
+    def set_size(self, s: QSizeF):  # FIXME: +dy/y0
         """
         :param s: Dest size of graph (e.g. 1077 x 28/112 for Landscape
         """
@@ -137,10 +137,9 @@ class AGraphItem(QGraphicsPathItem):
         # - prepare: X-scale factor, Y-shift, Y-scale factor
         kx = s.width() / (self.__ss.count - 1)  # 13-1=12
         ky = s.height()
-        dy = -min(0.0, self.ymin)
         pp = self.path()
         for i, y in enumerate(self.__ss.nvalue):
-            pp.setElementPositionAt(i, i * kx, (y + dy) * ky)
+            pp.setElementPositionAt(i, i * kx, (self.ymax - y) * ky)
         self.setPath(pp)
 
 
