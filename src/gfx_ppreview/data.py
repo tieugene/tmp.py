@@ -51,7 +51,7 @@ DATA_PREDEF = (
     {'d': [(True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2)]},
     {'d': [(False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90)]},
     {'d': [(True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0)], 'h': 75},
-    {'d': [(False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200)], 'h': 75},
+    {'d': [(False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200)], 'h': 175},
     {'d': [(False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0)]},
 )
 # DATA_PREDEF = ([(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],)  # 1-line version

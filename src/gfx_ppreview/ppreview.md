@@ -13,11 +13,11 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] Through bar height
   + [ ] BGraphItem: too thick
   + [ ] Bar v-gaps/pads
   + [ ] BarGraphItem: rm Y0 if is_bool only
 - [ ] Options:
+  + [ ] 2nd sig line
   + [ ] TODO: extra checkboxes
   + [ ] TODO: A-sig: amplitude definition
   + [ ] FIXME: QTableWidget: graphs too small  
@@ -73,6 +73,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + Filled B-sig
   + V-shifted A-sig
   + BarLabelItem
+  + Through bar height
 - Options:
   + MW.toolbar
   + Fixed: View/Print: signals too high (overlap bottom)

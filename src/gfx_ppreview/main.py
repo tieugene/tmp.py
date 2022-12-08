@@ -11,7 +11,7 @@ from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel
 # 3. local
-from consts import PORTRAIT, W_PAGE, H_ROW_BASE
+from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM
 from data import barsuit_list, BarSuitList, BarSuit
 from gitems import BarGraphView, GraphViewBase, PlotScene
 # from utils import gc2str
@@ -67,16 +67,16 @@ class PlotBase(GraphViewBase):
                 scene.update_sizes()
             # self.slot_reset_size()  # optional
 
-    @staticmethod
-    def __data_split(__bslist: BarSuitList) -> List[int]:
+    def __data_split(self, __bslist: BarSuitList) -> List[int]:
         """Split data to scene pieces (6/24).
         :return: list of bar numbers
         """
         retvalue = list()
+        h_barlist_max = W_PAGE[1] - H_HEADER - H_BOTTOM  # max v-space for bars
         cur_num = cur_height = 0  # heigth of current piece in basic (B) units
         for i, bs in enumerate(__bslist):
-            h = 1 + int(not bs.is_bool) * 3
-            if cur_height + h > 24:
+            h = self.h_row(bs)
+            if cur_height + h > h_barlist_max:  # analog?
                 retvalue.append(cur_num)
                 cur_num = cur_height = 0
             cur_num += 1
