@@ -11,7 +11,7 @@ from utils import gc2str
 # 3. local
 # x. consts
 SAMPLES = 12  # samples per signal
-__AUTOFILL = False
+__AUTOFILL = True
 __SIGNALS = 50  # Number of signals for autofill
 __AUTOBARS = 50  # Number of signal bars
 __SPB = 3  # max signal per bar
@@ -47,7 +47,7 @@ DATA_PREDEF = (
     {'d': [(False, "Sig 2.0 a", Qt.GlobalColor.cyan, 0, 0),
      (False, "Sig 2.1 a", Qt.GlobalColor.blue, 4, 50)]},
     {'d': [(True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2),
-     (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)]},
+     (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)], 'h': 50},
     {'d': [(True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2)]},
     {'d': [(False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90)]},
     {'d': [(True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0)], 'h': 75},

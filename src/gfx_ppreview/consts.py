@@ -13,7 +13,6 @@ W_LABEL = 53  # Label column width
 H_HEADER = 56  # Header height, like 4×14
 H_ROW_BASE = 28  # Base (slick) row height in landscape mode; like 2×14
 H_BOTTOM = 20  # Bottom scale height
-PPP = 6  # plots per page
 FONT_MAIN = QFont('mono', 8)  # 7×14
 # y. data
 HEADER_TXT = '''This is the header with 3 lines.

@@ -323,20 +323,20 @@ class BarGraphItem(GroupItem):
 
 class RowItem(GroupItem):
     """Used in: TablePayload > … > View/Print"""
+    __bs: BarSuit
     __plot: 'PlotBase'  # ref to father
     __label: BarLabelItem  # left side
     __graph: BarGraphItem  # right side
     __uline: QGraphicsLineItem  # underline
-    __wide: bool  # A/B indictor
 
     def __init__(self, bs: BarSuit, plot: 'PlotBase'):
         super().__init__()
+        self.__bs = bs
         self.__plot = plot
         self.__label = BarLabelItem(bs)
         self.__graph = BarGraphItem(bs)
         self.__uline = QGraphicsLineItem()
         self.__uline.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DashLine))
-        self.__wide = not bs.is_bool
         # initial positions/sizes
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
@@ -347,7 +347,7 @@ class RowItem(GroupItem):
 
     def update_size(self):
         w = self.__plot.w_full - W_LABEL
-        h = self.__plot.h_row_base * (1 + int(self.__wide) * 3)  # 28/112, 42/168
+        h = self.__plot.h_row(self.__bs)
         self.__label.set_height(h-1)
         self.__graph.set_size(QSize(w, h-1))
         self.__uline.setLine(0, h-1, self.__plot.w_full, h-1)

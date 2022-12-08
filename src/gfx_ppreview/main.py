@@ -45,13 +45,16 @@ class PlotBase(GraphViewBase):
         """Current full table width"""
         return W_PAGE[1 - int(self.portrait)]
 
-    @property
-    def h_row_base(self) -> int:
-        """Current base (short) row height.
-        :note: in theory must be (W_PAGE - header - footer) / num
+    def h_row(self, bs: BarSuit) -> int:  # FIXME: f(bs.is_bool, bs.h[default], self.portrait)
+        """Current base (sh ort) row height.
+        - if is_bool: exact H_ROW_BASE
+        - else: defined or 4 × H_ROW_BASE
+        - finally × 1.5 if portrait
         :todo: cache it
         """
-        return round(H_ROW_BASE * 1.5) if self.portrait else H_ROW_BASE
+        lp_mult = 1.5 if self.portrait else 1  # multiplier for landscape/portrait
+        h_base = H_ROW_BASE if bs.is_bool else bs.h or H_ROW_BASE * 4  # 28/112, 42/168
+        return round(h_base * lp_mult)
 
     @property
     def scene_count(self) -> int:
