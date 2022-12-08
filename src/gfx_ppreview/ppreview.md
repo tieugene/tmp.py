@@ -1,6 +1,6 @@
 # gfx_ppreview
 
-20221126..1201
+20221126..1201 &ge; &le; &hellip;
 
 ## 20221127:
 
@@ -13,7 +13,9 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] Through bar height
+  + [ ] Through bar height:
+    + A: default = default or defined
+    + B: exactly predefined
   + [ ] BGraphItem: too thick
   + [ ] Bar v-gaps/pads
   + [ ] BarGraphItem: rm Y0 if is_bool only
@@ -107,11 +109,9 @@ Ver.2:
   + shift on ...
   + resize by ordinar base
 
-## debug
+## Throught row heights
 
-Sig 0.0:
+Variants:
 
-- raw_src: (0, 0)…(3/-0.5)…(6, 0)…(9, 0.5)…(12, 0) => (0, -0.5)…(12, 0.5)
-- raw_dst: (-0.6, -1)…(13.2, 2) => raw_src +- (0.6, )
-
-&ge; &le;
+1. split as is B4 View/Print
+2. on-the-fly

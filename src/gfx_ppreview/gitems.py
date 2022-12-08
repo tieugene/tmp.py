@@ -271,9 +271,11 @@ class BarLabelItem(RectTextItem):
 
 
 class BarGraphItem(GroupItem):
-    """Graph part of signal bar"""
+    """Graph part of signal bar.
+    Used in: RowItem > … > View/Print
+    """
     __graph: List[Union[AGraphItem, BGraphItem]]
-    __y0line: QGraphicsLineItem  # Y=0 line; TODO: skip if is_bool only
+    __y0line: QGraphicsLineItem  # Y=0 line
     __ymin: float  # Best Y-min normalized
     __ymax: float  # Best Y-max normalized
     __is_bool: bool
@@ -289,7 +291,7 @@ class BarGraphItem(GroupItem):
             self.addToGroup(self.__graph[-1])
             self.__ymin = min(self.__ymin, self.__graph[-1].ymin)
             self.__ymax = max(self.__ymax, self.__graph[-1].ymax)
-        # FIXME: if not self.__is_bool:
+        # TODO: if not self.__is_bool:
         self.__y0line = QGraphicsLineItem()
         self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
         self.__y0line.setLine(0, 0, SAMPLES, 0)
@@ -314,13 +316,13 @@ class BarGraphItem(GroupItem):
         s_local = QSizeF(s.width(), s.height() / h_norm)
         for gi in self.__graph:
             gi.set_size(s_local, self.__ymax)
-        # - move Y=0
+        # - move Y=0 (TODO: skip if is_bool)
         y0px = self.__ymax / h_norm * s.height()
         self.__y0line.setLine(0, y0px, s.width(), y0px)
 
 
 class RowItem(GroupItem):
-    """For View/Print"""
+    """Used in: TablePayload > … > View/Print"""
     __plot: 'PlotBase'  # ref to father
     __label: BarLabelItem  # left side
     __graph: BarGraphItem  # right side
@@ -427,9 +429,10 @@ class TableCanvas(GroupItem):
 
 
 class TablePayload(GroupItem):
+    """Just rows with underlines.
+    Used in: PlotScene > … > View/Print
+    """
     __rowitem: list[RowItem]
-
-    """Just rows with underlines"""
 
     def __init__(self, bslist: BarSuitList, plot: 'PlotBase'):
         super().__init__()
@@ -451,6 +454,7 @@ class TablePayload(GroupItem):
 
 
 class PlotScene(QGraphicsScene):
+    """Used in: PlotBase > PlotView/PrintView"""
     __canvas: TableCanvas
     __payload: TablePayload
 

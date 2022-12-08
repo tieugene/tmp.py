@@ -1,6 +1,6 @@
 """gfx_ppreview/data: data source"""
 # 1. std
-from typing import Tuple, List, Iterator, Union
+from typing import Tuple, List, Iterator, Union, Dict, Optional
 from dataclasses import dataclass
 import math
 # 2. 3rd
@@ -39,19 +39,20 @@ TICS = {  # scale tics {sample_no: text}
     SAMPLES * 0.98: 789
 }
 # is_bool, name, color, h-offset/h-offset [0..SAMPLES], v-offset(%)/half-period[1+]
-_DataSource = Tuple[bool, str, Qt.GlobalColor, int, int]
+_SigSource = Tuple[bool, str, Qt.GlobalColor, int, int]
+_BarSource = Dict[str, Union[int, List[_SigSource]]]
 DATA_PREDEF = (
-    [(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],
-    [(True, "Sign 1.0 b", Qt.GlobalColor.red, 1, 1)],  # 1, 1
-    [(False, "Sig 2.0 a", Qt.GlobalColor.cyan, 0, 0),
-     (False, "Sig 2.1 a", Qt.GlobalColor.blue, 4, 50)],
-    [(True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2),
-     (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)],
-    [(True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2)],
-    [(False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90)],
-    [(True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0)],
-    [(False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200)],
-    [(False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0)],
+    {'d': [(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)]},
+    {'d': [(True, "Sign 1.0 b", Qt.GlobalColor.red, 1, 1)]},  # 1, 1
+    {'d': [(False, "Sig 2.0 a", Qt.GlobalColor.cyan, 0, 0),
+     (False, "Sig 2.1 a", Qt.GlobalColor.blue, 4, 50)]},
+    {'d': [(True, "Sign 4 bbb", Qt.GlobalColor.green, 0, 2),
+     (False, "Sig 5 aaaa", Qt.GlobalColor.magenta, 4, -50)]},
+    {'d': [(True, "Sig 6 bbbbb", Qt.GlobalColor.darkYellow, 2, 2)]},
+    {'d': [(False, "Sig 8 (a)", Qt.GlobalColor.cyan, 6, 90)]},
+    {'d': [(True, "Sig 9 (b)", Qt.GlobalColor.darkGreen, 7, 0)], 'h': 75},
+    {'d': [(False, "Sig 11", Qt.GlobalColor.darkMagenta, 8, -200)], 'h': 75},
+    {'d': [(False, "Sig 12", Qt.GlobalColor.darkBlue, 9, 0)]},
 )
 # DATA_PREDEF = ([(False, "Sig 0.0", Qt.GlobalColor.black, 0, 0)],)  # 1-line version
 
@@ -121,7 +122,12 @@ class BSigSuit(_SigSuitBase):
 
 
 USigSuitType = Union[ASigSuit, BSigSuit]
-BarSuit = List[USigSuitType]  # TODO: class
+
+
+class BarSuit(List[USigSuitType]):
+    h: Optional[int]
+
+
 BarSuitList = List[BarSuit]
 barsuit_list: BarSuitList = list()
 
@@ -145,24 +151,27 @@ def bs_to_html(bs: BarSuit):
 def __data_fill():
     """Fill data with predefined or auto"""
 
-    def __gen_predef() -> Iterator[List[_DataSource]]:  # generator of predefined data
+    def __gen_predef() -> Iterator[_BarSource]:  # generator of predefined data
         for __d in DATA_PREDEF:
             yield __d
 
-    def __gen_random() -> Iterator[List[_DataSource]]:
+    def __gen_random() -> Iterator[_BarSource]:
         import random
         random.seed()
         for __bn in range(__AUTOBARS):
-            __bar = list()
+            __data = list()
             for __sn in range(random.randint(1, __SPB)):
                 __is_bool = bool(random.randint(0, 1))
-                __bar.append((
+                __data.append((
                     __is_bool,
                     f"Sig {__bn}.{__sn}",
                     _COLORS[random.randint(0, len(_COLORS) - 1)],
                     random.randint(0, SAMPLES - 1),
                     random.randint(0, 9) if __is_bool else random.randint(-90, 90),
                 ))
+            __bar = {'d': __data}
+            if random.randint(0, 1):
+                __bar['h'] = random.randint(50, 300)
             yield __bar
 
     def __mk_sin(ho: int, vo: int) -> List[float]:
@@ -182,9 +191,11 @@ def __data_fill():
         hp = hp % SAMPLES or 1  # Deviding by 0 protection
         return [int((i + ho) / hp) % 2 for i in range(SAMPLES + 1)]
 
-    for b in __gen_random() if __AUTOFILL else __gen_predef():
-        bs = list()
-        for d in b:
+    for bd in __gen_random() if __AUTOFILL else __gen_predef():
+        is_bool = True
+        data = bd['d']
+        bs = BarSuit()
+        for d in data:
             if d[0]:
                 ss = BSigSuit(
                     name=d[1],
@@ -197,7 +208,9 @@ def __data_fill():
                     color=d[2],
                     value=__mk_sin(d[3], d[4])
                 )
+            is_bool &= d[0]
             bs.append(ss)
+        bs.h = None if is_bool else bd.get('h')
         barsuit_list.append(bs)
 
 
