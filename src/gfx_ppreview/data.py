@@ -127,25 +127,25 @@ USigSuitType = Union[ASigSuit, BSigSuit]
 class BarSuit(List[USigSuitType]):
     h: Optional[int]
 
+    @property
+    def is_bool(self) -> bool:
+        """Check if is pure B"""
+        for ss in self:
+            if not ss.is_bool:
+                return False
+        return True
+
+    @property
+    def html(self) -> str:
+        # FIXME: ''.join([...])
+        lbl = ''
+        for ss in self:
+            lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
+        return lbl
+
 
 BarSuitList = List[BarSuit]
 barsuit_list: BarSuitList = list()
-
-
-def bs_is_bool(bs: BarSuit):
-    """Check BarSuit is pure B"""
-    for ss in bs:
-        if not ss.is_bool:
-            return False
-    return True
-
-
-def bs_to_html(bs: BarSuit):
-    # FIXME: ''.join([...])
-    lbl = ''
-    for ss in bs:
-        lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
-    return lbl
 
 
 def __data_fill():

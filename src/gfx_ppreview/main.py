@@ -12,7 +12,7 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import barsuit_list, BarSuitList, BarSuit, bs_is_bool, bs_to_html
+from data import barsuit_list, BarSuitList, BarSuit
 from gitems import BarGraphView, GraphViewBase, PlotScene
 # from utils import gc2str
 
@@ -72,7 +72,7 @@ class PlotBase(GraphViewBase):
         retvalue = list()
         cur_num = cur_height = 0  # heigth of current piece in basic (B) units
         for i, bs in enumerate(__bslist):
-            h = 1 + int(not bs_is_bool(bs)) * 3
+            h = 1 + int(not bs.is_bool) * 3
             if cur_height + h > 24:
                 retvalue.append(cur_num)
                 cur_num = cur_height = 0
@@ -191,7 +191,7 @@ class TableView(QTableWidget):
     class MultisigLabel(QLabel):
         def __init__(self, bs: BarSuit):
             super().__init__()
-            self.setText(bs_to_html(bs))
+            self.setText(bs.html)
             self.setTextFormat(Qt.TextFormat.RichText)
 
     def __init__(self, bslist: BarSuitList, parent: 'MainWindow'):

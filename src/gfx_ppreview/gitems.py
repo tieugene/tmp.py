@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QGraphicsTextItem
 # 3. local
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
-from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitList, bs_is_bool, bs_to_html
+from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitList
 # from utils import qsize2str
 
 
@@ -266,7 +266,7 @@ class BarLabelItem(RectTextItem):
 
     def __init__(self, bs: BarSuit):
         super().__init__(ClipedRichTextItem())
-        self.text.setHtml(bs_to_html(bs))
+        self.text.setHtml(bs.html)
         self.set_width(W_LABEL)
 
 
@@ -336,7 +336,7 @@ class RowItem(GroupItem):
         self.__graph = BarGraphItem(bs)
         self.__uline = QGraphicsLineItem()
         self.__uline.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DashLine))
-        self.__wide = not bs_is_bool(bs)
+        self.__wide = not bs.is_bool
         # initial positions/sizes
         self.__label.set_width(W_LABEL)
         self.__graph.setX(W_LABEL + 1)
