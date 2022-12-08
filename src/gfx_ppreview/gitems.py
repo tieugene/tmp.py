@@ -129,9 +129,10 @@ class AGraphItem(QGraphicsPathItem):
     def ymax(self) -> float:
         return self.__ss.anmax
 
-    def set_size(self, s: QSizeF):  # FIXME: +dy/y0
+    def set_size(self, s: QSizeF, ymax: float):
         """
         :param s: Dest size of graph (e.g. 1077 x 28/112 for Landscape
+        :param ymax: Normalized Y to shift down (in screen)
         """
         self.prepareGeometryChange()  # not helps
         # - prepare: X-scale factor, Y-shift, Y-scale factor
@@ -139,7 +140,8 @@ class AGraphItem(QGraphicsPathItem):
         ky = s.height()
         pp = self.path()
         for i, y in enumerate(self.__ss.nvalue):
-            pp.setElementPositionAt(i, i * kx, (self.ymax - y) * ky)
+            pp.setElementPositionAt(i, i * kx, (ymax - y) * ky)
+            # Неправильно. ky = ymax/(ymax - ymin) (как для y0line)
         self.setPath(pp)
 
 
@@ -152,23 +154,25 @@ class BGraphItem(QGraphicsPolygonItem):
         super().__init__()
         self.__ss = ss
         self.setPen(ThinPen(ss.color))
-        self.setBrush(QBrush(ss.color, Qt.BrushStyle.Dense1Pattern))  #
+        self.setBrush(QBrush(ss.color))  # , Qt.BrushStyle.Dense1Pattern
+        self.setOpacity(0.5)
         self.__set_size(1, 1)
 
-    def set_size(self, s: QSize):  # FIXME: +dy/y0
+    def set_size(self, s: QSizeF, ymax: float):
         """
         L: s=(1077 x 28/112)
         :param s: Size of graph
+        :param ymax: Normalized Y to shift down (in screen)
         """
         self.prepareGeometryChange()  # not helps
-        self.__set_size(s.width() / (self.__ss.count - 1), s.height())
+        self.__set_size(s.width() / (self.__ss.count - 1), s.height(), ymax)
 
-    def __set_size(self, kx: float, ky: float):
-        point_list = [QPointF(i * kx, -y * ky) for i, y in enumerate(self.__ss.value)]
+    def __set_size(self, kx: float, ky: float, dy: float = 0.0):
+        point_list = [QPointF(i * kx, (dy - y) * ky) for i, y in enumerate(self.__ss.value)]
         if self.__ss.value[0]:  # always start with 0
-            point_list.insert(0, QPointF(0, 0))
+            point_list.insert(0, QPointF(0, (dy * ky)))
         if self.__ss.value[-1]:  # always end with 0
-            point_list.append(QPointF((self.__ss.count - 1) * kx, 0))
+            point_list.append(QPointF((self.__ss.count - 1) * kx, (dy * ky)))
         self.setPolygon(QPolygonF(point_list))
 
 
@@ -197,7 +201,7 @@ class BarGraphView(GraphViewBase):
         for ss in bs:
             is_bool &= ss.is_bool
             self.scene().addItem(BGraphItem(ss) if ss.is_bool else AGraphItem(ss))
-        # if not is_bool:
+        # FIXME: if not is_bool:
         y0item = QGraphicsLineItem(0, 0, SAMPLES, 0)
         y0item.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DotLine))
         self.scene().addItem(y0item)
@@ -270,8 +274,8 @@ class BarGraphItem(GroupItem):
     """Graph part of signal bar"""
     __graph: List[Union[AGraphItem, BGraphItem]]
     __y0line: QGraphicsLineItem  # Y=0 line; TODO: skip if is_bool only
-    __ymin: float
-    __ymax: float
+    __ymin: float  # Best Y-min normalized
+    __ymax: float  # Best Y-max normalized
     __is_bool: bool
 
     def __init__(self, bs: BarSuit):
@@ -285,13 +289,17 @@ class BarGraphItem(GroupItem):
             self.addToGroup(self.__graph[-1])
             self.__ymin = min(self.__ymin, self.__graph[-1].ymin)
             self.__ymax = max(self.__ymax, self.__graph[-1].ymax)
+        # FIXME: if not self.__is_bool:
         self.__y0line = QGraphicsLineItem()
         self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
         self.__y0line.setLine(0, 0, SAMPLES, 0)
         self.addToGroup(self.__y0line)
 
     def __set_size_via_tr(self, s: QSize):
-        """Resize self using QTransform"""
+        """Resize self using QTransform.
+        :note: Children boundingRect() include pen width.
+        :todo: transform into rect
+        """
         ky = s.height() / (self.__ymax - self.__ymin)
         # self.resetTransform()  # not helps
         self.setTransform(QTransform().translate(0, -self.__ymin * ky))
@@ -299,13 +307,15 @@ class BarGraphItem(GroupItem):
         self.update()
 
     def set_size(self, s: QSize):
-        """Note: Children boundingRect() includes pen width.
+        """Used in: View/Print.
         :todo: chk pen width
         """
-        # calc dy,
+        h_norm = self.__ymax - self.__ymin  # normalized height, ≥ 1
+        s_local = QSizeF(s.width(), s.height() / h_norm)
         for gi in self.__graph:
-            gi.set_size(s)
-        y0px = -self.__ymin * s.height()
+            gi.set_size(s_local, self.__ymax)
+        # - move Y=0
+        y0px = self.__ymax / h_norm * s.height()
         self.__y0line.setLine(0, y0px, s.width(), y0px)
 
 

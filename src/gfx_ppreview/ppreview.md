@@ -13,12 +13,10 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] BarGraphItem:
-    - [ ] xGraphItem.set_size: y-shift
-    - [ ] BGraphItem: too thick
-    - [ ] rm Y0 if is_bool only
   + [ ] Through bar height
+  + [ ] BGraphItem: too thick
   + [ ] Bar v-gaps/pads
+  + [ ] BarGraphItem: rm Y0 if is_bool only
 - [ ] Options:
   + [ ] TODO: extra checkboxes
   + [ ] TODO: A-sig: amplitude definition
