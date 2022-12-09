@@ -9,9 +9,10 @@ from PyQt5.QtCore import Qt
 # 2. 3rd
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel, QActionGroup, \
+    QToolButton, QMenu
 # 3. local
-from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM
+from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, TO_PRINT
 from data import barsuit_list, BarSuitList, BarSuit
 from gitems import BarGraphView, GraphViewBase, PlotScene
 # from utils import gc2str
@@ -153,11 +154,18 @@ class PlotView(PlotBase):
 
 class PlotPrint(PlotBase):
     """
-    :todo: just scene container; can be replaced with QObject
+    :todo: just scene container; can be replaced with QObject?
     """
+    __to_print: list[bool]
+
     def __init__(self, bslist: BarSuitList):
         super().__init__(bslist)
+        self.__to_print = [False] * len(TO_PRINT)
         # print("Render__init__")
+
+    def slot_set_to_print(self, a: QAction):
+        self.__to_print[a.data()] = a.isChecked()
+        print(self.__to_print)
 
     def slot_paint_request(self, printer: QPrinter):
         """
@@ -175,16 +183,37 @@ class PlotPrint(PlotBase):
 
 
 class PDFOutPreviewDialog(QPrintPreviewDialog):
+    __actions_to_print: QActionGroup
+    __tb_to_print: QToolButton
+
     def __init__(self, __printer: QPrinter):
         super().__init__(__printer)
+        self.__mk_actions()
+        self.__mk_custom_menu()
+        self.findChildren(QToolBar)[0].addWidget(self.__tb_to_print)
+
+    def __mk_actions(self):
+        self.__actions_to_print = QActionGroup(self)
+        self.__actions_to_print.setExclusive(False)
+        for i, s in enumerate(TO_PRINT):
+            self.__actions_to_print.addAction(QAction(s, self, checkable=True, )).setData(i)
+
+    def __mk_custom_menu(self):
+        self.__tb_to_print = QToolButton(self)
+        self.__tb_to_print.setIcon(QIcon.fromTheme("emblem-important"))  # or SP_ToolBarVerticalExtensionButton
+        self.__tb_to_print.setPopupMode(QToolButton.MenuButtonPopup)
+        self.__tb_to_print.setMenu(QMenu())
+        self.__tb_to_print.menu().addActions(self.__actions_to_print.actions())
 
     def exec_(self):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
         :todo: mk render | connect | exec | disconnect | del render
         """
         rnd = PlotPrint(barsuit_list)
+        self.__actions_to_print.triggered.connect(rnd.slot_set_to_print)
         self.paintRequested.connect(rnd.slot_paint_request)
         retvalue = super().exec_()
+        self.__actions_to_print.triggered.disconnect(rnd.slot_set_to_print)
         self.paintRequested.disconnect(rnd.slot_paint_request)  # not helps
         del rnd  # not helps
         return retvalue

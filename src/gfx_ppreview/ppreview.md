@@ -12,7 +12,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - Size: 748×1130 (A4-10mm @ 100 dpi)
 
 ### ToDo:
-- [ ] Extra checkboxes (2nd line, ptrs)
+- [ ] Print: Extra checkboxes
 - [ ] RectTextItem: rm rect (use .shear())
    *([sample](https://www.qtcentre.org/threads/57322-Adding-HTML-code-into-QTableWidget-cells))*
 - [ ] Try: transform
