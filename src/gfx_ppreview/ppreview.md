@@ -12,8 +12,6 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - Size: 748×1130 (A4-10mm @ 100 dpi)
 
 ### ToDo:
-- [ ] Multisig bars:
-  + [ ] Bar v-gaps/pads
 - [ ] Options:
   + [ ] 2nd sig line
   + [ ] TODO: extra checkboxes
@@ -74,6 +72,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + Through bar height
   + Fixed: BGraphItem: too thick
   + Fixed: BarGraphItem: Y0-line is debug-only for is_bool bars
+  + Bar v-gaps
 - Options:
   + MW.toolbar
   + Fixed: View/Print: signals too high (overlap bottom)

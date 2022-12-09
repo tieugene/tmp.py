@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem, \
     QGraphicsTextItem
 # 3. local
-from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER, H_B_MULT
+from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER, H_B_MULT, H_ROW_GAP
 from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitList
 # from utils import qsize2str
 
@@ -296,6 +296,7 @@ class BarGraphItem(GroupItem):
             self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
             self.__y0line.setLine(0, 0, SAMPLES, 0)
             self.addToGroup(self.__y0line)
+        self.setY(H_ROW_GAP)
 
     def __set_size_via_tr(self, s: QSize):
         """Resize self using QTransform.
@@ -313,11 +314,11 @@ class BarGraphItem(GroupItem):
         :todo: chk pen width
         """
         h_norm = self.__ymax - self.__ymin  # normalized height, ≥ 1
-        s_local = QSizeF(s.width(), s.height() / h_norm)
+        s_local = QSizeF(s.width(), (s.height() - H_ROW_GAP * 2) / h_norm)
         for gi in self.__graph:
             gi.set_size(s_local, self.__ymax)
         if not self.__is_bool or DEBUG:  # - move Y=0
-            y0px = self.__ymax / h_norm * s.height()
+            y0px = self.__ymax / h_norm * (s.height() - H_ROW_GAP * 2)
             self.__y0line.setLine(0, y0px, s.width(), y0px)
 
 
