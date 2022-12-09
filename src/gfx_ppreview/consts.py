@@ -6,14 +6,14 @@ from PyQt5.QtGui import QFont
 # - user defined
 DEBUG = False  # paint borders around some items
 PORTRAIT = False  # initial orientation
-# -- ...
 # - hardcoded
 W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
-W_LABEL = 53  # Label column width
-H_HEADER = 56  # Header height, like 4×14
-H_ROW_BASE = 28  # Base (slick) row height in landscape mode; like 2×14
-H_BOTTOM = 20  # Bottom scale height
-PPP = 6  # plots per page
+W_LABEL = 53  # Label column width, dots, ~5 chars
+H_HEADER = 56  # Header height, dots, =4×14
+H_ROW_BASE = 28  # Base (B-only) bar height in landscape mode, dots, =2×14
+H_ROW_GAP = 5  # V-gap from margin to signals graph, dots
+H_BOTTOM = 20  # Bottom scale height, dots
+H_B_MULT = 1/5  # Height multiplier for B-sigal graph against A-signal one, 0..1
 FONT_MAIN = QFont('mono', 8)  # 7×14
 # y. data
 HEADER_TXT = '''This is the header with 3 lines.

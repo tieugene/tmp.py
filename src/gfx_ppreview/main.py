@@ -4,27 +4,31 @@ Test of rescaling print + multipage print."""
 # 1. std
 import sys
 from typing import List
+
+from PyQt5.QtCore import Qt
 # 2. 3rd
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QTableWidgetItem, QShortcut, QToolBar
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel
 # 3. local
-from consts import PORTRAIT, W_PAGE, H_ROW_BASE
-from data import SigSuitList
-from gitems import GraphView, GraphViewBase, PlotScene
+from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM
+from data import barsuit_list, BarSuitList, BarSuit
+from gitems import BarGraphView, GraphViewBase, PlotScene
+# from utils import gc2str
 
 
 class PlotBase(GraphViewBase):
+    """Used in: PlotView, PlotPrint"""
     _portrait: bool
     _scene: List[PlotScene]
 
-    def __init__(self):
+    def __init__(self, bslist: BarSuitList):
         super().__init__()
         self._portrait = PORTRAIT
         self._scene = list()
         i0 = 0
-        for k in self.__data_split(SigSuitList):
-            self._scene.append(PlotScene(SigSuitList[i0:i0 + k], self))
+        for k in self.__data_split(bslist):
+            self._scene.append(PlotScene(bslist[i0:i0 + k], self))
             i0 += k
 
     @property
@@ -41,13 +45,16 @@ class PlotBase(GraphViewBase):
         """Current full table width"""
         return W_PAGE[1 - int(self.portrait)]
 
-    @property
-    def h_row_base(self) -> int:
-        """Current base (short) row height.
-        :note: in theory must be (W_PAGE - header - footer) / num
+    def h_row(self, bs: BarSuit) -> int:  # FIXME: f(bs.is_bool, bs.h[default], self.portrait)
+        """Current base (sh ort) row height.
+        - if is_bool: exact H_ROW_BASE
+        - else: defined or 4 × H_ROW_BASE
+        - finally × 1.5 if portrait
         :todo: cache it
         """
-        return round(H_ROW_BASE * 1.5) if self.portrait else H_ROW_BASE
+        lp_mult = 1.5 if self.portrait else 1  # multiplier for landscape/portrait
+        h_base = H_ROW_BASE if bs.is_bool else bs.h or H_ROW_BASE * 4  # 28/112, 42/168
+        return round(h_base * lp_mult)
 
     @property
     def scene_count(self) -> int:
@@ -60,16 +67,16 @@ class PlotBase(GraphViewBase):
                 scene.update_sizes()
             # self.slot_reset_size()  # optional
 
-    @staticmethod
-    def __data_split(__dlist: SigSuitList) -> List[int]:
+    def __data_split(self, __bslist: BarSuitList) -> List[int]:
         """Split data to scene pieces (6/24).
         :return: list of bar numbers
         """
         retvalue = list()
+        h_barlist_max = W_PAGE[1] - H_HEADER - H_BOTTOM  # max v-space for bars
         cur_num = cur_height = 0  # heigth of current piece in basic (B) units
-        for i, d in enumerate(__dlist):
-            h = 1 + int(not d.is_bool) * 3
-            if cur_height + h > 24:
+        for i, bs in enumerate(__bslist):
+            h = self.h_row(bs)
+            if cur_height + h > h_barlist_max:  # analog?
                 retvalue.append(cur_num)
                 cur_num = cur_height = 0
             cur_num += 1
@@ -90,8 +97,8 @@ class PlotView(PlotBase):
     __sc_p_next: QShortcut
     __sc_p_last: QShortcut
 
-    def __init__(self, father: 'MainWindow'):
-        super().__init__()
+    def __init__(self, bslist: BarSuitList, father: 'MainWindow'):
+        super().__init__(bslist)
         self._father = father
         self.__set_scene(0)
         # shortcuts
@@ -148,8 +155,8 @@ class PlotPrint(PlotBase):
     """
     :todo: just scene container; can be replaced with QObject
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, bslist: BarSuitList):
+        super().__init__(bslist)
         # print("Render__init__")
 
     def slot_paint_request(self, printer: QPrinter):
@@ -175,7 +182,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
         :todo: mk render | connect | exec | disconnect | del render
         """
-        rnd = PlotPrint()
+        rnd = PlotPrint(barsuit_list)
         self.paintRequested.connect(rnd.slot_paint_request)
         retvalue = super().exec_()
         self.paintRequested.disconnect(rnd.slot_paint_request)  # not helps
@@ -184,14 +191,21 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
 
 
 class TableView(QTableWidget):
-    def __init__(self, parent: 'MainWindow'):
+    class MultisigLabel(QLabel):
+        def __init__(self, bs: BarSuit):
+            super().__init__()
+            self.setText(bs.html)
+            self.setTextFormat(Qt.TextFormat.RichText)
+
+    def __init__(self, bslist: BarSuitList, parent: 'MainWindow'):
         super().__init__(parent)
         self.horizontalHeader().setStretchLastSection(True)
-        self.setRowCount(len(SigSuitList))
+        self.setRowCount(len(bslist))
         self.setColumnCount(2)
-        for r, d in enumerate(SigSuitList):
-            self.setItem(r, 0, (QTableWidgetItem(d.name)))
-            self.setCellWidget(r, 1, GraphView(d))
+        # self.setContentsMargins(0, 0, 0, 0)
+        for r, bs in enumerate(bslist):
+            self.setCellWidget(r, 0, self.MultisigLabel(bs))
+            self.setCellWidget(r, 1, BarGraphView(bs))
 
 
 class MainWindow(QMainWindow):
@@ -220,8 +234,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setCentralWidget(TableView(self))
-        self.__view = PlotView(self)
+        self.setCentralWidget(TableView(barsuit_list, self))
+        # self.layout().setContentsMargins(QMargins())
+        # self.layout().setSpacing(0)
+        self.__view = PlotView(barsuit_list, self)
         self.__printer = self.PdfPrinter()
         self.__print_preview = PDFOutPreviewDialog(self.__printer)
         self.__mk_actions()

@@ -22,7 +22,7 @@ class TableItem(QGraphicsWidget):
         h.setMaximumHeight(50)
         h.setPreferredHeight(50)
         h.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        # lt.addItem(LayoutItem(TextItem(HEADER_TXT)))
+        # lt.addItem(LayoutItem(PlainTextItem(HEADER_TXT)))
         for row, d in enumerate(dlist):
             lt.addItem(LayoutItem(RowItem(d)))
         # lt.setStretchFactor(lt.itemAt(0), 0)
