@@ -14,7 +14,6 @@ Resume: Сделать *полностью* резиновый дизайно *�
 ### ToDo:
 - [ ] Multisig bars:
   + [ ] Bar v-gaps/pads
-  + [ ] BarGraphItem: rm Y0 if is_bool only
 - [ ] Options:
   + [ ] 2nd sig line
   + [ ] TODO: extra checkboxes
@@ -74,6 +73,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + BarLabelItem
   + Through bar height
   + Fixed: BGraphItem: too thick
+  + Fixed: BarGraphItem: Y0-line is debug-only for is_bool bars
 - Options:
   + MW.toolbar
   + Fixed: View/Print: signals too high (overlap bottom)

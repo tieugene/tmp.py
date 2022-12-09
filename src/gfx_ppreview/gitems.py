@@ -201,14 +201,14 @@ class BarGraphView(GraphViewBase):
         for ss in bs:
             is_bool &= ss.is_bool
             self.scene().addItem(BGraphItem(ss) if ss.is_bool else AGraphItem(ss))
-        # FIXME: if not is_bool:
-        y0item = QGraphicsLineItem(0, 0, SAMPLES, 0)
-        y0item.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DotLine))
-        self.scene().addItem(y0item)
+        if not is_bool or DEBUG:
+            y0item = QGraphicsLineItem(0, 0, SAMPLES, 0)
+            y0item.setPen(ThinPen(Qt.GlobalColor.black, Qt.PenStyle.DotLine))
+            self.scene().addItem(y0item)
 
 
 # ---- Containers
-class RectTextItem(GroupItem):  # FIXME: rm
+class RectTextItem(GroupItem):
     """Text in border.
     Used in: HeaderItem
     Result: something strange."""
@@ -291,11 +291,11 @@ class BarGraphItem(GroupItem):
             self.addToGroup(self.__graph[-1])
             self.__ymin = min(self.__ymin, self.__graph[-1].ymin)
             self.__ymax = max(self.__ymax, self.__graph[-1].ymax)
-        # TODO: if not self.__is_bool:
-        self.__y0line = QGraphicsLineItem()
-        self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
-        self.__y0line.setLine(0, 0, SAMPLES, 0)
-        self.addToGroup(self.__y0line)
+        if not self.__is_bool or DEBUG:
+            self.__y0line = QGraphicsLineItem()
+            self.__y0line.setPen(ThinPen(Qt.GlobalColor.gray, Qt.PenStyle.DotLine))
+            self.__y0line.setLine(0, 0, SAMPLES, 0)
+            self.addToGroup(self.__y0line)
 
     def __set_size_via_tr(self, s: QSize):
         """Resize self using QTransform.
@@ -316,9 +316,9 @@ class BarGraphItem(GroupItem):
         s_local = QSizeF(s.width(), s.height() / h_norm)
         for gi in self.__graph:
             gi.set_size(s_local, self.__ymax)
-        # - move Y=0 (TODO: skip if is_bool)
-        y0px = self.__ymax / h_norm * s.height()
-        self.__y0line.setLine(0, y0px, s.width(), y0px)
+        if not self.__is_bool or DEBUG:  # - move Y=0
+            y0px = self.__ymax / h_norm * s.height()
+            self.__y0line.setLine(0, y0px, s.width(), y0px)
 
 
 class RowItem(GroupItem):
