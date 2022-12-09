@@ -7,8 +7,8 @@ from PyQt5.QtGui import QFont
 DEBUG = False  # paint borders around some items
 PORTRAIT = False  # initial orientation
 # - hardcoded
-W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
-W_LABEL = 53  # Label column width, dots, ~5 chars
+W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)@100dpi
+W_LABEL = 105  # Label column width, dots, ~11 chars
 H_HEADER = 56  # Header height, dots, =4×14
 H_ROW_BASE = 28  # Base (B-only) bar height in landscape mode, dots, =2×14
 H_ROW_GAP = 5  # V-gap from margin to signals graph, dots

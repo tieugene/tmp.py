@@ -12,9 +12,9 @@ from utils import gc2str
 # x. consts
 SAMPLES = 24  # samples per signal
 __AUTOFILL = False
-__SIGNALS = 50  # Number of signals for autofill
 __AUTOBARS = 50  # Number of signal bars
 __SPB = 3  # max signal per bar
+_2LINE = False  # Do print 2nd line in label
 _COLORS = (
     Qt.GlobalColor.black,
     Qt.GlobalColor.red,
@@ -64,6 +64,7 @@ class _SigSuitBase:
     :note: n* members are for 'normalized' adjusted values (nmax - nmin = 1 const)
     """
     name: str
+    note: str
     color: Qt.GlobalColor
     value: Union[List[int], List[float]]
     # amin: Union[int, float]  # Adjusted absulute min value (min but ≤ 0)
@@ -75,6 +76,10 @@ class _SigSuitBase:
     @property
     def count(self) -> int:
         return len(self.value)
+
+    def get_label(self, full=False):
+        """HTML-complain label"""
+        return f"{self.name}<br/>{self.note}" if full else self.name
 
 
 @dataclass
@@ -137,11 +142,7 @@ class BarSuit(List[USigSuitType]):
 
     @property
     def html(self) -> str:
-        # FIXME: ''.join([...])
-        lbl = ''
-        for ss in self:
-            lbl += f"<span style='color: {gc2str(ss.color)}'>{ss.name}</span><br/>"
-        return lbl
+        return ''.join([f"<span style='color: {gc2str(ss.color)}'>{ss.get_label(_2LINE)}</span><br/>" for ss in self])
 
 
 BarSuitList = List[BarSuit]
@@ -199,12 +200,14 @@ def __data_fill():
             if d[0]:
                 ss = BSigSuit(
                     name=d[1],
+                    note=f"hs={d[3]}/vs={d[4]}",
                     color=d[2],
                     value=__mk_meander(d[3], d[4])
                 )
             else:
                 ss = ASigSuit(
                     name=d[1],
+                    note=f"hs={d[3]}/p={d[4]}",
                     color=d[2],
                     value=__mk_sin(d[3], d[4])
                 )

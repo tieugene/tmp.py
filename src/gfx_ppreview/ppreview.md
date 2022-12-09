@@ -12,18 +12,17 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - Size: 748×1130 (A4-10mm @ 100 dpi)
 
 ### ToDo:
-- [ ] Options:
-  + [ ] 2nd sig line
-  + [ ] TODO: extra checkboxes
-  + [ ] TODO: A-sig: amplitude definition
+- [ ] Extra checkboxes (2nd line, ptrs)
+- [ ] RectTextItem: rm rect (use .shear())
+   *([sample](https://www.qtcentre.org/threads/57322-Adding-HTML-code-into-QTableWidget-cells))*
+- [ ] Try: transform
+- [ ] PyQt6 complain
+- [ ] Tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
+- [ ] FIXME: Render: not call after 2+ `__init__()`
+- [ ] Options
   + [ ] FIXME: QTableWidget: graphs too small  
      *(because transform includes pen width)*
-  + [ ] FIXME: Render: not call after 2+ `__init__()`
-  + [ ] TODO: tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
-  + [ ] TODO: RectTextItem: rm rect (use .shear())
-     *([sample](https://www.qtcentre.org/threads/57322-Adding-HTML-code-into-QTableWidget-cells))*
-  + [ ] Try: transform
-  + [ ] PyQt6 complain
+  + [ ] TODO: A-sig: amplitude definition
 
 ### Done:
 - Label cut
@@ -73,10 +72,11 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + Fixed: BGraphItem: too thick
   + Fixed: BarGraphItem: Y0-line is debug-only for is_bool bars
   + Bar v-gaps
-- Options:
+- Misc:
   + MW.toolbar
   + Fixed: View/Print: signals too high (overlap bottom)
   + Fixed: View/Print: bad y0 if max < 0 or min > 0
+  + 2nd sig label line (optional)
 
 ## RTFM:
 
