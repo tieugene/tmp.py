@@ -13,7 +13,6 @@ Resume: Сделать *полностью* резиновый дизайно *�
 
 ### ToDo:
 - [ ] Multisig bars:
-  + [ ] BGraphItem: too thick
   + [ ] Bar v-gaps/pads
   + [ ] BarGraphItem: rm Y0 if is_bool only
 - [ ] Options:
@@ -74,6 +73,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + V-shifted A-sig
   + BarLabelItem
   + Through bar height
+  + Fixed: BGraphItem: too thick
 - Options:
   + MW.toolbar
   + Fixed: View/Print: signals too high (overlap bottom)

@@ -12,6 +12,7 @@ W_PAGE = (1130, 748)  # Page width landscape/portrait; (A4-10mm)/0.254mm
 W_LABEL = 53  # Label column width
 H_HEADER = 56  # Header height, like 4×14
 H_ROW_BASE = 28  # Base (slick) row height in landscape mode; like 2×14
+H_B_MULT = 1/5  # Height multiplier for B-sigal (against normalized A-signal)
 H_BOTTOM = 20  # Bottom scale height
 FONT_MAIN = QFont('mono', 8)  # 7×14
 # y. data

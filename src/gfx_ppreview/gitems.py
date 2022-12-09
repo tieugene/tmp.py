@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
     QWidget, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsItemGroup, QGraphicsLineItem, QGraphicsPolygonItem, \
     QGraphicsTextItem
 # 3. local
-from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER
+from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER, H_B_MULT
 from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitList
 # from utils import qsize2str
 
@@ -148,7 +148,7 @@ class AGraphItem(QGraphicsPathItem):
 class BGraphItem(QGraphicsPolygonItem):
     __ss: BSigSuit
     ymin: float = 0.0
-    ymax: float = 1.0
+    ymax: float = H_B_MULT
 
     def __init__(self, ss: BSigSuit):
         super().__init__()
@@ -168,7 +168,7 @@ class BGraphItem(QGraphicsPolygonItem):
         self.__set_size(s.width() / (self.__ss.count - 1), s.height(), ymax)
 
     def __set_size(self, kx: float, ky: float, dy: float = 0.0):
-        point_list = [QPointF(i * kx, (dy - y) * ky) for i, y in enumerate(self.__ss.value)]
+        point_list = [QPointF(i * kx, (dy - y * H_B_MULT) * ky) for i, y in enumerate(self.__ss.value)]
         if self.__ss.value[0]:  # always start with 0
             point_list.insert(0, QPointF(0, (dy * ky)))
         if self.__ss.value[-1]:  # always end with 0
