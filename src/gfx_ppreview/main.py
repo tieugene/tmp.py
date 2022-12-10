@@ -4,12 +4,10 @@ Test of rescaling print + multipage print."""
 # 1. std
 import sys
 from typing import List, Optional
-
-from PyQt5 import QtPrintSupport
-from PyQt5.QtCore import Qt
 # 2. 3rd
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
-from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
+from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintPreviewWidget
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QToolButton, QLabel,\
     QActionGroup, QMenu
 # 3. local
@@ -224,7 +222,7 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
             else:
                 return
             # workaround to find built-in QPrintPreviewWidget and force it to update
-            if (wdg := self.findChild(QtPrintSupport.QPrintPreviewWidget)) is not None:
+            if (wdg := self.findChild(QPrintPreviewWidget)) is not None:
                 wdg.updatePreview()
 
     def exec_(self):
