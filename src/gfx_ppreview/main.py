@@ -221,6 +221,8 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
             v = a.isChecked()
             if i == 0:
                 self.__render.slot_set_prn_values(v)
+            else:
+                return
             # workaround to find built-in QPrintPreviewWidget and force it to update
             if (wdg := self.findChild(QtPrintSupport.QPrintPreviewWidget)) is not None:
                 wdg.updatePreview()
