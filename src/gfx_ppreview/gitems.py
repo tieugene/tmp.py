@@ -262,12 +262,16 @@ class HeaderItem(RectTextItem):
 
 
 class BarLabelItem(RectTextItem):
+    __bs: BarSuit
     """Label part of signal bar"""
-
     def __init__(self, bs: BarSuit):
         super().__init__(ClipedRichTextItem())
-        self.text.setHtml(bs.html)
+        self.__bs = bs
+        self.update_text()
         self.set_width(W_LABEL)
+
+    def update_text(self, prn_values: bool = False):
+        self.text.setHtml(self.__bs.html(prn_values))
 
 
 class BarGraphItem(GroupItem):
@@ -352,6 +356,10 @@ class RowItem(GroupItem):
         self.__label.set_height(h-1)
         self.__graph.set_size(QSize(w, h-1))
         self.__uline.setLine(0, h-1, self.__plot.w_full, h-1)
+
+    def update_labels(self):
+        self.__label.update_text(self.__plot.prn_values)
+        # print("RowItem.update_labels")
 
 
 class TableCanvas(GroupItem):
@@ -453,6 +461,10 @@ class TablePayload(GroupItem):
             item.setY(y)
             y += item.boundingRect().height()
 
+    def update_labels(self):
+        for item in self.__rowitem:
+            item.update_labels()
+
 
 class PlotScene(QGraphicsScene):
     """Used in: PlotBase > PlotView/PrintView"""
@@ -471,3 +483,6 @@ class PlotScene(QGraphicsScene):
         self.__canvas.update_sizes()
         self.__payload.update_sizes()
         self.setSceneRect(self.itemsBoundingRect())
+
+    def update_labels(self):
+        self.__payload.update_labels()

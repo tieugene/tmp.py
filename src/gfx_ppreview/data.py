@@ -140,9 +140,8 @@ class BarSuit(List[USigSuitType]):
                 return False
         return True
 
-    @property
-    def html(self) -> str:
-        return ''.join([f"<span style='color: {gc2str(ss.color)}'>{ss.get_label(_2LINE)}</span><br/>" for ss in self])
+    def html(self, __2lines: bool = False) -> str:
+        return ''.join([f"<span style='color: {gc2str(ss.color)}'>{ss.get_label(__2lines)}</span><br/>" for ss in self])
 
 
 BarSuitList = List[BarSuit]

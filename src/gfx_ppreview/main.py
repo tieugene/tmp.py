@@ -3,14 +3,15 @@
 Test of rescaling print + multipage print."""
 # 1. std
 import sys
-from typing import List
+from typing import List, Optional
 
+from PyQt5 import QtPrintSupport
 from PyQt5.QtCore import Qt
 # 2. 3rd
 from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QLabel, QActionGroup, \
-    QToolButton, QMenu
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QToolButton, QLabel,\
+    QActionGroup, QMenu
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, TO_PRINT
 from data import barsuit_list, BarSuitList, BarSuit
@@ -21,11 +22,13 @@ from gitems import BarGraphView, GraphViewBase, PlotScene
 class PlotBase(GraphViewBase):
     """Used in: PlotView, PlotPrint"""
     _portrait: bool
+    _prn_values: bool
     _scene: List[PlotScene]
 
     def __init__(self, bslist: BarSuitList):
         super().__init__()
         self._portrait = PORTRAIT
+        self._prn_values = False
         self._scene = list()
         i0 = 0
         for k in self.__data_split(bslist):
@@ -35,6 +38,10 @@ class PlotBase(GraphViewBase):
     @property
     def portrait(self) -> bool:
         return self._portrait
+
+    @property
+    def prn_values(self) -> bool:
+        return self._prn_values
 
     @property
     def w_full(self) -> int:
@@ -68,8 +75,14 @@ class PlotBase(GraphViewBase):
                 scene.update_sizes()
             # self.slot_reset_size()  # optional
 
+    def slot_set_prn_values(self, v: bool):
+        if self._prn_values ^ v:
+            self._prn_values = v
+            for scene in self._scene:
+                scene.update_labels()
+
     def __data_split(self, __bslist: BarSuitList) -> List[int]:
-        """Split data to scene pieces (6/24).
+        """Split data to scene pieces.
         :return: list of bar numbers
         """
         retvalue = list()
@@ -156,16 +169,8 @@ class PlotPrint(PlotBase):
     """
     :todo: just scene container; can be replaced with QObject?
     """
-    __to_print: list[bool]
-
     def __init__(self, bslist: BarSuitList):
         super().__init__(bslist)
-        self.__to_print = [False] * len(TO_PRINT)
-        # print("Render__init__")
-
-    def slot_set_to_print(self, a: QAction):
-        self.__to_print[a.data()] = a.isChecked()
-        print(self.__to_print)
 
     def slot_paint_request(self, printer: QPrinter):
         """
@@ -173,24 +178,29 @@ class PlotPrint(PlotBase):
         Use printer.pageRect(QPrinter.Millimeter/DevicePixel).
         :param printer: Where to draw to
         """
-        # print("Render.slot_paint_request()")
         self.slot_set_portrait(printer.orientation() == QPrinter.Orientation.Portrait)
         painter = QPainter(printer)
         self._scene[0].render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
         for scene in self._scene[1:]:
             printer.newPage()
             scene.render(painter)
+        painter.end()
 
 
 class PDFOutPreviewDialog(QPrintPreviewDialog):
     __actions_to_print: QActionGroup
     __tb_to_print: QToolButton
+    __printer: QPrinter
+    __render: Optional[PlotPrint]
 
     def __init__(self, __printer: QPrinter):
         super().__init__(__printer)
+        self.__printer = __printer
+        self.__render = None
         self.__mk_actions()
         self.__mk_custom_menu()
         self.findChildren(QToolBar)[0].addWidget(self.__tb_to_print)
+        self.__actions_to_print.triggered.connect(self.__slot_set_option)
 
     def __mk_actions(self):
         self.__actions_to_print = QActionGroup(self)
@@ -205,17 +215,24 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
         self.__tb_to_print.setMenu(QMenu())
         self.__tb_to_print.menu().addActions(self.__actions_to_print.actions())
 
+    def __slot_set_option(self, a: QAction):
+        if self.__render:
+            i = a.data()
+            v = a.isChecked()
+            if i == 0:
+                self.__render.slot_set_prn_values(v)
+            # workaround to find built-in QPrintPreviewWidget and force it to update
+            if (wdg := self.findChild(QtPrintSupport.QPrintPreviewWidget)) is not None:
+                wdg.updatePreview()
+
     def exec_(self):
-        """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed.
-        :todo: mk render | connect | exec | disconnect | del render
-        """
-        rnd = PlotPrint(barsuit_list)
-        self.__actions_to_print.triggered.connect(rnd.slot_set_to_print)
-        self.paintRequested.connect(rnd.slot_paint_request)
+        """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed."""
+        self.__render = PlotPrint(barsuit_list)
+        self.paintRequested.connect(self.__render.slot_paint_request)
         retvalue = super().exec_()
-        self.__actions_to_print.triggered.disconnect(rnd.slot_set_to_print)
-        self.paintRequested.disconnect(rnd.slot_paint_request)  # not helps
-        del rnd  # not helps
+        self.paintRequested.disconnect(self.__render.slot_paint_request)  # not helps
+        self.__render.deleteLater()  # del rnd not helps
+        self.__render = None
         return retvalue
 
 
@@ -223,7 +240,7 @@ class TableView(QTableWidget):
     class MultisigLabel(QLabel):
         def __init__(self, bs: BarSuit):
             super().__init__()
-            self.setText(bs.html)
+            self.setText(bs.html())
             self.setTextFormat(Qt.TextFormat.RichText)
 
     def __init__(self, bslist: BarSuitList, parent: 'MainWindow'):

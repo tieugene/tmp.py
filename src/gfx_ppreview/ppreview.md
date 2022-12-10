@@ -18,7 +18,6 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - [ ] Try: transform
 - [ ] PyQt6 complain
 - [ ] Tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
-- [ ] FIXME: Render: not call after 2+ `__init__()`
 - [ ] Options
   + [ ] FIXME: QTableWidget: graphs too small  
      *(because transform includes pen width)*
@@ -77,6 +76,8 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + Fixed: View/Print: signals too high (overlap bottom)
   + Fixed: View/Print: bad y0 if max < 0 or min > 0
   + 2nd sig label line (optional)
+  + Fixed: Render: not call after 2+ `__init__()`
+     *(solution: QPrintPreviewWidget::updatePreview())*
 
 ## RTFM:
 
