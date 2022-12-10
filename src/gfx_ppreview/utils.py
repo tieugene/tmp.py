@@ -1,5 +1,6 @@
+# 1. std
 from typing import Union
-
+# 2. 3rd
 from PyQt5.QtCore import QRect, QRectF, QSize, QSizeF, Qt
 from PyQt5.QtGui import QColor
 

@@ -16,9 +16,8 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - [ ] RectTextItem: rm rect (use .shear())
    *([sample](https://www.qtcentre.org/threads/57322-Adding-HTML-code-into-QTableWidget-cells))*
 - [ ] Try: transform
-- [ ] PyQt6 complain
 - [ ] Tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
-- [ ] Options
+- [ ] Options:
   + [ ] FIXME: QTableWidget: graphs too small  
      *(because transform includes pen width)*
   + [ ] TODO: A-sig: amplitude definition
@@ -78,6 +77,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + 2nd sig label line (optional)
   + Fixed: Render: not call after 2+ `__init__()`
      *(solution: QPrintPreviewWidget::updatePreview())*
+  + ~PyQt6 complain~ too much
 
 ## RTFM:
 

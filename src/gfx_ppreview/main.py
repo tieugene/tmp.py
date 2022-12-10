@@ -5,11 +5,12 @@ Test of rescaling print + multipage print."""
 import sys
 from typing import List, Optional
 # 2. 3rd
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
+from PyQt5.QtCore import Qt, QMarginsF
+from PyQt5.QtGui import QIcon, QCloseEvent, QPainter, QPageLayout
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintPreviewWidget
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QAction, QShortcut, QToolBar, QToolButton, QLabel,\
-    QActionGroup, QMenu
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QToolBar, QToolButton, QLabel, QMenu
+from PyQt5.QtWidgets import QShortcut, QAction, QActionGroup
+# from PyQt6.QtGui import QShortcut, QAction, QActionGroup
 # 3. local
 from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, TO_PRINT
 from data import barsuit_list, BarSuitList, BarSuit
