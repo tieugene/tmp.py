@@ -12,7 +12,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - Size: 748×1130 (A4-10mm @ 100 dpi)
 
 ### ToDo:
-- [ ] Try: transform
+- [ ] Try: transform (scale+translate)
 - [ ] RectTextItem: rm rect (use .shear())
    *([sample](https://www.qtcentre.org/threads/57322-Adding-HTML-code-into-QTableWidget-cells))*
 - [ ] Tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
