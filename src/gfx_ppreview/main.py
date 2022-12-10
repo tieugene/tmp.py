@@ -211,7 +211,12 @@ class PDFOutPreviewDialog(QPrintPreviewDialog):
     def __mk_actions(self):
         self.__actions_to_print = QActionGroup(self)
         self.__actions_to_print.setExclusive(False)
-        self.__actions_to_print.addAction(QAction("Print values", self, checkable=True, toggled=self.__slot_set_2lines))
+        self.__actions_to_print.addAction(QAction(
+            "Print values",
+            self,
+            checkable=True,
+            toggled=self.__slot_set_2lines
+        ))
 
     def __mk_custom_menu(self):
         self.__tb_to_print = QToolButton(self)
@@ -291,24 +296,86 @@ class MainWindow(QMainWindow):
 
     def __mk_actions(self):
         # grouping
-        self.act_view = QAction(QIcon.fromTheme("document-print-preview"), "&View", self, shortcut="Ctrl+V",
-                                checkable=True, toggled=self.__view.setVisible)
-        self.act_print = QAction(QIcon.fromTheme("document-print"), "&Print", self, shortcut="Ctrl+P",
-                                 triggered=self.__print_preview.exec_)
-        self.act_exit = QAction(QIcon.fromTheme("application-exit"), "E&xit", self, shortcut="Ctrl+Q",
-                                triggered=self.close)
-        self.act_size0 = QAction(QIcon.fromTheme("zoom-original"), "Original size", self, shortcut="Ctrl+0",
-                                 triggered=self.__view.slot_reset_size)
-        self.act_o_p = QAction(QIcon.fromTheme("object-flip-vertical"), "Portrait", self, shortcut="Ctrl+O",
-                               checkable=True, toggled=self.__view.slot_set_portrait)
-        self.act_go_1st = QAction(QIcon.fromTheme("go-first"), "1st page", self, shortcut="Ctrl+Up",
-                                  triggered=self.__view.slot_p_1st)
-        self.act_go_prev = QAction(QIcon.fromTheme("go-previous"), "Prev. page", self, shortcut="Ctrl+Left",
-                                   triggered=self.__view.slot_p_prev)
-        self.act_go_next = QAction(QIcon.fromTheme("go-next"), "Next page", self, shortcut="Ctrl+Right",
-                                   triggered=self.__view.slot_p_next)
-        self.act_go_last = QAction(QIcon.fromTheme("go-last"), "Last page", self, shortcut="Ctrl+Down",
-                                   triggered=self.__view.slot_p_last)
+        self.act_view = QAction(
+            QIcon.fromTheme("document-print-preview"),
+            "&View",
+            self,
+            shortcut="Ctrl+V",
+            checkable=True,
+            toggled=self.__view.setVisible
+        )
+        self.act_print = QAction(
+            QIcon.fromTheme("document-print"),
+            "&Print",
+            self,
+            shortcut="Ctrl+P",
+            triggered=self.__print_preview.exec_
+        )
+        self.act_exit = QAction(
+            QIcon.fromTheme(
+                "application-exit",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_DialogCloseButton)
+            ),
+            "E&xit",
+            self,
+            shortcut="Ctrl+Q",
+            triggered=self.close
+        )
+        self.act_size0 = QAction(
+            QIcon.fromTheme("zoom-original"),
+            "Original size",
+            self,
+            shortcut="Ctrl+0",
+            triggered=self.__view.slot_reset_size
+        )
+        self.act_o_p = QAction(
+            QIcon.fromTheme("object-flip-vertical"),
+            "Portrait",
+            self,
+            shortcut="Ctrl+O",
+            checkable=True,
+            toggled=self.__view.slot_set_portrait
+        )
+        self.act_go_1st = QAction(
+            QIcon.fromTheme(
+                "go-first",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSkipBackward)
+            ),
+            "1st page",
+            self,
+            shortcut="Ctrl+Up",
+            triggered=self.__view.slot_p_1st
+        )
+        self.act_go_prev = QAction(
+            QIcon.fromTheme(
+                "go-previous",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSeekBackward)
+            ),
+            "Prev. page",
+            self,
+            shortcut="Ctrl+Left",
+            triggered=self.__view.slot_p_prev
+        )
+        self.act_go_next = QAction(
+            QIcon.fromTheme(
+                "go-next",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSeekForward)
+            ),
+            "Next page",
+            self,
+            shortcut="Ctrl+Right",
+            triggered=self.__view.slot_p_next
+        )
+        self.act_go_last = QAction(
+            QIcon.fromTheme(
+                "go-last",
+                self.style().standardIcon(QStyle.StandardPixmap.SP_MediaSkipForward)
+            ),
+            "Last page",
+            self,
+            shortcut="Ctrl+Down",
+            triggered=self.__view.slot_p_last
+        )
 
     def __mk_menu(self):
         self.menuBar().setVisible(True)

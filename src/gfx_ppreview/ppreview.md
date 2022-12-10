@@ -15,7 +15,6 @@ Resume: Сделать *полностью* резиновый дизайно *�
 - [ ] Try: transform
 - [ ] RectTextItem: rm rect (use .shear())
    *([sample](https://www.qtcentre.org/threads/57322-Adding-HTML-code-into-QTableWidget-cells))*
-- [ ] Fallback icons
 - [ ] Tune geometry *(remember: X0=0, Xmax=width-1, line widths)*
 - [ ] Options:
   + [ ] FIXME: QTableWidget: graphs too small  
@@ -80,6 +79,7 @@ Resume: Сделать *полностью* резиновый дизайно *�
   + ~PyQt6 complain~ too much
   + Print: Extra checkboxes:
     - Extra options built into printer
+  + Fallback icons
 
 ## RTFM:
 
