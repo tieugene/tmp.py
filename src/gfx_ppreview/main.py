@@ -2,17 +2,16 @@
 """gfx_preview/main: main module.
 Test of rescaling print + multipage print."""
 # 1. std
-import sys
 from typing import List, Optional
+import sys
 # 2. 3rd
-from PyQt5.QtCore import Qt, QMarginsF
-from PyQt5.QtGui import QIcon, QCloseEvent, QPainter, QPageLayout
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QCloseEvent, QPainter
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QToolBar, QToolButton, QLabel, QMenu, QStyle,\
+    QShortcut, QAction, QActionGroup
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintPreviewWidget
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QToolBar, QToolButton, QLabel, QMenu
-from PyQt5.QtWidgets import QShortcut, QAction, QActionGroup
-# from PyQt6.QtGui import QShortcut, QAction, QActionGroup
 # 3. local
-from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM, TO_PRINT
+from consts import PORTRAIT, W_PAGE, H_ROW_BASE, H_HEADER, H_BOTTOM
 from data import barsuit_list, BarSuitList, BarSuit
 from gitems import BarGraphView, GraphViewBase, PlotScene
 # from utils import gc2str
@@ -74,7 +73,7 @@ class PlotBase(GraphViewBase):
                 scene.update_sizes()
             # self.slot_reset_size()  # optional
 
-    def slot_set_prn_values(self, v: bool):
+    def _slot_set_prn_values(self, v: bool):
         if self._prn_values ^ v:
             self._prn_values = v
             for scene in self._scene:
@@ -164,6 +163,18 @@ class PlotView(PlotBase):
             self.__set_scene(self.scene_count - 1)
 
 
+class PdfPrinter(QPrinter):
+    option_2lines: bool
+
+    def __init__(self):
+        super().__init__(QPrinter.PrinterMode.HighResolution)
+        self.option_2lines = False
+        self.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        self.setResolution(100)
+        self.setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
+        self.setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
+
+
 class PlotPrint(PlotBase):
     """
     :todo: just scene container; can be replaced with QObject?
@@ -171,13 +182,14 @@ class PlotPrint(PlotBase):
     def __init__(self, bslist: BarSuitList):
         super().__init__(bslist)
 
-    def slot_paint_request(self, printer: QPrinter):
+    def slot_paint_request(self, printer: PdfPrinter):
         """
         Call _B4_ show dialog
         Use printer.pageRect(QPrinter.Millimeter/DevicePixel).
         :param printer: Where to draw to
         """
         self.slot_set_portrait(printer.orientation() == QPrinter.Orientation.Portrait)
+        self._slot_set_prn_values(printer.option_2lines)
         painter = QPainter(printer)
         self._scene[0].render(painter)  # Sizes: dst: printer.pageSize(), src: self.scene().sceneRect()
         for scene in self._scene[1:]:
@@ -189,52 +201,46 @@ class PlotPrint(PlotBase):
 class PDFOutPreviewDialog(QPrintPreviewDialog):
     __actions_to_print: QActionGroup
     __tb_to_print: QToolButton
-    __printer: QPrinter
-    __render: Optional[PlotPrint]
 
-    def __init__(self, __printer: QPrinter):
+    def __init__(self, __printer: PdfPrinter):
         super().__init__(__printer)
-        self.__printer = __printer
-        self.__render = None
         self.__mk_actions()
         self.__mk_custom_menu()
         self.findChildren(QToolBar)[0].addWidget(self.__tb_to_print)
-        self.__actions_to_print.triggered.connect(self.__slot_set_option)
 
     def __mk_actions(self):
         self.__actions_to_print = QActionGroup(self)
         self.__actions_to_print.setExclusive(False)
-        for i, s in enumerate(TO_PRINT):
-            self.__actions_to_print.addAction(QAction(s, self, checkable=True, )).setData(i)
+        self.__actions_to_print.addAction(QAction("Print values", self, checkable=True, toggled=self.__slot_set_2lines))
 
     def __mk_custom_menu(self):
         self.__tb_to_print = QToolButton(self)
-        self.__tb_to_print.setIcon(QIcon.fromTheme("emblem-important"))  # or SP_ToolBarVerticalExtensionButton
+        self.__tb_to_print.setIcon(QIcon.fromTheme(
+            "emblem-important",
+            self.style().standardIcon(QStyle.StandardPixmap.SP_ToolBarVerticalExtensionButton)
+        ))
         self.__tb_to_print.setPopupMode(QToolButton.MenuButtonPopup)
         self.__tb_to_print.setMenu(QMenu())
         self.__tb_to_print.menu().addActions(self.__actions_to_print.actions())
 
-    def __slot_set_option(self, a: QAction):
-        if self.__render:
-            i = a.data()
-            v = a.isChecked()
-            if i == 0:
-                self.__render.slot_set_prn_values(v)
-            else:
-                return
-            # workaround to find built-in QPrintPreviewWidget and force it to update
-            if (wdg := self.findChild(QPrintPreviewWidget)) is not None:
-                wdg.updatePreview()
+    def __repreview(self):
+        """Update preview.
+        :note: workaround to find built-in QPrintPreviewWidget and force it to update
+        """
+        if (wdg := self.findChild(QPrintPreviewWidget)) is not None:
+            wdg.updatePreview()
+
+    def __slot_set_2lines(self, v: bool):
+        self.printer().option_2lines = v
+        self.__repreview()
 
     def exec_(self):
         """Exec print dialog from Print action activated until Esc (0) or 'OK' (print) pressed."""
-        self.__render = PlotPrint(barsuit_list)
-        self.paintRequested.connect(self.__render.slot_paint_request)
-        retvalue = super().exec_()
-        self.paintRequested.disconnect(self.__render.slot_paint_request)  # not helps
-        self.__render.deleteLater()  # del rnd not helps
-        self.__render = None
-        return retvalue
+        rndr = PlotPrint(barsuit_list)
+        self.paintRequested.connect(rndr.slot_paint_request)
+        return super().exec_()
+        # self.paintRequested.disconnect(rndr.slot_paint_request)  # not required
+        # rndr.deleteLater()  # or `del rndr`; not required
 
 
 class TableView(QTableWidget):
@@ -256,14 +262,6 @@ class TableView(QTableWidget):
 
 
 class MainWindow(QMainWindow):
-    class PdfPrinter(QPrinter):
-        def __init__(self):
-            super().__init__(QPrinter.PrinterMode.HighResolution)
-            self.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
-            self.setResolution(100)
-            self.setPageMargins(10, 10, 10, 10, QPrinter.Unit.Millimeter)
-            self.setOrientation(QPrinter.Orientation.Portrait if PORTRAIT else QPrinter.Orientation.Landscape)
-
     __toolbar: QToolBar
     __view: PlotView
     __printer: PdfPrinter
@@ -285,7 +283,7 @@ class MainWindow(QMainWindow):
         # self.layout().setContentsMargins(QMargins())
         # self.layout().setSpacing(0)
         self.__view = PlotView(barsuit_list, self)
-        self.__printer = self.PdfPrinter()
+        self.__printer = PdfPrinter()
         self.__print_preview = PDFOutPreviewDialog(self.__printer)
         self.__mk_actions()
         self.__mk_menu()

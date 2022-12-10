@@ -20,8 +20,3 @@ HEADER_TXT = '''This is the header with 3 lines.
 Hotkeys: ^0: Original size, ^O: Switch landscape/portrait, ^V: Close (hide),
 Go page: ^↑: 1st, ^←: Prev., ^→: Next, ^↓: Last.
 '''
-TO_PRINT = (
-    "Print values",
-    "Print b/w",  # RTFM: QPrinter::setColorMode()
-    "Print pointers",
-)
