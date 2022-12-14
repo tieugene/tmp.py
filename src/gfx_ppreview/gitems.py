@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsItem, QGraphicsView, QGr
 from consts import DEBUG, FONT_MAIN, W_LABEL, HEADER_TXT, H_BOTTOM, H_HEADER, H_B_MULT, H_ROW_GAP
 from data import SAMPLES, TICS, ASigSuit, BSigSuit, BarSuit, BarSuitList
 # from utils import qsize2str
+# from utils import qrect2str
 
 
 # ---- Shortcuts ----
@@ -302,18 +303,31 @@ class BarGraphItem(GroupItem):
             self.addToGroup(self.__y0line)
         self.setY(H_ROW_GAP)
 
-    def __set_size_via_tr(self, s: QSize):
-        """Resize self using QTransform.
-        :note: Children boundingRect() include pen width.
-        :todo: transform into rect
-        """
+    def __set_size_via_tr_old(self, s: QSize):
         ky = s.height() / (self.__ymax - self.__ymin)
         # self.resetTransform()  # not helps
         self.setTransform(QTransform().translate(0, -self.__ymin * ky))
         self.setTransform(QTransform().scale(s.width() / SAMPLES, ky), True)
         self.update()
 
-    def set_size(self, s: QSize):
+    def __set_size_tr(self, s: QSize):
+        """Resize self using QTransform.
+        :note: Children boundingRect() include pen width.
+        :todo: transform into rect
+        :fixme: B-sig too high
+        """
+        src_rect = self.boundingRect()  # e.g. (-0.6, -1.0 - 24.6, 1.0)
+        # dst_rect = QRectF(0, 0, s.width(), s.height())  # e.g. (0, 0 - 1025, 111)
+        # print(f"Src:", qrect2str(src_rect))
+        # print(f"Dst:", qrect2str(dst_rect))
+        kx = s.width() / (src_rect.width() - 1)
+        ky = s.height() / (src_rect.height() - 1)
+        # self.resetTransform()  # not helps
+        self.setTransform(QTransform().translate(-(src_rect.left() + 0.5) * kx, -(src_rect.top() + 0.5) * ky))
+        self.setTransform(QTransform().scale(kx, ky), True)
+        self.update()
+
+    def __set_size_classic(self, s: QSize):
         """Used in: View/Print.
         :todo: chk pen width
         """
@@ -324,6 +338,10 @@ class BarGraphItem(GroupItem):
         if not self.__is_bool or DEBUG:  # - move Y=0
             y0px = self.__ymax / h_norm * (s.height() - H_ROW_GAP * 2)
             self.__y0line.setLine(0, y0px, s.width(), y0px)
+
+    def set_size(self, s: QSize):
+        # self.__set_size_classic(s)
+        self.__set_size_tr(s)
 
 
 class RowItem(GroupItem):
@@ -350,9 +368,13 @@ class RowItem(GroupItem):
         self.addToGroup(self.__graph)
         self.addToGroup(self.__uline)
 
+    @property
+    def h(self):
+        return self.__plot.h_row(self.__bs)
+
     def update_size(self):
         w = self.__plot.w_full - W_LABEL
-        h = self.__plot.h_row(self.__bs)
+        h = self.h
         self.__label.set_height(h-1)
         self.__graph.set_size(QSize(w, h-1))
         self.__uline.setLine(0, h-1, self.__plot.w_full, h-1)
@@ -460,6 +482,7 @@ class TablePayload(GroupItem):
             item.update_size()
             item.setY(y)
             y += item.boundingRect().height()
+            # y += item.h
 
     def update_labels(self):
         for item in self.__rowitem:

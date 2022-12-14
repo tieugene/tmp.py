@@ -17,6 +17,10 @@ def qsize2str(size: Union[QRect, QRectF, QSize, QSizeF]) -> str:
     return f"({v.width()}, {v.height()})"
 
 
+def qrect2str(r: QRectF) -> str:
+    return "%.1f, %.1f - %.1f, %.1f" % (r.left(), r.top(), r.right(), r.bottom())
+
+
 def gc2str(c: Qt.GlobalColor) -> str:
     """
     :param c: Global color

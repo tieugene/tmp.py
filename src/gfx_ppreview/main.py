@@ -51,8 +51,8 @@ class PlotBase(GraphViewBase):
         """Current full table width"""
         return W_PAGE[1 - int(self.portrait)]
 
-    def h_row(self, bs: BarSuit) -> int:  # FIXME: f(bs.is_bool, bs.h[default], self.portrait)
-        """Current base (sh ort) row height.
+    def h_row(self, bs: BarSuit) -> int:
+        """Row height.
         - if is_bool: exact H_ROW_BASE
         - else: defined or 4 × H_ROW_BASE
         - finally × 1.5 if portrait
