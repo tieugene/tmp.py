@@ -7,7 +7,7 @@ from bq import SQ, SQC
 GET_TIMEOUT = 1  # sec
 
 
-class MSQ(SQ):
+class _MSQ(SQ):
     """Memory Sync Queue.
     [RTFM](https://docs.python.org/3/library/queue.html)
     """
@@ -35,4 +35,4 @@ class MSQ(SQ):
 
 class MSQC(SQC):
     """Sync Memory Queue Container."""
-    _child_cls = MSQ
+    _child_cls = _MSQ

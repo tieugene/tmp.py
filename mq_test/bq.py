@@ -1,4 +1,5 @@
 """Base for MQ engines."""
+import asyncio
 from typing import Dict, Type
 from abc import ABC, abstractmethod
 
@@ -13,10 +14,32 @@ class QE(RuntimeError):
         return self.__class__.__name__
 
 
-class SQ(ABC):
-    """Sync Queue base (one object per queue)."""
-    _master: 'SQC'
+# == common ==
+class Q:
+    _master: 'QC'
     _id: int
+
+    def __init__(self, master: 'QC', _id: int):
+        self._master = master
+        self._id = _id
+
+
+class QC:
+    """Queue Container.
+     Provides Qs uniqueness.
+     """
+    _child_cls: Type[Q]
+    _store: Dict[int, Q]
+    _count: int
+
+    def __init__(self):
+        self._store = {}
+        self._count = 0
+
+
+# == Sync ==
+class SQ(Q, ABC):
+    """Sync Queue base (one object per queue)."""
 
     @abstractmethod
     def count(self) -> int:
@@ -38,21 +61,16 @@ class SQ(ABC):
         raise NotImplementedError()
 
     def __init__(self, master: 'SQC', _id: int):
-        self._master = master
-        self._id = _id
+        Q.__init__(self, master, _id)
 
 
-class SQC:
-    """Sync Queue Container.
-     Provides SMQs uniqueness.
-     """
+class SQC(QC):
+    """Sync Queue Container."""
     _child_cls: Type[SQ]
-    _store: Dict[int, SQ] = {}
-    _count: int
+    _store: Dict[int, SQ]
 
     def __init__(self):
-        self._store = {}
-        self._count = 0
+        super().__init__()
 
     def open(self, count: int):
         self._count = count
@@ -67,4 +85,61 @@ class SQC:
             raise QE(f"Too big num {i}")
         if i not in self._store:
             self._store[i] = self._child_cls(self, i)
+        return self._store[i]
+
+
+# == Async ==
+class AQ(Q, ABC):
+    """Async Queue base (one object per queue)."""
+    _master: 'AQC'
+    _id: int
+
+    @abstractmethod
+    async def open(self):
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def count(self) -> int:
+        """Get messages count."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def put(self, data: bytes):
+        """Put message."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get(self, wait: bool = True) -> bytes:
+        """Get a message."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def close(self):
+        raise NotImplementedError()
+
+    def __init__(self, master: 'AQC', _id: int):
+        Q.__init__(self, master, _id)
+
+
+class AQC(QC):
+    """Async Queue Container."""
+    _child_cls: Type[AQ]
+    _store: Dict[int, AQ]
+
+    def __init__(self):
+        super().__init__()
+
+    async def open(self, count: int):
+        self._count = count
+
+    async def close(self):
+        await asyncio.gather(*[child.close() for child in self._store.values()])
+        self._store.clear()
+
+    async def q(self, i: int) -> AQ:
+        if i >= self._count:
+            raise QE(f"Too big num {i}")
+        if i not in self._store:
+            self._store[i] = self._child_cls(self, i)
+            await self._store[i].open()
         return self._store[i]

@@ -7,11 +7,14 @@
   + [x] [MSQ](https://docs.python.org/3/library/queue.html)
   + [ ] [MAQ](https://docs.python.org/3/library/asyncio-queue.html)
 - [ ] D:
-  + [ ] DSQ
+  + [x] DSQ&times;2
   + [ ] DAQ
 - [ ] R:
   + [ ] RSQ
   + [ ] RAQ
+
+## TODO:
+- get_msgs() iterator (<=.task_done())
 
 ## Explore:
 - DxMQ:
@@ -32,6 +35,9 @@
 - MSG_COUNT = 1000
 - Summary: 1000 writers @ 100 queues = 10 w/q x 1000 msgs == 100 queues x 10k msgs = 1M msgs
 
-- M: 0.5"
-- D1: 9..15" (queuelib, macOS)
-- 
+- Sync:
+  + M: 0.5"
+  + D1: 9"..15" (queuelib, macOS)
+  + D2: 18'30..44'20" (persistqueue, macOS)
+  + R(loop):
+  + R(rmt):

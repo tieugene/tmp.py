@@ -12,7 +12,7 @@ import psutil
 # 3. local
 from bq import SQ, SQC
 from mq import MSQC
-from dq import D1SQC
+from dq import D1SQC, D2SQC
 
 # x. const
 Q_COUNT = 100
@@ -67,8 +67,9 @@ def stest(ccls: Type[SQC]):
 
 
 def main():
-    # stest(MSQC)
-    stest(D1SQC)
+    stest(MSQC)
+    # stest(D1SQC)
+    # stest(D2SQC)
 
 
 if __name__ == '__main__':
