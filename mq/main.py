@@ -5,11 +5,11 @@
 - K(10) queues × L(10..1000) writers × M(10) readers/writers × N(1...1000) messages (128 bytes)
 """
 import time
-from typing import List
+from typing import List, Type
 
 import psutil
-from mmq import MMQCollection
-from mq.base import MQ, MQCollection
+from mmq import MSMQC
+from mq.base import SMQ, SMQC
 
 # x. const
 Q_COUNT = 10
@@ -17,7 +17,7 @@ W_COUNT = 100
 R_COUNT = Q_COUNT
 MSG_COUNT = 1000
 MSG_LEN = 128
-mqc: MQCollection
+mqc: SMQC
 
 
 def mem_used() -> int:
@@ -25,21 +25,21 @@ def mem_used() -> int:
     return round(psutil.Process().memory_info().rss / (1 << 20))
 
 
-def main():
+def stest(ccls: Type[SMQC]):
     """Sync."""
     global mqc
     print(f"0: m={mem_used()}")
     msg = b'\x00' * MSG_LEN
-    mqc = MMQCollection()
+    mqc = ccls()
     mqc.init(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
     # - writers
-    w_list: List[MQ] = []  # TODO: 1-line this
+    w_list: List[SMQ] = []  # TODO: 1-line this
     for i in range(W_COUNT):
         w_list.append(mqc.q(i % Q_COUNT))
     # - readers
-    r_list: List[MQ] = []
+    r_list: List[SMQ] = []
     for i in range(R_COUNT):
         r_list.append(mqc.q(i % Q_COUNT))
     print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}")
@@ -59,6 +59,10 @@ def main():
     print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}")
     m_count = [mqc.q(i).count() for i in range(Q_COUNT)]
     print(f"Msgs: {m_count} ({sum(m_count)})")
+
+
+def main():
+    stest(MSMQC)
 
 
 if __name__ == '__main__':

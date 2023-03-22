@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 
 class MQE(RuntimeError):
-    """Basic error."""
+    """Message Queue Exception."""
 
     def __str__(self):
         """Make string representation of exception."""
@@ -13,9 +13,9 @@ class MQE(RuntimeError):
         return self.__class__.__name__
 
 
-class MQ(ABC):
-    """Queue itself (one object per queue)."""
-    _master: 'MQCollection'
+class SMQ(ABC):
+    """Sync Message Queue base (one object per queue)."""
+    _master: 'SMQC'
     _id: int
 
     @abstractmethod
@@ -33,26 +33,27 @@ class MQ(ABC):
         """Get a message."""
         ...
 
-    def __init__(self, master: 'MQCollection', _id: int):
+    def __init__(self, master: 'SMQC', _id: int):
         self._master = master
         self._id = _id
 
 
-class MQCollection:
-    """Container to uniq MQs."""
-    _child_cls: Type[MQ]
-    _store: Dict[int, MQ] = {}
+class SMQC:
+    """Sync Message Queue Container.
+     Provides SMQs uniqueness.
+     """
+    _child_cls: Type[SMQ]
+    _store: Dict[int, SMQ] = {}
     _count: int
 
-    def __init__(self, cls: Type[MQ]):
-        self._child_cls = cls
+    def __init__(self):
         self._store = {}
         self._count = 0
 
     def init(self, count: int):
         self._count = count
 
-    def q(self, i: int) -> MQ:
+    def q(self, i: int) -> SMQ:
         if i >= self._count:
             raise MQE(f"Too big num {i}")
         if i not in self._store:

@@ -1,24 +1,22 @@
 """In-Memory MQ.
-- collections.deque
-- [queue.SimpleQueue](https://docs.python.org/3/library/queue.html)
-- [asyncio.Queue](https://docs.python.org/3/library/asyncio-queue.html#examples)
+- [x] [queue.SimpleQueue](https://docs.python.org/3/library/queue.html)
+- [ ] [asyncio.Queue](https://docs.python.org/3/library/asyncio-queue.html#examples)
+- ~~collections.deque~~
 """
 # 1. std
-from typing import Dict
 import queue
 # 3. local
-from mq.base import MQE, MQ, MQCollection
-
+from mq.base import SMQ, SMQC
 # x. const
 GET_TIMEOUT = 1  # sec
 
 
-class MMQ(MQ):
-    """Queue itself (one object per queue)."""
+class MSMQ(SMQ):
+    """Memory Sync Message Queue."""
     __q: queue.SimpleQueue
 
-    def __init__(self, master: 'MMQCollection', __id: int):
-        MQ.__init__(self, master, __id)
+    def __init__(self, master: 'MSMQC', __id: int):
+        SMQ.__init__(self, master, __id)
         self.__q = queue.SimpleQueue()
 
     def count(self) -> int:
@@ -34,8 +32,6 @@ class MMQ(MQ):
         return self.__q.get(block=wait, timeout=None)
 
 
-class MMQCollection(MQCollection):
-    """Container to uniq MQs."""
-
-    def __init__(self):
-        super().__init__(MMQ)
+class MSMQC(SMQC):
+    """Sync Memory Message Queue Container."""
+    _child_cls = MSMQ
