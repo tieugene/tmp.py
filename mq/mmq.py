@@ -1,8 +1,4 @@
-"""In-Memory MQ.
-- [x] [queue.SimpleQueue](https://docs.python.org/3/library/queue.html)
-- [ ] [asyncio.Queue](https://docs.python.org/3/library/asyncio-queue.html#examples)
-- ~~collections.deque~~
-"""
+"""In-Memory MQ."""
 # 1. std
 import queue
 # 3. local
@@ -12,7 +8,9 @@ GET_TIMEOUT = 1  # sec
 
 
 class MSMQ(SMQ):
-    """Memory Sync Message Queue."""
+    """Memory Sync Message Queue.
+    [RTFM](https://docs.python.org/3/library/queue.html)
+    """
     __q: queue.SimpleQueue
 
     def __init__(self, master: 'MSMQC', __id: int):
