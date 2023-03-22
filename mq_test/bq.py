@@ -99,7 +99,7 @@ class AQ(Q, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def count(self) -> int:
+    def count(self) -> int:
         """Get messages count."""
         raise NotImplementedError()
 
@@ -109,7 +109,7 @@ class AQ(Q, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get(self, wait: bool = True) -> bytes:
+    async def get(self) -> bytes:
         """Get a message."""
         raise NotImplementedError()
 
@@ -118,7 +118,7 @@ class AQ(Q, ABC):
         raise NotImplementedError()
 
     def __init__(self, master: 'AQC', _id: int):
-        Q.__init__(self, master, _id)
+        super().__init__(master, _id)
 
 
 class AQC(QC):

@@ -5,13 +5,10 @@ import persistqueue
 # 3. local
 from bq import SQ, SQC
 
-# x. const
-BASE_PATH: str = "_d1sd"
-
 
 # == queuelib ==
 class _D1SQ(SQ):
-    """Disk-based Sync Queue.
+    """Disk-based #1 Sync Queue.
     1. [queuelib](https://github.com/scrapy/queuelib)
     """
     __q: queuelib.FifoDiskQueue
@@ -37,14 +34,14 @@ class _D1SQ(SQ):
 
 
 class D1SQC(SQC):
-    """Sync Memory Queue Container."""
+    """Disk-based #1 Queue Container."""
     _child_cls = _D1SQ
 
 
 # == persistqueue ==
 class _D2SQ(SQ):
-    """Disk-based Sync Queue.
-    1. [persistqueue](https://github.com/peter-wangxu/persist-queue)
+    """Disk-based #2 Sync Queue.
+    2. [persistqueue](https://github.com/peter-wangxu/persist-queue)
     """
     __q: persistqueue.Queue
 
@@ -69,5 +66,5 @@ class _D2SQ(SQ):
 
 
 class D2SQC(SQC):
-    """Sync Memory Queue Container."""
+    """Disk-based #2 Sync Queue Container."""
     _child_cls = _D2SQ

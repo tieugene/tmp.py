@@ -13,6 +13,11 @@
   + [ ] RSQ
   + [ ] RAQ
 
+no | B | M | D | R
+---|:-:|:-:|:-:|:-:
+S  | + | + | 2 | .
+A. | . | . | . | .
+
 ## TODO:
 - get_msgs() iterator (<=.task_done())
 
@@ -41,3 +46,7 @@
   + D2: 18'30..44'20" (persistqueue, macOS)
   + R(loop):
   + R(rmt):
+
+- Async:
+  + M: 2.5"
+  + 
