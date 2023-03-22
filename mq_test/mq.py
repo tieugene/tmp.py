@@ -2,19 +2,19 @@
 # 1. std
 import queue
 # 3. local
-from mq.base import SMQ, SMQC
+from bq import SQ, SQC
 # x. const
 GET_TIMEOUT = 1  # sec
 
 
-class MSMQ(SMQ):
-    """Memory Sync Message Queue.
+class MSQ(SQ):
+    """Memory Sync Queue.
     [RTFM](https://docs.python.org/3/library/queue.html)
     """
     __q: queue.SimpleQueue
 
-    def __init__(self, master: 'MSMQC', __id: int):
-        SMQ.__init__(self, master, __id)
+    def __init__(self, master: 'MSQC', __id: int):
+        SQ.__init__(self, master, __id)
         self.__q = queue.SimpleQueue()
 
     def count(self) -> int:
@@ -29,7 +29,10 @@ class MSMQ(SMQ):
         """Get a message."""
         return self.__q.get(block=wait, timeout=None)
 
+    def close(self):
+        ...
 
-class MSMQC(SMQC):
-    """Sync Memory Message Queue Container."""
-    _child_cls = MSMQ
+
+class MSQC(SQC):
+    """Sync Memory Queue Container."""
+    _child_cls = MSQ
