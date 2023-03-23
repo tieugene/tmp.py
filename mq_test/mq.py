@@ -4,14 +4,15 @@ import asyncio
 import queue
 from typing import Optional
 # 3. local
-from . import bq
+# from . import bq  # not works
+from bq import AQC, AQ, SQ, SQC
 
 # x. const
 GET_TIMEOUT = 1  # sec
 
 
 # == Sync ==
-class _MSQ(bq.SQ):
+class _MSQ(SQ):
     """Memory Sync Queue.
     [RTFM](https://docs.python.org/3/library/queue.html)
     """
@@ -22,15 +23,12 @@ class _MSQ(bq.SQ):
         self.__q = queue.SimpleQueue()
 
     def count(self) -> int:
-        """Get messages count."""
         return self.__q.qsize()
 
     def put(self, data: bytes):
-        """Put a message."""
-        return self.__q.put(data)
+        self.__q.put(data)
 
     def get(self, wait: bool = True) -> Optional[bytes]:
-        """Get a message."""
         try:
             return self.__q.get(block=wait, timeout=None)
         except queue.Empty:
@@ -40,13 +38,13 @@ class _MSQ(bq.SQ):
         ...
 
 
-class MSQC(bq.SQC):
+class MSQC(SQC):
     """Sync Memory Queue Container."""
     _child_cls = _MSQ
 
 
 # == Async ==
-class _MAQ(bq.AQ):
+class _MAQ(AQ):
     """Memory Async Queue.
     [RTFM](https://docs.python.org/3/library/asyncio-queue.html)
     """
@@ -60,15 +58,12 @@ class _MAQ(bq.AQ):
         ...
 
     def count(self) -> int:
-        """Get messages count."""
         return self.__q.qsize()
 
     async def put(self, data: bytes):
-        """Put a message."""
         await self.__q.put(data)
 
     async def get(self, wait: bool = True) -> Optional[bytes]:
-        """Get a message."""
         if wait:
             return await self.__q.get()
         else:
@@ -86,6 +81,6 @@ class _MAQ(bq.AQ):
         ...
 
 
-class MAQC(bq.AQC):
-    """Sync Memory Queue Container."""
+class MAQC(AQC):
+    """Async Memory Queue Container."""
     _child_cls = _MAQ

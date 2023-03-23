@@ -5,13 +5,18 @@
 - K(10) queues × L(10..1000) writers × M(10) readers/writers × N(1...1000) messages (128 bytes)
 """
 # 1. std
-from typing import List, Type
+from typing import List
 import time
 import asyncio
 # 2. 3rd
 import psutil
 # 3. local
-from . import bq, mq, dq
+# from . import bq, mq, dq, rq  # not works for main.py
+from bq import SQC, SQ, AQC
+from mq import MSQC, MAQC
+from dq import D1SQC, D2SQC
+from rq import RSQC
+
 
 # x. const
 Q_COUNT = 100
@@ -29,14 +34,13 @@ def mem_used() -> int:
 
 
 # == Sync ==
-def stest(ccls: Type[bq.SQC]):
+def stest(sqc: SQC):
     """Sync."""
-    sqc: bq.SQC = ccls()
     sqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
-    w_list: List[bq.SQ] = [sqc.q(i % Q_COUNT) for i in range(W_COUNT)]  # - writers
-    r_list: List[bq.SQ] = [sqc.q(i % Q_COUNT) for i in range(R_COUNT)]  # - readers
+    w_list: List[SQ] = [sqc.q(i % Q_COUNT) for i in range(W_COUNT)]  # - writers
+    r_list: List[SQ] = [sqc.q(i % Q_COUNT) for i in range(R_COUNT)]  # - readers
     print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}\nWriters: {len(w_list)}, Readers: {len(r_list)}")
     # 1. put
     for w in w_list:
@@ -49,21 +53,21 @@ def stest(ccls: Type[bq.SQC]):
         while r.get(False):
             ...
     # x. the end
-    sqc.close()
     m_count = [sqc.q(i).count() for i in range(Q_COUNT)]
+    sqc.close()
     print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
 
 
 def main():
-    stest(mq.MSQC)
-    # stest(dq.D1SQC)
-    # stest(dq.D2SQC)
+    # stest(MSQC())
+    # stest(dq.D1SQC())
+    # stest(dq.D2SQC())
+    stest(RSQC())
 
 
 # == async ==
-async def atest(ccls: Type[bq.AQC]):
+async def atest(aqc: AQC):
     """Async."""
-    aqc: bq.AQC = ccls()
     await aqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
@@ -80,16 +84,16 @@ async def atest(ccls: Type[bq.AQC]):
     # 2. get
     await asyncio.gather(*[r.get_all() for r in r_list])
     # x. the end
-    await aqc.close()
     m_count = [(await aqc.q(i)).count() for i in range(Q_COUNT)]  # FIXME:
+    await aqc.close()
     print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
 
 
 async def amain():
-    await atest(mq.MAQC)
-    ...
+    await atest(MAQC())
+    # await atest(rq.RAQC)
 
 
 if __name__ == '__main__':
     main()
-    asyncio.run(amain())
+    # asyncio.run(amain())
