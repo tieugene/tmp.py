@@ -2,6 +2,8 @@
 import asyncio
 # 1. std
 import queue
+from typing import Optional
+
 # 3. local
 from bq import SQ, SQC, AQ, AQC
 
@@ -28,9 +30,12 @@ class _MSQ(SQ):
         """Put a message."""
         return self.__q.put(data)
 
-    def get(self, wait: bool = True) -> bytes:
+    def get(self, wait: bool = True) -> Optional[bytes]:
         """Get a message."""
-        return self.__q.get(block=wait, timeout=None)
+        try:
+            return self.__q.get(block=wait, timeout=None)
+        except queue.Empty as e:
+            return None
 
     def close(self):
         ...
@@ -63,9 +68,20 @@ class _MAQ(AQ):
         """Put a message."""
         await self.__q.put(data)
 
-    async def get(self, wait: bool = True) -> bytes:
+    async def get(self, wait: bool = True) -> Optional[bytes]:
         """Get a message."""
-        return await self.__q.get()
+        if wait:
+            return await self.__q.get()
+        else:
+            try:
+                return self.__q.get_nowait()
+            except asyncio.QueueEmpty as e:
+                return None
+
+    async def get_all(self):
+        ret = True
+        while ret:
+            ret = await self.get(False)
 
     async def close(self):
         ...

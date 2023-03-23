@@ -1,6 +1,6 @@
 """Base for MQ engines."""
 import asyncio
-from typing import Dict, Type
+from typing import Dict, Type, Optional
 from abc import ABC, abstractmethod
 
 
@@ -52,7 +52,7 @@ class SQ(Q, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def get(self, wait: bool = True) -> bytes:
+    def get(self, wait: bool = True) -> Optional[bytes]:
         """Get a message."""
         raise NotImplementedError()
 
@@ -109,8 +109,13 @@ class AQ(Q, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def get(self) -> bytes:
+    async def get(self, wait: bool = True) -> Optional[bytes]:
         """Get a message."""
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def get_all(self):
+        """Get all message."""
         raise NotImplementedError()
 
     @abstractmethod

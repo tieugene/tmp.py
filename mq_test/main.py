@@ -7,7 +7,7 @@
 import asyncio
 # 1. std
 import time
-from typing import List, Type
+from typing import List, Type, Tuple
 # 2. 3rd
 import psutil
 # 3. local
@@ -48,8 +48,8 @@ def stest(ccls: Type[SQC]):
     print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
     # 2. get
     for r in r_list:
-        while r.count():
-            r.get()
+        while r.get(False):
+            ...
     # x. the end
     sqc.close()
     m_count = [sqc.q(i).count() for i in range(Q_COUNT)]
@@ -69,25 +69,18 @@ async def atest(ccls: Type[AQC]):
     await aqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
-    # - writers
-    w_list: List[AQ] = []  # TODO: 1-line this
-    for i in range(W_COUNT):
-        w_list.append(await aqc.q(i % Q_COUNT))
-    # - readers
-    r_list: List[AQ] = []
-    for i in range(R_COUNT):
-        r_list.append(await aqc.q(i % Q_COUNT))
+    w_list = await asyncio.gather(*[aqc.q(i % Q_COUNT) for i in range(W_COUNT)])  # - writers
+    r_list = await asyncio.gather(*[aqc.q(i % Q_COUNT) for i in range(R_COUNT)])  # - readers
     print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}\nWriters: {len(w_list)}, Readers: {len(r_list)}")
     # 1. put
-    for w in w_list:
-        for _ in range(MSG_COUNT):
-            await w.put(MSG)
+    funcs = [w.put(MSG) for w in w_list for _ in range(MSG_COUNT)]
+    for f in funcs:  # ver.1: sequenced (fast)
+        await f
+    # await asyncio.gather(*funcs)  # ver.2: async (slow)
     m_count = [(await aqc.q(i)).count() for i in range(Q_COUNT)]
     print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
     # 2. get
-    for r in r_list:
-        while r.count():
-            await r.get()
+    await asyncio.gather(*[r.get_all() for r in r_list])
     # x. the end
     await aqc.close()
     m_count = [(await aqc.q(i)).count() for i in range(Q_COUNT)]  # FIXME:
@@ -100,5 +93,5 @@ async def amain():
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     asyncio.run(amain())
