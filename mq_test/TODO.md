@@ -3,14 +3,21 @@
 no | B | M | D | R
 ---|:-:|:-:|:-:|:-:
 S  | + | + | 2 | +
-A  | + | + | . | .
+A  | + | + | . | +
 
 ## TODO:
+- RAQ: sure put
+- RAQ: ack get
 - `get_msgs()` iterator (<=.task_done())
-- test sync mrq (1000w @ 100q * 100m = 100km total):
-  - 1 conn, 1 chan: 15"..56"
-  - 1 conn, N chan: 16"..59"
-  - ~~N conn+chan~~
+
+## RQ test
+
+(1000w @ 100q * 10msg = 10kmsg total):
+- sync: 15..56"
+- async (1 conn/1 chan): &hellip;
+- async (1 conn/W chan): &hellip;
+- async (W conn/1 chan): &hellip;
+
 
 ## Explore:
 - DxMQ:
@@ -42,5 +49,5 @@ A  | + | + | . | .
   + R: 9'..&hellip;  (pika, localhost)
 
 - Async:
-  + M: 2.5"/19"..20"
+  + M: 1.5..2.2"
   + 

@@ -105,7 +105,7 @@ class AQ(Q, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def count(self) -> int:  # FIXME: async
+    async def count(self) -> int:
         """Get messages count."""
         raise NotImplementedError()
 

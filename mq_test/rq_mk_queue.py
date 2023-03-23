@@ -1,6 +1,8 @@
 #!/usr/bin/env
 """Create RabbitMQ queue."""
 import sys
+
+import aiormq
 import pika
 
 
@@ -30,6 +32,7 @@ if __name__ == '__main__':
     sys.exit(main())
 
 '''
+# == Sync ==
 conn = pika.BlockingConnection(pika.ConnectionParameters(''))
 chan = conn.channel()
 q = '0000'
@@ -38,3 +41,6 @@ chan.basic_publish(exchange='', routing_key=q, properties=pika.BasicProperties(d
 # rx
 meth: tuple = chan.basic_get(q, auto_ack=True)  # pika.spec.Basic.GetOk, pika.spec.BasicProperties, bytes
 '''
+# == Async ==
+conn = pika.BlockingConnection(pika.ConnectionParameters(''))
+conn = await aiormq.connect('')

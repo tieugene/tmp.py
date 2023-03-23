@@ -5,7 +5,7 @@
 - K(10) queues × L(10..1000) writers × M(10) readers/writers × N(1...1000) messages (128 bytes)
 """
 # 1. std
-from typing import List
+from typing import List, Tuple
 import time
 import asyncio
 # 2. 3rd
@@ -15,15 +15,16 @@ import psutil
 from bq import SQC, SQ, AQC
 from mq import MSQC, MAQC
 from dq import D1SQC, D2SQC
-from rq import RSQC
+from rq import RSQC, RAQC
 # x. const
+Q_COUNT = 100  # prod: 100
+W_COUNT = 1000  # prod: 1000
+MSG_COUNT = 10  # prod: 1000
+# prod: 1000 writers @ 100 queues = 10 w/q x 1000 msgs == 100 queues x 10k msgs = 1M msgs
+# rq: 1000w @ 100q = 10 w/q x 10 msgs - 100q x 100 msg = 10k msgs
+R_COUNT = Q_COUNT
 MSG_LEN = 128
 MSG = b'\x00' * MSG_LEN
-Q_COUNT = 100
-W_COUNT = 1000
-R_COUNT = Q_COUNT
-MSG_COUNT = 100
-# 1000 writers @ 100 queues = 10 w/q x 1000 msgs == 100 queues x 10k msgs = 1M msgs
 
 
 def mem_used() -> int:
@@ -61,41 +62,47 @@ def smain():
     # stest(MSQC())
     # stest(dq.D1SQC())
     # stest(dq.D2SQC())
-    stest(RSQC())
+    stest(RSQC())  # default == '' == 'localhost'
 
 
 # == async ==
 async def atest(aqc: AQC):
     """Async."""
+    async def __counters() -> Tuple[int]:
+        __qs = await asyncio.gather(*[aqc.q(i) for i in range(Q_COUNT)])
+        __count = await asyncio.gather(*[__q.count() for __q in __qs])
+        return tuple(map(int, __count))
     await aqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
     w_list = await asyncio.gather(*[aqc.q(i % Q_COUNT) for i in range(W_COUNT)])  # - writers
     r_list = await asyncio.gather(*[aqc.q(i % Q_COUNT) for i in range(R_COUNT)])  # - readers
     print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}\nWriters: {len(w_list)}, Readers: {len(r_list)}")
-    # 1. put
-    funcs = [w.put(MSG) for w in w_list for _ in range(MSG_COUNT)]
-    for f in funcs:  # ver.1: sequenced (fast)
-        await f
-    # await asyncio.gather(*funcs)  # ver.2: async (slow)
-    m_count = [(await aqc.q(i)).count() for i in range(Q_COUNT)]
+    # 1. put (MSG_COUNT times all of writers)
+    for _ in range(MSG_COUNT):
+        funcs = [w.put(MSG) for w in w_list]
+        for f in funcs:  # ver.1: sequenced (fast)
+            await f
+        # await asyncio.gather(*funcs)  # ver.2: async (slow)
+    # RAW err
+    m_count = await __counters()
     print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
     # 2. get
     await asyncio.gather(*[r.get_all() for r in r_list])
     # x. the end
-    m_count = [(await aqc.q(i)).count() for i in range(Q_COUNT)]  # FIXME:
-    await aqc.close()
+    m_count = await __counters()
     print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
+    await aqc.close()
 
 
 def amain():
     """Async entry point."""
     async def __inner():
-        await atest(MAQC())
-        # await atest(rq.RAQC)
+        # await atest(MAQC())
+        await atest(RAQC())
     asyncio.run(__inner())
 
 
 if __name__ == '__main__':
-    smain()
-    # amain()
+    # smain()
+    amain()

@@ -60,7 +60,7 @@ class _MAQ(AQ):
     async def open(self):
         ...
 
-    def count(self) -> int:
+    async def count(self) -> int:
         return self.__q.qsize()
 
     async def put(self, data: bytes):
