@@ -7,10 +7,10 @@ A  | + | + | . | .
 
 ## TODO:
 - `get_msgs()` iterator (<=.task_done())
-- test sync mrq:
-  - 1 conn, 1 chan
-  - 1 conn, N chan
-  - N conn+chan
+- test sync mrq (1000w @ 100q * 100m = 100km total):
+  - 1 conn, 1 chan: 15"..56"
+  - 1 conn, N chan: 16"..59"
+  - ~~N conn+chan~~
 
 ## Explore:
 - DxMQ:

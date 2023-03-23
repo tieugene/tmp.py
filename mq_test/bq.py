@@ -42,6 +42,11 @@ class SQ(Q, ABC):
     """Sync Queue base (one object per queue)."""
 
     @abstractmethod
+    def open(self):
+        """Open."""
+        raise NotImplementedError()
+
+    @abstractmethod
     def count(self) -> int:
         """Get messages count."""
         raise NotImplementedError()
@@ -61,7 +66,7 @@ class SQ(Q, ABC):
         raise NotImplementedError()
 
     def __init__(self, master: 'SQC', _id: int):
-        Q.__init__(self, master, _id)
+        super().__init__(master, _id)
 
 
 class SQC(QC):
@@ -85,6 +90,7 @@ class SQC(QC):
             raise QE(f"Too big num {i}")
         if i not in self._store:
             self._store[i] = self._child_cls(self, i)
+            self._store[i].open()
         return self._store[i]
 
 
@@ -99,7 +105,7 @@ class AQ(Q, ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def count(self) -> int:
+    def count(self) -> int:  # FIXME: async
         """Get messages count."""
         raise NotImplementedError()
 

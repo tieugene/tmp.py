@@ -16,15 +16,13 @@ from bq import SQC, SQ, AQC
 from mq import MSQC, MAQC
 from dq import D1SQC, D2SQC
 from rq import RSQC
-
-
 # x. const
+MSG_LEN = 128
+MSG = b'\x00' * MSG_LEN
 Q_COUNT = 100
 W_COUNT = 1000
 R_COUNT = Q_COUNT
-MSG_COUNT = 1000
-MSG_LEN = 128
-MSG = b'\x00' * MSG_LEN
+MSG_COUNT = 100
 # 1000 writers @ 100 queues = 10 w/q x 1000 msgs == 100 queues x 10k msgs = 1M msgs
 
 
@@ -58,7 +56,8 @@ def stest(sqc: SQC):
     print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
 
 
-def main():
+def smain():
+    """Sync."""
     # stest(MSQC())
     # stest(dq.D1SQC())
     # stest(dq.D2SQC())
@@ -89,11 +88,14 @@ async def atest(aqc: AQC):
     print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
 
 
-async def amain():
-    await atest(MAQC())
-    # await atest(rq.RAQC)
+def amain():
+    """Async entry point."""
+    async def __inner():
+        await atest(MAQC())
+        # await atest(rq.RAQC)
+    asyncio.run(__inner())
 
 
 if __name__ == '__main__':
-    main()
-    # asyncio.run(amain())
+    smain()
+    # amain()

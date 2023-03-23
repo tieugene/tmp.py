@@ -22,6 +22,9 @@ class _MSQ(SQ):
         super().__init__(master, __id)
         self.__q = queue.SimpleQueue()
 
+    def open(self):
+        ...
+
     def count(self) -> int:
         return self.__q.qsize()
 
@@ -39,7 +42,7 @@ class _MSQ(SQ):
 
 
 class MSQC(SQC):
-    """Sync Memory Queue Container."""
+    """Memory Sync Queue Container."""
     _child_cls = _MSQ
 
 
@@ -82,5 +85,5 @@ class _MAQ(AQ):
 
 
 class MAQC(AQC):
-    """Async Memory Queue Container."""
+    """Memory Async Queue Container."""
     _child_cls = _MAQ

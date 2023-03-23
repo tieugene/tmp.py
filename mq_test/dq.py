@@ -17,6 +17,9 @@ class _D1SQ(SQ):
         super().__init__(master, __id)
         self.__q = queuelib.FifoDiskQueue(f"_d1sd/{__id:04d}")
 
+    def open(self):
+        ...
+
     def count(self) -> int:
         return len(self.__q)
 
@@ -31,7 +34,7 @@ class _D1SQ(SQ):
 
 
 class D1SQC(SQC):
-    """Disk-based #1 Queue Container."""
+    """Disk-based #1 Sync Queue Container."""
     _child_cls = _D1SQ
 
 
@@ -45,6 +48,9 @@ class _D2SQ(SQ):
     def __init__(self, master: 'D2SQC', __id: int):
         super().__init__(master, __id)
         self.__q = persistqueue.Queue(f"_d2sd/{__id:04d}", autosave=True)  # FIXME: use .task_done()
+
+    def open(self):
+        ...
 
     def count(self) -> int:
         return self.__q.qsize()
