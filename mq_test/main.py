@@ -4,16 +4,14 @@
 - RabbitMQ-/disk-/memory-based.
 - K(10) queues × L(10..1000) writers × M(10) readers/writers × N(1...1000) messages (128 bytes)
 """
-import asyncio
 # 1. std
+from typing import List, Type
 import time
-from typing import List, Type, Tuple
+import asyncio
 # 2. 3rd
 import psutil
 # 3. local
-from bq import SQ, SQC, AQC, QC, AQ
-from mq import MSQC, MAQC
-from dq import D1SQC, D2SQC
+from . import bq, mq, dq
 
 # x. const
 Q_COUNT = 100
@@ -31,14 +29,14 @@ def mem_used() -> int:
 
 
 # == Sync ==
-def stest(ccls: Type[SQC]):
+def stest(ccls: Type[bq.SQC]):
     """Sync."""
-    sqc: SQC = ccls()
+    sqc: bq.SQC = ccls()
     sqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
-    w_list: List[SQ] = [sqc.q(i % Q_COUNT) for i in range(W_COUNT)]  # - writers
-    r_list: List[SQ] = [sqc.q(i % Q_COUNT) for i in range(R_COUNT)]  # - readers
+    w_list: List[bq.SQ] = [sqc.q(i % Q_COUNT) for i in range(W_COUNT)]  # - writers
+    r_list: List[bq.SQ] = [sqc.q(i % Q_COUNT) for i in range(R_COUNT)]  # - readers
     print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}\nWriters: {len(w_list)}, Readers: {len(r_list)}")
     # 1. put
     for w in w_list:
@@ -57,15 +55,15 @@ def stest(ccls: Type[SQC]):
 
 
 def main():
-    stest(MSQC)
-    # stest(D1SQC)
-    # stest(D2SQC)
+    stest(mq.MSQC)
+    # stest(dq.D1SQC)
+    # stest(dq.D2SQC)
 
 
 # == async ==
-async def atest(ccls: Type[AQC]):
+async def atest(ccls: Type[bq.AQC]):
     """Async."""
-    aqc: AQC = ccls()
+    aqc: bq.AQC = ccls()
     await aqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
@@ -88,7 +86,7 @@ async def atest(ccls: Type[AQC]):
 
 
 async def amain():
-    await atest(MAQC)
+    await atest(mq.MAQC)
     ...
 
 

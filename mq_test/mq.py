@@ -3,16 +3,15 @@ import asyncio
 # 1. std
 import queue
 from typing import Optional
-
 # 3. local
-from bq import SQ, SQC, AQ, AQC
+from . import bq
 
 # x. const
 GET_TIMEOUT = 1  # sec
 
 
 # == Sync ==
-class _MSQ(SQ):
+class _MSQ(bq.SQ):
     """Memory Sync Queue.
     [RTFM](https://docs.python.org/3/library/queue.html)
     """
@@ -34,20 +33,20 @@ class _MSQ(SQ):
         """Get a message."""
         try:
             return self.__q.get(block=wait, timeout=None)
-        except queue.Empty as e:
+        except queue.Empty:
             return None
 
     def close(self):
         ...
 
 
-class MSQC(SQC):
+class MSQC(bq.SQC):
     """Sync Memory Queue Container."""
     _child_cls = _MSQ
 
 
 # == Async ==
-class _MAQ(AQ):
+class _MAQ(bq.AQ):
     """Memory Async Queue.
     [RTFM](https://docs.python.org/3/library/asyncio-queue.html)
     """
@@ -75,7 +74,7 @@ class _MAQ(AQ):
         else:
             try:
                 return self.__q.get_nowait()
-            except asyncio.QueueEmpty as e:
+            except asyncio.QueueEmpty:
                 return None
 
     async def get_all(self):
@@ -87,6 +86,6 @@ class _MAQ(AQ):
         ...
 
 
-class MAQC(AQC):
+class MAQC(bq.AQC):
     """Sync Memory Queue Container."""
     _child_cls = _MAQ

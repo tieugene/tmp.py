@@ -3,18 +3,18 @@
 import queuelib
 import persistqueue
 # 3. local
-from bq import SQ, SQC
+from . import bq
 
 
 # == queuelib ==
-class _D1SQ(SQ):
+class _D1SQ(bq.SQ):
     """Disk-based #1 Sync Queue.
     1. [queuelib](https://github.com/scrapy/queuelib)
     """
     __q: queuelib.FifoDiskQueue
 
     def __init__(self, master: 'D1SQC', __id: int):
-        SQ.__init__(self, master, __id)
+        super().__init__(master, __id)
         self.__q = queuelib.FifoDiskQueue(f"_d1sd/{__id:04d}")
 
     def count(self) -> int:
@@ -33,20 +33,20 @@ class _D1SQ(SQ):
         self.__q.close()
 
 
-class D1SQC(SQC):
+class D1SQC(bq.SQC):
     """Disk-based #1 Queue Container."""
     _child_cls = _D1SQ
 
 
 # == persistqueue ==
-class _D2SQ(SQ):
+class _D2SQ(bq.SQ):
     """Disk-based #2 Sync Queue.
     2. [persistqueue](https://github.com/peter-wangxu/persist-queue)
     """
     __q: persistqueue.Queue
 
     def __init__(self, master: 'D2SQC', __id: int):
-        SQ.__init__(self, master, __id)
+        super().__init__(master, __id)
         self.__q = persistqueue.Queue(f"_d2sd/{__id:04d}", autosave=True)  # FIXME: use .task_done()
 
     def count(self) -> int:
@@ -65,6 +65,6 @@ class _D2SQ(SQ):
         ...
 
 
-class D2SQC(SQC):
+class D2SQC(bq.SQC):
     """Disk-based #2 Sync Queue Container."""
     _child_cls = _D2SQ

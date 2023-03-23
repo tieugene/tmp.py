@@ -6,7 +6,11 @@
   + [aiormq](https://github.com/mosquito/aiormq) ~~rpm~~
 
 """
+from typing import Optional
+
 import pika
+
+from . import bq
 
 
 class RMQHelper:
@@ -42,3 +46,38 @@ class RMQHelper:
 
     def count(self, kju: str):
         return self.channel.queue_declare(queue=kju, passive=True).method.message_count
+
+
+# == Sync ==
+class _RSQ(bq.SQ):
+    """RabbitMQ Sync Queue.
+    [RTFM](https://pika.readthedocs.io/en/stable/index.html)
+    """
+    __q: queue.SimpleQueue
+
+    def __init__(self, master: 'MRSQC', __id: int):
+        super().__init__(master, __id)
+        self.__q = queue.SimpleQueue()
+
+    def count(self) -> int:
+        """Get messages count."""
+        return self.__q.qsize()
+
+    def put(self, data: bytes):
+        """Put a message."""
+        return self.__q.put(data)
+
+    def get(self, wait: bool = True) -> Optional[bytes]:
+        """Get a message."""
+        try:
+            return self.__q.get(block=wait, timeout=None)
+        except queue.Empty as e:
+            return None
+
+    def close(self):
+        ...
+
+
+class RSQC(bq.SQC):
+    """Sync RabbitMQ Queue Container."""
+    _child_cls = _RSQ
