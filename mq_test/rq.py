@@ -1,11 +1,19 @@
 """RabbitMQ implementation."""
 # 1. std
 from typing import Optional
+from enum import IntEnum, auto, unique
 # 2. 3rd
 import pika
 import aiormq
 # 3. local
 from bq import SQ, SQC, AQ, AQC
+
+
+@unique
+class ConnMode(IntEnum):
+    PlanA = auto()  # 1 connection, 1 channel
+    PlanB = auto()  # 1 connection, M channels (one per queue)
+    PlanC = auto()  # M (connections + channel)
 
 
 # == Sync ==
@@ -58,7 +66,7 @@ class RSQC(SQC):
     conn: pika.BlockingConnection
     chan: pika.adapters.blocking_connection.BlockingChannel
 
-    def __init__(self, host: str = ''):
+    def __init__(self, host: str = ''):  # '' == 'localhost'
         super().__init__()
         self.host = host
 
@@ -79,6 +87,7 @@ class _RAQ(AQ):
     [RTFM](https://github.com/mosquito/aiormq))
     """
     _master: 'RAQC'  # to avoid editor inspection warning
+    conn: aiormq.connection.Connection
     chan: aiormq.channel.Channel
     __q: str
 
@@ -87,7 +96,15 @@ class _RAQ(AQ):
         self.__q = f"{__id:04d}"
 
     async def open(self):
-        self.chan = self._master.chan  # Plan A
+        if self._master.mode < ConnMode.PlanC:  # Plan A,B
+            self.conn = self._master.conn
+        else:  # Plan C
+            self.conn = await aiormq.connect(self._master.host)
+        if self._master.mode < ConnMode.PlanB:  # Plan A
+            self.chan = self._master.chan
+        else:  # Plan B,C
+            self.chan = await self.conn.channel()
+            await self.chan.basic_qos(prefetch_count=1)
 
     async def count(self) -> int:
         ret = await self.chan.queue_declare(queue=self.__q, passive=True)
@@ -114,26 +131,35 @@ class _RAQ(AQ):
             ret = await self.get(False)
 
     async def close(self):
-        ...
+        if self._master.mode > ConnMode.PlanA:
+            await self.chan.close()  # Plan B,C
+        if self._master.mode > ConnMode.PlanB:
+            await self.conn.close()  # Plan C
 
 
 class RAQC(AQC):
     """RabbitMQ Async Queue Container."""
     _child_cls = _RAQ
     host: str
+    mode: ConnMode
     conn: aiormq.connection.Connection
     chan: aiormq.channel.Channel
 
-    def __init__(self, host: str = 'amqp://localhost'):
+    def __init__(self, host: str = 'amqp://localhost', mode: ConnMode = ConnMode.PlanA):
         super().__init__()
         self.host = host
+        self.mode = mode
 
     async def open(self, count: int):
         await super().open(count)
-        self.conn = await aiormq.connect(self.host)  # Plan A,B
-        self.chan = await self.conn.channel()  # Plan A
-        await self.chan.basic_qos(prefetch_count=1)  # Plan A
+        if self.mode < ConnMode.PlanC:
+            self.conn = await aiormq.connect(self.host)  # Plan A,B
+            if self.mode < ConnMode.PlanB:
+                self.chan = await self.conn.channel()  # Plan A
+                await self.chan.basic_qos(prefetch_count=1)  # Plan A
 
     async def close(self):
-        await self.chan.close()  # Plan A
-        await self.conn.close()  # Plan A,B
+        if self.mode < ConnMode.PlanB:
+            await self.chan.close()  # Plan A
+        if self.mode < ConnMode.PlanC:
+            await self.conn.close()  # Plan A,B

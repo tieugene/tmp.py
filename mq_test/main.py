@@ -15,7 +15,7 @@ import psutil
 from bq import SQC, SQ, AQC
 from mq import MSQC, MAQC
 from dq import D1SQC, D2SQC
-from rq import RSQC, RAQC
+from rq import RSQC, RAQC, ConnMode
 # x. const
 Q_COUNT = 100  # prod: 100
 W_COUNT = 1000  # prod: 1000
@@ -46,27 +46,25 @@ def stest(sqc: SQC):
         for _ in range(MSG_COUNT):
             w.put(MSG)
     m_count = [sqc.q(i).count() for i in range(Q_COUNT)]
-    print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
+    s_count = sum(m_count)
+    print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}, msgs={s_count}")
+    # if s_count:
+    #    print("Msgs: {m_count}")
     # 2. get
     for r in r_list:
         while r.get(False):
             ...
     # x. the end
     m_count = [sqc.q(i).count() for i in range(Q_COUNT)]
+    s_count = sum(m_count)
+    print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}, msgs={s_count}")
+    if s_count:
+        print(f"Msgs: {m_count}")
     sqc.close()
-    print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
-
-
-def smain():
-    """Sync."""
-    # stest(MSQC())
-    # stest(dq.D1SQC())
-    # stest(dq.D2SQC())
-    stest(RSQC())  # default == '' == 'localhost'
 
 
 # == async ==
-async def atest(aqc: AQC):
+async def atest(aqc: AQC, a_bulk=True):
     """Async."""
     async def __counters() -> Tuple[int]:
         __qs = await asyncio.gather(*[aqc.q(i) for i in range(Q_COUNT)])
@@ -77,29 +75,48 @@ async def atest(aqc: AQC):
     # 0. create writers and readers
     w_list = await asyncio.gather(*[aqc.q(i % Q_COUNT) for i in range(W_COUNT)])  # - writers
     r_list = await asyncio.gather(*[aqc.q(i % Q_COUNT) for i in range(R_COUNT)])  # - readers
-    print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}\nWriters: {len(w_list)}, Readers: {len(r_list)}")
-    # 1. put (MSG_COUNT times all of writers)
+    print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}, Wrtr: {len(w_list)}, Rdrs: {len(r_list)}")
+    # 1. put (MSG_COUNT times all the writers)
     for _ in range(MSG_COUNT):
-        funcs = [w.put(MSG) for w in w_list]
-        for f in funcs:  # ver.1: sequenced (fast)
-            await f
-        # await asyncio.gather(*funcs)  # ver.2: async (slow)
+        if a_bulk:
+            await asyncio.gather(*[w.put(MSG) for w in w_list])
+        else:
+            for w in w_list:
+                await w.put(MSG)
     # RAW err
     m_count = await __counters()
-    print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
+    s_count = sum(m_count)
+    print(f"2: m={mem_used()}, t={round(time.time() - t0, 2)}, msgs={s_count}")
     # 2. get
     await asyncio.gather(*[r.get_all() for r in r_list])
     # x. the end
     m_count = await __counters()
-    print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}\nMsgs: {m_count} ({sum(m_count)})")
+    s_count = sum(m_count)
+    print(f"3: m={mem_used()}, t={round(time.time() - t0, 2)}, msgs={s_count}")
+    if s_count:
+        print(f"Msgs: {m_count}")
     await aqc.close()
+
+
+# == entry points ==
+def smain():
+    """Sync."""
+    # stest(MSQC())
+    # stest(dq.D1SQC())
+    # stest(dq.D2SQC())
+    stest(RSQC())
 
 
 def amain():
     """Async entry point."""
     async def __inner():
         # await atest(MAQC())
-        await atest(RAQC())
+        # await atest(RAQC(mode=ConnMode.PlanA), False)
+        # await atest(RAQC(mode=ConnMode.PlanA), True)
+        # await atest(RAQC(mode=ConnMode.PlanB), False)
+        # await atest(RAQC(mode=ConnMode.PlanB), True)
+        await atest(RAQC(mode=ConnMode.PlanC), False)
+        await atest(RAQC(mode=ConnMode.PlanC), True)
     asyncio.run(__inner())
 
 

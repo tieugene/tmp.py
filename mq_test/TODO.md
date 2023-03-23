@@ -12,12 +12,17 @@ A  | + | + | . | +
 
 ## RQ test
 
-(1000w @ 100q * 10msg = 10kmsg total):
-- sync: 15..56"
-- async (1 conn/1 chan): &hellip;
-- async (1 conn/W chan): &hellip;
-- async (W conn/1 chan): &hellip;
+(1000w @ 100q * 10m = 100q x 100m = 10Km total)
 
+- sync: 1.5..5"
+- async:
+
+Mod | O2O   | O2M   | M2M
+----|------:|------:|------:
+seq | 41…50 | 43…45 | 45…60
+blk |  6…14 |  9…12 | *exc*
+
+&hellip;
 
 ## Explore:
 - DxMQ:
@@ -49,5 +54,5 @@ A  | + | + | . | +
   + R: 9'..&hellip;  (pika, localhost)
 
 - Async:
-  + M: 1.5..2.2"
-  + 
+  + M: 1.5..2.2" (bulk) / (seq)
+  + R: 15'..34' (bulk)
