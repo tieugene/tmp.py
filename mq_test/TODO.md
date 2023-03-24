@@ -2,9 +2,9 @@
 
 - [ ] RxQ:
   + [ ] sure put (mandatory, confirm), get (ack):
-     - [ ] `qsr1`: put(confirm, mandatory), get(auto_ack)
-     - [ ] `qar1`
-     - [ ] `qar2`
+     - [x] `qsr1`: put(confirm, mandatory), get(auto_ack)
+     - [x] `qar1`: put(confirm(?), mandatory), get(auto_ack)
+     - [ ] `qar2`: 
   + [ ] chk connection * reconnect on demand
   + [ ] local/remote
 

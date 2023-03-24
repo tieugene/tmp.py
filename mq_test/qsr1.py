@@ -42,7 +42,7 @@ class _QSR(QS):
             return body
 
     def get_all(self):
-        while bool(self._master.chan.basic_get(self._q_name, auto_ack=True)[0]):  # chk method only
+        while self.get():
             ...
 
     def __get_all_freeze(self):
