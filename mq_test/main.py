@@ -134,14 +134,14 @@ def amain():
     """Async entry point."""
 
     async def __inner():
-        # await atest(QAMc())
+        await atest(QAMc())
         await atest(QAR1c())
-        # await atest(QAR2c())
+        await atest(QAR2c())
 
     asyncio.run(__inner())
 
 
 if __name__ == '__main__':
     LOGGER.setLevel(logging.DEBUG)
-    smain()
+    # smain()
     amain()

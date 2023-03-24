@@ -45,6 +45,10 @@ class _QSR(QS):
         while self.get():
             ...
 
+    def close(self):
+        ...
+
+    '''
     def __get_all_freeze(self):
         """Bsd implementation (requires strict counter)"""
         count = self.count()
@@ -53,9 +57,7 @@ class _QSR(QS):
             count -= 1
             if not count:
                 self._master.chan.cancel()
-
-    def close(self):
-        ...
+    '''
 
 
 class QSRc(QSc):
