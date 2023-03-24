@@ -16,6 +16,9 @@ class QExc(RuntimeError):
 
 # == common ==
 class Q:
+    """Queue base class.
+    One object per queue.
+    """
     _master: 'Qc'
     _id: int
 
@@ -23,9 +26,13 @@ class Q:
         self._master = master
         self._id = _id
 
+    @property
+    def _q_name(self):
+        return f"{self._id:04d}"
+
 
 class Qc:
-    """Queue Container.
+    """Queue Container base class.
      Provides Qs uniqueness.
      """
     title: str = "Queue (base)"
@@ -40,7 +47,7 @@ class Qc:
 
 # == Sync ==
 class QS(Q, ABC):
-    """Sync Queue base (one object per queue)."""
+    """Queue Sync base."""
 
     @abstractmethod
     def open(self):
@@ -76,7 +83,7 @@ class QS(Q, ABC):
 
 
 class QSc(Qc):
-    """Sync Queue Container."""
+    """Queue Sync Container."""
     title: str = "Queue Sync (base)"
     _child_cls: Type[QS]
     _store: Dict[int, QS]
@@ -103,7 +110,7 @@ class QSc(Qc):
 
 # == Async ==
 class QA(Q, ABC):
-    """Async Queue base (one object per queue)."""
+    """Queue Async base."""
     _master: 'QAc'
     _id: int
 
@@ -140,7 +147,7 @@ class QA(Q, ABC):
 
 
 class QAc(Qc):
-    """Async Queue Container."""
+    """Queue Async Container."""
     title: str = "Queue Async (base)"
     _child_cls: Type[QA]
     _store: Dict[int, QA]

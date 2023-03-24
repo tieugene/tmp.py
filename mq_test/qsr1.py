@@ -11,71 +11,72 @@ from q import QS, QSc
 
 # == Sync ==
 class _QSR(QS):
-    """RabbitMQ Sync Queue."""
+    """Queue Sync (RabbitMQ (pika))."""
     _master: 'QSRc'  # to avoid editor inspection warning
-    # conn: pika.BlockingConnection  # Plan C
-    chan: pika.adapters.blocking_connection.BlockingChannel
-    __q: str
 
     def __init__(self, master: 'QSRc', __id: int):
         super().__init__(master, __id)
-        self.__q = f"{__id:04d}"
-        # TODO: self.channel.queue_declare(queue=kju, passive=True) to chk queue exists
 
     def open(self):
-        self.chan = self._master.chan  # Plan A
-        # self.chan = self._master.conn.channel()  # Plan B
-        # self.chan.basic_qos(prefetch_count=1)  # Plan B
+        ...
 
     def count(self) -> int:
-        return self.chan.queue_declare(queue=self.__q, passive=True).method.message_count
+        return self._master.chan.queue_declare(queue=self._q_name, passive=True).method.message_count
 
     def put(self, data: bytes):
-        self.chan.basic_publish(
+        self._master.chan.basic_publish(
             exchange='',
-            routing_key=self.__q,
+            routing_key=self._q_name,
+            body=data,
             properties=pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE),
-            body=data
+            mandatory=True
         )
 
-    def get(self, wait: bool = True) -> Optional[bytes]:  # FIXME: allwas no_wait
-        method_frame, header_frame, body = self.chan.basic_get(self.__q, auto_ack=True)
-        # or ... = channel.consume(kju): generator
-        if method_frame:
+    def get(self, _: bool = True) -> Optional[bytes]:
+        """wait not used.
+        :note: method: Optional[Basic.GetOk] has usual `.message_count`
+        """
+        # method, properties, body
+        method, _, body = self._master.chan.basic_get(self._q_name, auto_ack=True)
+        if method:  # not None?
             return body
 
     def get_all(self):
+        while bool(self._master.chan.basic_get(self._q_name, auto_ack=True)[0]):  # chk method only
+            ...
+
+    def __get_all_freeze(self):
+        """Bsd implementation (requires strict counter)"""
         count = self.count()
-        for method_frame, properties, body in self.chan.consume(self.__q, auto_ack=True):
+        # method, properties, body
+        for _, __, ___ in self._master.chan.consume(self._q_name, auto_ack=True):
             count -= 1
             if not count:
-                break
-        self.chan.cancel()
+                self._master.chan.cancel()
 
     def close(self):
         ...
-        # self.chan.close()  # Plan B
-        # self.conn.close()  # Plan C
 
 
 class QSRc(QSc):
     """Queue Sync RabbitMQ Container."""
     title: str = "Queue Sync (RabbitMQ (pika))"
     _child_cls = _QSR
-    host: str
-    conn: pika.BlockingConnection
+    __host: str
+    __conn: pika.BlockingConnection
     chan: pika.adapters.blocking_connection.BlockingChannel
 
     def __init__(self, host: str = ''):  # '' == 'localhost'
         super().__init__()
-        self.host = host
+        self.__host = host
 
     def open(self, count: int):
         super().open(count)
-        self.conn = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))  # Plan A,B
-        self.chan = self.conn.channel()  # Plan A
-        self.chan.basic_qos(prefetch_count=1)  # Plan A
+        self.__conn = pika.BlockingConnection(pika.ConnectionParameters(host=self.__host))
+        self.chan = self.__conn.channel()
+        self.chan.confirm_delivery()  # publish confirm
+        self.chan.basic_qos(prefetch_count=1)  # get by 1
 
     def close(self):
         self.chan.close()
-        self.conn.close()
+        self.__conn.close()

@@ -1,22 +1,18 @@
-# MQ
-
-no | B | M | D | R
----|:-:|:-:|:-:|:-:
-S  | + | + | 2 | +
-A  | + | + | . | 2
+# MQ.ToDo
 
 - [ ] RxQ:
-  - [ ] sure put (mandatory, confirm)
-  - [ ] get ack (no_ack, ...)
-  - [ ] chk connection * reconnect on demand
-  - [ ] local/remote
+  + [ ] sure put (mandatory, confirm), get (ack):
+     - [ ] `qsr1`: put(confirm, mandatory), get(auto_ack)
+     - [ ] `qar1`
+     - [ ] `qar2`
+  + [ ] chk connection * reconnect on demand
+  + [ ] local/remote
 
 ## Future
 - [ ] automation:
   - [ ] iterator (`__iter__`/`__next__`)
   - [ ] context (`__enter__`/`__exit__`)
-- [ ] Try [rabbitpy](https://github.com/gmr/rabbitpy):
-      ~~rpm~~ sleep since 04-2020
+- [ ] QADx
 
 ## RQ test
 
@@ -29,23 +25,6 @@ Mod | O2O   | O2M   | M2M
 ----|------:|------:|------:
 blk |  6…14 |  9…12 | *exc*
 seq | 41…50 | 43…45 | 45…60
-
-&hellip;
-
-## Explore:
-- DxMQ:
-  + [queuelib](https://github.com/scrapy/queuelib):  
-     Collection of persistent (disk-based) queues; 243 stars, 12 contribs, 3 releases (2021-08), 117 commits;
-     &check;rpm
-  + [persist-queue](https://github.com/peter-wangxu/persist-queue):  
-     251 stars, 16 contribs, 17 releases (2017-07), 178 commits;
-     &check;rpm
-- RSMQ:
-  + pika &check;rpm
-- RAMQ:
-  + [aio-pika](https://github.com/mosquito/aio-pika) ~~rpm~~
-  + &rdsh;[aiormq](https://github.com/mosquito/aiormq) ~~rpm~~
-  + &rdsh;[pamqp](https://github.com/gmr/pamqp) [*rpm*](https://koji.fedoraproject.org/koji/taskinfo?taskID=99061878)
 
 ## Results
 - `Q_COUNT` = 100
@@ -65,8 +44,7 @@ seq | 41…50 | 43…45 | 45…60
   + M: 1.5..2.2" (bulk) / (seq)
   + R: 15'..34' (bulk)
 
-## Dependencies:
+## Notes:
 
-gmr/pamqp -> gmr/aiorabbit
+gmr/pamqp -> {gmr/rabbitpy,gmr/aiorabbit}
 gmr/pamqp -> mosquito/aiormq -> mosquito/aio-pika
-gmr/rabbitpy
