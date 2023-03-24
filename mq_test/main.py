@@ -124,9 +124,9 @@ async def atest(aqc: QAc, bulk_tx=True, bulk_rx=True):
 # == entry points ==
 def smain():
     """Sync."""
-    # stest(QSMC())
-    # stest(QSD1c())
-    # stest(QSD2c())
+    stest(QSMC())
+    stest(QSD1c())
+    stest(QSD2c())
     stest(QSRc())
 
 
@@ -143,5 +143,5 @@ def amain():
 
 if __name__ == '__main__':
     LOGGER.setLevel(logging.DEBUG)
-    # smain()
+    smain()
     amain()

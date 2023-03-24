@@ -15,7 +15,7 @@
 (1000w @ 100q * 10m = 100q x 100m = 10Kmsg total)
 
 - sync: 1.5…5"
-- async (bulk): 6…14 … 9…12
+- async (bulk): 6…14" … 9…12"
 
 ## Results
 - `Q_COUNT` = 100
