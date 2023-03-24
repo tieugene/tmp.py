@@ -5,19 +5,18 @@ no | B | M | D | R
 S  | + | + | 2 | +
 A  | + | + | . | 2
 
-- [ ] [airabbit](https://github.com/gmr/aiorabbit):
-      ~~rpm~~ nice but looks like pet
 - [ ] RxQ:
-  - [ ] sure put
-  - [ ] ack get
+  - [ ] sure put (mandatory, confirm)
+  - [ ] get ack (no_ack, ...)
   - [ ] chk connection * reconnect on demand
+  - [ ] local/remote
 
 ## Future
-- [ ] Try [rabbitpy](https://github.com/gmr/rabbitpy):
-      ~~rpm~~ sleep since 04-2020
 - [ ] automation:
   - [ ] iterator (`__iter__`/`__next__`)
   - [ ] context (`__enter__`/`__exit__`)
+- [ ] Try [rabbitpy](https://github.com/gmr/rabbitpy):
+      ~~rpm~~ sleep since 04-2020
 
 ## RQ test
 
@@ -28,8 +27,8 @@ A  | + | + | . | 2
 
 Mod | O2O   | O2M   | M2M
 ----|------:|------:|------:
-seq | 41…50 | 43…45 | 45…60
 blk |  6…14 |  9…12 | *exc*
+seq | 41…50 | 43…45 | 45…60
 
 &hellip;
 

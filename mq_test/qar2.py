@@ -15,7 +15,6 @@ GET_TIMEOUT = 1
 class _QAR2(QA):
     """RabbitMQ Async Queue."""
     _master: 'QAR2c'  # to avoid editor inspection warning
-    chan: aio_pika.abc.AbstractChannel
     __q_name: str
     __q: aio_pika.abc.AbstractQueue
 
@@ -24,23 +23,22 @@ class _QAR2(QA):
         self.__q_name = f"{__id:04d}"
 
     async def open(self):
-        self.chan = self._master.chan
-        self.__q = await self.chan.get_queue(self.__q_name)
+        self.__q = await self._master.chan.get_queue(self.__q_name)
 
     async def count(self) -> int:
-        q = await self.chan.get_queue(self.__q_name)
+        q = await self._master.chan.get_queue(self.__q_name)
         return q.declaration_result.message_count
 
     async def put(self, data: bytes):
-        await self.chan.default_exchange.publish(
+        await self._master.chan.default_exchange.publish(
             aio_pika.Message(body=data, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
             routing_key=self.__q_name
         )
 
     async def get(self, wait: bool = True) -> Optional[bytes]:
-        # aio_pika.abc.AbstractIncomingMessage
-        if im := await self.__q.get(no_ack=True, fail=False, timeout=1):
-            return im.body
+        msg: aio_pika.abc.AbstractIncomingMessage = await self.__q.get(no_ack=True, fail=False, timeout=1)
+        if msg:
+            return msg.body
 
     async def get_all(self):
         while await self.get():
@@ -52,6 +50,7 @@ class _QAR2(QA):
             async for msg in q_iter:
                 async with msg.process():
                     print(f"Msg of {self.__q_name}")
+                    # if msg.count == 0: break
 
     async def close(self):
         ...
