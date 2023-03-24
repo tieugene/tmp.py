@@ -53,6 +53,14 @@ class _RSQ(SQ):
         if method_frame:
             return body
 
+    def get_all(self):
+        count = self.count()
+        for method_frame, properties, body in self.chan.consume(self.__q, auto_ack=True):
+            count -= 1
+            if not count:
+                break
+        self.chan.cancel()
+
     def close(self):
         ...
         # self.chan.close()  # Plan B
@@ -87,8 +95,8 @@ class _RAQ(AQ):
     [RTFM](https://github.com/mosquito/aiormq))
     """
     _master: 'RAQC'  # to avoid editor inspection warning
-    conn: aiormq.connection.Connection
-    chan: aiormq.channel.Channel
+    conn: aiormq.connection.AbstractConnection
+    chan: aiormq.channel.AbstractChannel
     __q: str
 
     def __init__(self, master: 'RAQC', __id: int):

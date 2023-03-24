@@ -3,12 +3,17 @@
 no | B | M | D | R
 ---|:-:|:-:|:-:|:-:
 S  | + | + | 2 | +
-A  | + | + | . | +
+A  | + | + | . | 1
 
 ## TODO:
-- RAQ: sure put
-- RAQ: ack get
-- `get_msgs()` iterator (<=.task_done())
+- [ ] pika asyncio adapter
+- [ ] RxQ:
+  - [ ] sure put
+  - [ ] ack get
+  - [ ] chk connection
+  - [ ] find `.default_channel()`
+- [ ] `aio-pika`
+- [ ] `get_msgs()` iterator (`with` <= `.task_done()` (`consume`?))
 
 ## RQ test
 
@@ -37,13 +42,13 @@ blk |  6…14 |  9…12 | *exc*
 - RAMQ:
   + [aio-pika](https://github.com/mosquito/aio-pika) ~~rpm~~
   + &rdsh;[aiormq](https://github.com/mosquito/aiormq) ~~rpm~~
-  + &rdsh;[pamqp](https://github.com/gmr/pamqp) ~~rpm~~
+  + &rdsh;[pamqp](https://github.com/gmr/pamqp) [*rpm*](https://koji.fedoraproject.org/koji/taskinfo?taskID=99061878)
 
 ## Results
-- Q_COUNT = 100
-- W_COUNT = 1000
-- R_COUNT = Q_COUNT
-- MSG_COUNT = 1000
+- `Q_COUNT` = 100
+- `W_COUNT` = 1000
+- `R_COUNT` = Q_COUNT
+- `MSG_COUNT` = 1000
 - Summary: 1000 writers @ 100 queues = 10 w/q x 1000 msgs == 100 queues x 10k msgs = 1M msgs
 - macOS
 
@@ -51,7 +56,7 @@ blk |  6…14 |  9…12 | *exc*
   + M: 0.3..0.5"
   + D1: 9..15" (queuelib)
   + D2: 18'30..44'20" (persistqueue)
-  + R: 9'..&hellip;  (pika, localhost)
+  + R: 3'7"..13'25"  (pika, localhost)
 
 - Async:
   + M: 1.5..2.2" (bulk) / (seq)

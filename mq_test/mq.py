@@ -2,7 +2,7 @@
 import asyncio
 # 1. std
 import queue
-from typing import Optional
+from typing import Optional, Iterator
 # 3. local
 # from . import bq  # not works
 from bq import AQC, AQ, SQ, SQC
@@ -36,6 +36,21 @@ class _MSQ(SQ):
             return self.__q.get(block=wait, timeout=None)
         except queue.Empty:
             return None
+
+    def get_all(self):
+        try:
+            while self.__q.get(block=False):
+                ...
+        except queue.Empty:
+            return
+
+    def __iter__(self) -> Iterator:
+        return self
+
+    def __next__(self) -> bytes:
+        if self.__q.empty():  # not guaranied
+            raise StopIteration
+        return self.__q.get()
 
     def close(self):
         ...
