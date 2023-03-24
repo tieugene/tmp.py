@@ -3,17 +3,21 @@
 no | B | M | D | R
 ---|:-:|:-:|:-:|:-:
 S  | + | + | 2 | +
-A  | + | + | . | 1
+A  | + | + | . | 2
 
-## TODO:
-- [ ] pika asyncio adapter
+- [ ] [airabbit](https://github.com/gmr/aiorabbit):
+      ~~rpm~~ nice but looks like pet
 - [ ] RxQ:
   - [ ] sure put
   - [ ] ack get
-  - [ ] chk connection
-  - [ ] find `.default_channel()`
-- [ ] `aio-pika`
-- [ ] `get_msgs()` iterator (`with` <= `.task_done()` (`consume`?))
+  - [ ] chk connection * reconnect on demand
+
+## Future
+- [ ] Try [rabbitpy](https://github.com/gmr/rabbitpy):
+      ~~rpm~~ sleep since 04-2020
+- [ ] automation:
+  - [ ] iterator (`__iter__`/`__next__`)
+  - [ ] context (`__enter__`/`__exit__`)
 
 ## RQ test
 
@@ -61,4 +65,9 @@ blk |  6…14 |  9…12 | *exc*
 - Async:
   + M: 1.5..2.2" (bulk) / (seq)
   + R: 15'..34' (bulk)
-&times;
+
+## Dependencies:
+
+gmr/pamqp -> gmr/aiorabbit
+gmr/pamqp -> mosquito/aiormq -> mosquito/aio-pika
+gmr/rabbitpy

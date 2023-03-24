@@ -1,5 +1,5 @@
-"""In-Memory MQ.
-[RTFM](https://docs.python.org/3/library/asyncio-queue.html)
+"""Queue Async in-Memory.
+Powered by [stdlib](https://docs.python.org/3/library/asyncio-queue.html)
 """
 # 1. std
 from typing import Optional

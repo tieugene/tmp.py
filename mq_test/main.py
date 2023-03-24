@@ -17,9 +17,10 @@ from q import QSc, QS, QAc, Qc
 from qsm import QSMC
 from qsd1 import QSD1c
 from qsd2 import QSD2c
-from qsr import QSRc
+from qsr1 import QSRc
 from qam import QAMc
-from qar2 import ConnMode, QAR2c
+from qar1 import ConnMode, QAR1c
+from qar2 import QAR2c
 
 
 def mem_used() -> int:
@@ -65,7 +66,7 @@ def stest(sqc: QSc):
 
 
 # == async ==
-async def atest(aqc: QAc, a_bulk=True):
+async def atest(aqc: QAc, bulk_tx=True, bulk_rx=True):
     """Async."""
     async def __counters() -> Tuple[int]:
         __qs = await asyncio.gather(*[aqc.q(i) for i in range(Q_COUNT)])
@@ -80,7 +81,7 @@ async def atest(aqc: QAc, a_bulk=True):
     print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}, Wrtrs: {len(w_list)}, Rdrs: {len(r_list)}")
     # 1. put (MSG_COUNT times all the writers)
     for _ in range(MSG_COUNT):
-        if a_bulk:
+        if bulk_tx:
             await asyncio.gather(*[w.put(MSG) for w in w_list])
         else:
             for w in w_list:
@@ -113,10 +114,11 @@ def amain():
     """Async entry point."""
     async def __inner():
         await atest(QAMc())
-        await atest(QAR2c())  # QAR2c([mode=ConnMode.PlanA])[, True])
+        await atest(QAR1c())  # QAR1c([mode=ConnMode.PlanA])[, True])
+        await atest(QAR2c())
     asyncio.run(__inner())
 
 
 if __name__ == '__main__':
-    smain()
+    # smain()
     amain()

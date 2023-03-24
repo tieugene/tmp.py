@@ -1,98 +1,80 @@
+"""Queue Async RabbitMQ #2.
+Powered by [aio-pika](https://github.com/mosquito/aio-pika)
 """
-[RTFM](https://github.com/mosquito/aiormq))
-"""
-from enum import unique, IntEnum, auto
+# 1. std
 from typing import Optional
-
-import aiormq
-
+# 2. 3rd
+import aio_pika
+import aio_pika.abc
+# 3. local
 from q import QA, QAc
-
-
-@unique
-class ConnMode(IntEnum):
-    PlanA = auto()  # 1 connection, 1 channel
-    PlanB = auto()  # 1 connection, M channels (one per queue)
-    PlanC = auto()  # M (connections + channel)
+# x. const
+GET_TIMEOUT = 1
 
 
 class _QAR2(QA):
     """RabbitMQ Async Queue."""
     _master: 'QAR2c'  # to avoid editor inspection warning
-    conn: aiormq.connection.AbstractConnection
-    chan: aiormq.channel.AbstractChannel
-    __q: str
+    chan: aio_pika.abc.AbstractChannel
+    __q_name: str
+    __q: aio_pika.abc.AbstractQueue
 
     def __init__(self, master: 'QAR2c', __id: int):
         super().__init__(master, __id)
-        self.__q = f"{__id:04d}"
+        self.__q_name = f"{__id:04d}"
 
     async def open(self):
-        if self._master.mode < ConnMode.PlanC:  # Plan A,B
-            self.conn = self._master.conn
-        else:  # Plan C
-            self.conn = await aiormq.connect(self._master.host)
-        if self._master.mode < ConnMode.PlanB:  # Plan A
-            self.chan = self._master.chan
-        else:  # Plan B,C
-            self.chan = await self.conn.channel()
-            await self.chan.basic_qos(prefetch_count=1)
+        self.chan = self._master.chan
+        self.__q = await self.chan.get_queue(self.__q_name)
 
     async def count(self) -> int:
-        ret = await self.chan.queue_declare(queue=self.__q, passive=True)
-        return ret.message_count if ret else 0  # FIXME: hack
+        q = await self.chan.get_queue(self.__q_name)
+        return q.declaration_result.message_count
 
     async def put(self, data: bytes):
-        await self.chan.basic_publish(
-            exchange='',
-            routing_key=self.__q,
-            properties=aiormq.spec.Basic.Properties(delivery_mode=2),  # 2=persistent
-            body=data
+        await self.chan.default_exchange.publish(
+            aio_pika.Message(body=data, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+            routing_key=self.__q_name
         )
 
     async def get(self, wait: bool = True) -> Optional[bytes]:
-        #  no_ack (==pika.auto_ack): not require ack
-        # method_frame, header_frame, body = await self.chan.basic_get(self.__q, no_ack=True)
-        rsp = await self.chan.basic_get(self.__q, no_ack=True)
-        if rsp:
-            return rsp.body
+        # aio_pika.abc.AbstractIncomingMessage
+        if im := await self.__q.get(no_ack=True, fail=False, timeout=1):
+            return im.body
 
     async def get_all(self):
-        ret = True
-        while ret:
-            ret = await self.get(False)
+        while await self.get():
+            ...
+
+    async def get_all_freeze(self):
+        async with self.__q.iterator() as q_iter:
+            # FIXME: Cancel consuming after __aexit__
+            async for msg in q_iter:
+                async with msg.process():
+                    print(f"Msg of {self.__q_name}")
 
     async def close(self):
-        if self._master.mode > ConnMode.PlanA:
-            await self.chan.close()  # Plan B,C
-        if self._master.mode > ConnMode.PlanB:
-            await self.conn.close()  # Plan C
+        ...
 
 
 class QAR2c(QAc):
     """RabbitMQ Async Queue Container."""
-    title: str = "Queue Async (RabbitMQ (aiormq))"
+    title: str = "Queue Async (RabbitMQ (aio-pika))"
     _child_cls = _QAR2
     host: str
-    mode: ConnMode
-    conn: aiormq.connection.Connection
-    chan: aiormq.channel.Channel
+    conn: aio_pika.abc.AbstractConnection
+    chan: aio_pika.abc.AbstractChannel
 
-    def __init__(self, host: str = 'amqp://localhost', mode: ConnMode = ConnMode.PlanA):
+    def __init__(self, host: str = 'amqp://localhost'):
         super().__init__()
         self.host = host
-        self.mode = mode
 
     async def open(self, count: int):
         await super().open(count)
-        if self.mode < ConnMode.PlanC:
-            self.conn = await aiormq.connect(self.host)  # Plan A,B
-            if self.mode < ConnMode.PlanB:
-                self.chan = await self.conn.channel()  # Plan A
-                await self.chan.basic_qos(prefetch_count=1)  # Plan A
+        self.conn = await aio_pika.connect(self.host)
+        self.chan = await self.conn.channel()
+        await self.chan.set_qos(prefetch_count=1)
 
     async def close(self):
-        if self.mode < ConnMode.PlanB:
-            await self.chan.close()  # Plan A
-        if self.mode < ConnMode.PlanC:
-            await self.conn.close()  # Plan A,B
+        await self.chan.close()
+        await self.conn.close()

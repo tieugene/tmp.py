@@ -1,5 +1,5 @@
-"""RabbitMQ implement.
-Powered with [pika](https://pika.readthedocs.io/en/stable/index.html)
+"""Queue Sync RabbitMQ.
+Powered by [pika](https://pika.readthedocs.io/en/stable/index.html)
 """
 # 1. std
 from typing import Optional
@@ -59,7 +59,7 @@ class _QSR(QS):
 
 
 class QSRc(QSc):
-    """RabbitMQ Sync Queue Container."""
+    """Queue Sync RabbitMQ Container."""
     title: str = "Queue Sync (RabbitMQ (pika))"
     _child_cls = _QSR
     host: str
@@ -77,5 +77,5 @@ class QSRc(QSc):
         self.chan.basic_qos(prefetch_count=1)  # Plan A
 
     def close(self):
-        self.chan.close()  # Plan A
-        self.conn.close()  # Plan A,B
+        self.chan.close()
+        self.conn.close()

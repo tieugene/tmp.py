@@ -1,5 +1,6 @@
-"""Disk-based implementation.
-[persistqueue](https://github.com/peter-wangxu/persist-queue)
+"""Queue Sync Disk-based #2.
+Powered by [persistqueue](https://github.com/peter-wangxu/persist-queue).
+:note: slow
 """
 from typing import Iterator
 # 2. 3rd

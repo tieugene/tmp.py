@@ -1,4 +1,7 @@
-"""1. [queuelib](https://github.com/scrapy/queuelib)"""
+"""Queue Sync Disk-based #1.
+Powered by [queuelib](https://github.com/scrapy/queuelib)
+"""
+
 from typing import Iterator
 
 import queuelib

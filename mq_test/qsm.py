@@ -1,5 +1,5 @@
-"""
-[RTFM](https://docs.python.org/3/library/queue.html)
+"""Queue Sync in-Memory.
+Powered by [stdlib](https://docs.python.org/3/library/queue.html)
 """
 from typing import Optional, Iterator
 import queue
