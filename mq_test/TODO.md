@@ -6,6 +6,7 @@ S  | + | + | 2 | +
 A  | + | + | . | 1
 
 ## TODO:
+- [ ] add whi is testing and parms
 - [ ] pika asyncio adapter
 - [ ] RxQ:
   - [ ] sure put

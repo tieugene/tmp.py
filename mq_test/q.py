@@ -1,10 +1,10 @@
 """Base for MQ engines."""
 import asyncio
-from typing import Dict, Type, Optional, Iterator
+from typing import Dict, Type, Optional
 from abc import ABC, abstractmethod
 
 
-class QE(RuntimeError):
+class QExc(RuntimeError):
     """Queue Exception."""
 
     def __str__(self):
@@ -16,15 +16,15 @@ class QE(RuntimeError):
 
 # == common ==
 class Q:
-    _master: 'QC'
+    _master: 'Qc'
     _id: int
 
-    def __init__(self, master: 'QC', _id: int):
+    def __init__(self, master: 'Qc', _id: int):
         self._master = master
         self._id = _id
 
 
-class QC:
+class Qc:
     """Queue Container.
      Provides Qs uniqueness.
      """
@@ -38,7 +38,7 @@ class QC:
 
 
 # == Sync ==
-class SQ(Q, ABC):
+class QS(Q, ABC):
     """Sync Queue base (one object per queue)."""
 
     @abstractmethod
@@ -70,14 +70,14 @@ class SQ(Q, ABC):
     def close(self):
         raise NotImplementedError()
 
-    def __init__(self, master: 'SQC', _id: int):
+    def __init__(self, master: 'QSc', _id: int):
         super().__init__(master, _id)
 
 
-class SQC(QC):
+class QSc(Qc):
     """Sync Queue Container."""
-    _child_cls: Type[SQ]
-    _store: Dict[int, SQ]
+    _child_cls: Type[QS]
+    _store: Dict[int, QS]
 
     def __init__(self):
         super().__init__()
@@ -90,9 +90,9 @@ class SQC(QC):
             child.close()
         self._store.clear()
 
-    def q(self, i: int) -> SQ:
+    def q(self, i: int) -> QS:
         if i >= self._count:
-            raise QE(f"Too big num {i}")
+            raise QExc(f"Too big num {i}")
         if i not in self._store:
             self._store[i] = self._child_cls(self, i)
             self._store[i].open()
@@ -100,9 +100,9 @@ class SQC(QC):
 
 
 # == Async ==
-class AQ(Q, ABC):
+class QA(Q, ABC):
     """Async Queue base (one object per queue)."""
-    _master: 'AQC'
+    _master: 'QAc'
     _id: int
 
     @abstractmethod
@@ -133,14 +133,14 @@ class AQ(Q, ABC):
     async def close(self):
         raise NotImplementedError()
 
-    def __init__(self, master: 'AQC', _id: int):
+    def __init__(self, master: 'QAc', _id: int):
         super().__init__(master, _id)
 
 
-class AQC(QC):
+class QAc(Qc):
     """Async Queue Container."""
-    _child_cls: Type[AQ]
-    _store: Dict[int, AQ]
+    _child_cls: Type[QA]
+    _store: Dict[int, QA]
 
     def __init__(self):
         super().__init__()
@@ -152,9 +152,9 @@ class AQC(QC):
         await asyncio.gather(*[child.close() for child in self._store.values()])
         self._store.clear()
 
-    async def q(self, i: int) -> AQ:
+    async def q(self, i: int) -> QA:
         if i >= self._count:
-            raise QE(f"Too big num {i}")
+            raise QExc(f"Too big num {i}")
         if i not in self._store:
             self._store[i] = self._child_cls(self, i)
             await self._store[i].open()

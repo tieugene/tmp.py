@@ -11,20 +11,14 @@ import asyncio
 # 2. 3rd
 import psutil
 # 3. local
-# from . import bq, mq, dq, rq  # not works for main.py
-from bq import SQC, SQ, AQC
-from mq import MSQC, MAQC
-from dq import D1SQC, D2SQC
-from rq import RSQC, RAQC, ConnMode
-# x. const
-Q_COUNT = 10  # prod: 100
-W_COUNT = 10  # prod: 1000
-MSG_COUNT = 10  # prod: 1000
-# prod: 1000 writers @ 100 queues = 10 w/q x 1000 msgs == 100 queues x 10k msgs = 1M msgs
-# rq: 1000w @ 100q = 10 w/q x 10 msgs - 100q x 100 msg = 10k msgs
-R_COUNT = Q_COUNT
-MSG_LEN = 128
-MSG = b'\x00' * MSG_LEN
+# from . import ...  # not works for main.py
+from const import Q_COUNT, W_COUNT, MSG_COUNT, R_COUNT, MSG
+from q import QSc, QS, QAc
+from qsm import QSMC
+from qsd1 import QSD1c
+from qsd2 import QSD2c
+from qsr import QSRc
+from qar2 import ConnMode, QAR2c
 
 
 def mem_used() -> int:
@@ -33,13 +27,13 @@ def mem_used() -> int:
 
 
 # == Sync ==
-def stest(sqc: SQC):
+def stest(sqc: QSc):
     """Sync."""
     sqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
-    w_list: List[SQ] = [sqc.q(i % Q_COUNT) for i in range(W_COUNT)]  # - writers
-    r_list: List[SQ] = [sqc.q(i % Q_COUNT) for i in range(R_COUNT)]  # - readers
+    w_list: List[QS] = [sqc.q(i % Q_COUNT) for i in range(W_COUNT)]  # - writers
+    r_list: List[QS] = [sqc.q(i % Q_COUNT) for i in range(R_COUNT)]  # - readers
     print(f"1: m={mem_used()}, t={round(time.time() - t0, 2)}, Wrtrs: {len(w_list)}, Rdrs: {len(r_list)}")
     # 1. put
     for w in w_list:
@@ -65,7 +59,7 @@ def stest(sqc: SQC):
 
 
 # == async ==
-async def atest(aqc: AQC, a_bulk=True):
+async def atest(aqc: QAc, a_bulk=True):
     """Async."""
     async def __counters() -> Tuple[int]:
         __qs = await asyncio.gather(*[aqc.q(i) for i in range(Q_COUNT)])
@@ -102,25 +96,25 @@ async def atest(aqc: AQC, a_bulk=True):
 # == entry points ==
 def smain():
     """Sync."""
-    # stest(MSQC())
-    # stest(D1SQC())
-    # stest(D2SQC())
-    stest(RSQC())
+    stest(QSMC())
+    stest(QSD1c())
+    stest(QSD2c())
+    stest(QSRc())
 
 
 def amain():
     """Async entry point."""
     async def __inner():
-        # await atest(MAQC())
-        # await atest(RAQC(mode=ConnMode.PlanA), False)
-        # await atest(RAQC(mode=ConnMode.PlanA), True)
-        # await atest(RAQC(mode=ConnMode.PlanB), False)
-        # await atest(RAQC(mode=ConnMode.PlanB), True)
-        await atest(RAQC(mode=ConnMode.PlanC), False)
-        await atest(RAQC(mode=ConnMode.PlanC), True)
+        # await atest(QAMc())
+        # await atest(QAR2c(mode=ConnMode.PlanA), False)
+        # await atest(QAR2c(mode=ConnMode.PlanA), True)
+        # await atest(QAR2c(mode=ConnMode.PlanB), False)
+        # await atest(QAR2c(mode=ConnMode.PlanB), True)
+        await atest(QAR2c(mode=ConnMode.PlanC), False)
+        await atest(QAR2c(mode=ConnMode.PlanC), True)
     asyncio.run(__inner())
 
 
 if __name__ == '__main__':
-    smain()
-    # amain()
+    # smain()
+    amain()
