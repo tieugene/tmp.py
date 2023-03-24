@@ -32,8 +32,7 @@ class _QAR2(QA):
                 body=data,
                 delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             ),
-            routing_key=self._q_name,
-            mandatory=True
+            routing_key=self._q_name
         )
 
     async def get(self, wait: bool = True) -> Optional[bytes]:

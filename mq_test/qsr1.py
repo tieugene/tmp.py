@@ -28,8 +28,7 @@ class _QSR(QS):
             exchange='',
             routing_key=self._q_name,
             body=data,
-            properties=pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE),
-            mandatory=True
+            properties=pika.BasicProperties(delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE)
         )
 
     def get(self, _: bool = True) -> Optional[bytes]:

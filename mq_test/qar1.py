@@ -27,8 +27,7 @@ class _QAR1(QA):
         await self._master.chan.basic_publish(
             body=data,
             routing_key=self._q_name,
-            properties=aiormq.spec.Basic.Properties(delivery_mode=2),  # 2=persistent
-            mandatory=True
+            properties=aiormq.spec.Basic.Properties(delivery_mode=2)  # 2=persistent
         )
 
     async def get(self, _: bool = True) -> Optional[bytes]:

@@ -1,5 +1,10 @@
 # Notes
 
+## RQ memo:
+- default exchange == routing key
+- routing key != queue
+- connection timeout not depend on activity, &asymp;20 min
+
 ## Dependencies:
 
 gmr/pamqp -> {gmr/rabbitpy,gmr/aiorabbit}
@@ -9,3 +14,61 @@ gmr/pamqp -> mosquito/aiormq -> mosquito/aio-pika
 
 - 1 conn/1 chan == 1 conn/N chan == N conn/N chan (but last can fail)
 - sequenced slower than bulk for 3..4 times
+
+## Tests
+
+20230325, macOS, 1k writers @ 100 queues &times;&hellip;
+
+### 'Low' profile:
+
+&hellip;&times; 10 msg (10k msg total)
+
+Type| Time | Note
+----|-----:|------
+QSM |    0 | stdlib
+QSD |    0 | `queuelib`
+QSD2|  5…5 | `persistqueue`, bulk read
+QSR |33…36 | `pika`
+QAM |    0 | stdlib
+QAR1| 6…14 | `qiomrq`
+QAR2| 7…21 | `aio-pika`
+
+### 'Mid' prifile:
+
+&hellip;&times; 100 msg (100k msg total)
+
+Type| Time,s| Note
+----|------:|------
+QSM |     0 | stdlib
+QSD |   1…1 | `queuelib`
+QSD2| 51…51 | `persistqueue`, bulk read
+QSR |408…450| `pika`
+QAM |   2…2 | stdlib
+QAR1|80…255 | `qiomrq`
+QAR2|116…t/o[^t]| `aio-pika`
+
+### 'High' profile:
+
+&hellip;&times; 1000 msg (1000k msg total)
+
+Type| Time,s  | Note
+----|--------:|------
+QSM |       0 | stdlib
+QSD |    8…13 | `queuelib`
+QSD2|  630…640| `persistqueue`, bulk read
+QSR |4489…4957| `pika`
+QAM |   17…18 | stdlib
+QAR1|1101…2234| `qiomrq`
+QAR2|1265…t/o| `aio-pika`
+
+### Local/Remote
+
+(Short)
+
+Type| Local | Remote
+----|------:|------:
+QSR |  | 
+QAR1|  | 
+QAR2|  | 
+
+[^t]: `exceptions.TimeoutError()`
