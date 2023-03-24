@@ -48,4 +48,5 @@ class _QAM(QA):
 
 class QAMc(QAc):
     """Memory Async Queue Container."""
+    title: str = "Queue Async (memory)"
     _child_cls = _QAM

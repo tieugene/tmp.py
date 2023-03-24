@@ -28,6 +28,7 @@ class Qc:
     """Queue Container.
      Provides Qs uniqueness.
      """
+    title: str = "Queue (base)"
     _child_cls: Type[Q]
     _store: Dict[int, Q]
     _count: int
@@ -76,6 +77,7 @@ class QS(Q, ABC):
 
 class QSc(Qc):
     """Sync Queue Container."""
+    title: str = "Queue Sync (base)"
     _child_cls: Type[QS]
     _store: Dict[int, QS]
 
@@ -139,6 +141,7 @@ class QA(Q, ABC):
 
 class QAc(Qc):
     """Async Queue Container."""
+    title: str = "Queue Async (base)"
     _child_cls: Type[QA]
     _store: Dict[int, QA]
 

@@ -53,4 +53,5 @@ class _QSD2(QS):
 
 class QSD2c(QSc):
     """Disk-based #2 Sync Queue Container."""
+    title: str = "Queue Sync (Disk (persistqueue))"
     _child_cls = _QSD2

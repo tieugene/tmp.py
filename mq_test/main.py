@@ -13,11 +13,12 @@ import psutil
 # 3. local
 # from . import ...  # not works for main.py
 from const import Q_COUNT, W_COUNT, MSG_COUNT, R_COUNT, MSG
-from q import QSc, QS, QAc
+from q import QSc, QS, QAc, Qc
 from qsm import QSMC
 from qsd1 import QSD1c
 from qsd2 import QSD2c
 from qsr import QSRc
+from qam import QAMc
 from qar2 import ConnMode, QAR2c
 
 
@@ -26,9 +27,14 @@ def mem_used() -> int:
     return round(psutil.Process().memory_info().rss / (1 << 20))
 
 
+def title(qc: Qc):
+    print(f"== {qc.title} {W_COUNT} w @ {Q_COUNT} q × {MSG_COUNT} m ==")
+
+
 # == Sync ==
 def stest(sqc: QSc):
     """Sync."""
+    title(sqc)
     sqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
@@ -65,6 +71,7 @@ async def atest(aqc: QAc, a_bulk=True):
         __qs = await asyncio.gather(*[aqc.q(i) for i in range(Q_COUNT)])
         __count = await asyncio.gather(*[__q.count() for __q in __qs])
         return tuple(map(int, __count))
+    title(aqc)
     await aqc.open(Q_COUNT)
     t0 = time.time()
     # 0. create writers and readers
@@ -105,16 +112,11 @@ def smain():
 def amain():
     """Async entry point."""
     async def __inner():
-        # await atest(QAMc())
-        # await atest(QAR2c(mode=ConnMode.PlanA), False)
-        # await atest(QAR2c(mode=ConnMode.PlanA), True)
-        # await atest(QAR2c(mode=ConnMode.PlanB), False)
-        # await atest(QAR2c(mode=ConnMode.PlanB), True)
-        await atest(QAR2c(mode=ConnMode.PlanC), False)
-        await atest(QAR2c(mode=ConnMode.PlanC), True)
+        await atest(QAMc())
+        await atest(QAR2c())  # QAR2c([mode=ConnMode.PlanA])[, True])
     asyncio.run(__inner())
 
 
 if __name__ == '__main__':
-    # smain()
+    smain()
     amain()

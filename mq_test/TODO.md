@@ -6,7 +6,6 @@ S  | + | + | 2 | +
 A  | + | + | . | 1
 
 ## TODO:
-- [ ] add whi is testing and parms
 - [ ] pika asyncio adapter
 - [ ] RxQ:
   - [ ] sure put
@@ -62,3 +61,4 @@ blk |  6…14 |  9…12 | *exc*
 - Async:
   + M: 1.5..2.2" (bulk) / (seq)
   + R: 15'..34' (bulk)
+&times;

@@ -53,4 +53,5 @@ class _QSM(QS):
 
 class QSMC(QSc):
     """Memory Sync Queue Container."""
+    title: str = "Queue Sync (Memory)"
     _child_cls = _QSM

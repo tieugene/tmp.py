@@ -60,6 +60,7 @@ class _QSR(QS):
 
 class QSRc(QSc):
     """RabbitMQ Sync Queue Container."""
+    title: str = "Queue Sync (RabbitMQ (pika))"
     _child_cls = _QSR
     host: str
     conn: pika.BlockingConnection

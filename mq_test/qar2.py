@@ -71,6 +71,7 @@ class _QAR2(QA):
 
 class QAR2c(QAc):
     """RabbitMQ Async Queue Container."""
+    title: str = "Queue Async (RabbitMQ (aiormq))"
     _child_cls = _QAR2
     host: str
     mode: ConnMode
