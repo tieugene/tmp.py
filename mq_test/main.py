@@ -127,7 +127,7 @@ def smain():
     stest(QSMC())
     stest(QSD1c())
     stest(QSD2c())
-    stest(QSRc())
+    stest(QSRc())  # remote: 'hostname'
 
 
 def amain():
@@ -135,8 +135,8 @@ def amain():
 
     async def __inner():
         await atest(QAMc())
-        await atest(QAR1c())
-        await atest(QAR2c())
+        await atest(QAR1c())  # remote: 'amqp://hostname'
+        await atest(QAR2c())  # remote: as above
 
     asyncio.run(__inner())
 

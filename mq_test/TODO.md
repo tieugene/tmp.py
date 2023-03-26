@@ -2,9 +2,8 @@
 
 RxQ:
 
-- [ ] rm mandatory  
-- [ ] test local/remote
-- [ ] reconnect
+- [ ] test @ Linux
+- [ ] reconnect (or heartbeat? (`pika`, `aiormq`))
 - [ ] test callbacks
 - [ ] Mem usage on timer (stderr)
 

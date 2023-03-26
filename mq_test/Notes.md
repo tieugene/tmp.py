@@ -4,6 +4,10 @@
 - default exchange == routing key
 - routing key != queue
 - connection timeout not depend on activity, &asymp;20 min
+- Resume:
+  + `pika`: slow write/fast read, steady, handy
+  + `aiomrq`: fast, steady, stupid
+  + `aio-pika`: slow read, fallable, handy
 
 ## Dependencies:
 
@@ -63,12 +67,23 @@ QAR2|1265…t/o| `aio-pika`
 
 ### Local/Remote
 
-(Short)
+(Short, s)
 
 Type| Local | Remote
-----|------:|------:
-QSR |  | 
-QAR1|  | 
-QAR2|  | 
+----|------:|--------:
+QSR | 33…40 | 781…1147
+QAR1|  8…20 |   11…402
+QAR2|  8…27 |  14…fail
+
+## Create queues
+
+```py
+import pika
+conn = pika.BlockingConnection(pika.ConnectionParameters(host='<host>'))
+chan = conn.channel()
+[chan.queue_declare(queue=f"{i:04d}", durable=True) for i in range(100)]
+chan.close()
+conn.close()
+```
 
 [^t]: `exceptions.TimeoutError()`
