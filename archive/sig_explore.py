@@ -13,7 +13,7 @@ def _ps_mult(sig_cfg):
 
 
 def pors(data: comtrade.Comtrade, sig_num: int = 0, lines: Optional[int] = None):
-    """View primary/secondary values. QC OK"""
+    """View primary/secondary values. Qc OK"""
     ch_cfg = data.cfg.analog_channels[sig_num]
     ch_data = data.analog[sig_num]
     if lines is None:
