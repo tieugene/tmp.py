@@ -1,13 +1,17 @@
 # Notes
 
+## Resume:
+- stdlib: exactly good, but not persistent
+- ~~`persistqueue`: slow write, buggy~~, handy
+- `pika`: slow write/fast read, steady, handy
+- `aiomrq`: fast, steady, ~~stupid~~ simple
+- ~~`aio-pika`: slow read, fallable, handy~~
+
 ## RQ memo:
 - default exchange == routing key
 - routing key != queue
 - connection timeout not depend on activity, &asymp;20 min
 - Resume:
-  + `pika`: slow write/fast read, steady, handy
-  + `aiomrq`: fast, steady, stupid
-  + `aio-pika`: slow read, fallable, handy
 
 ## Dependencies:
 
@@ -37,7 +41,7 @@ QAM |    0 | stdlib
 QAR1| 6…14 | `qiomrq`
 QAR2| 7…21 | `aio-pika`
 
-### 'Mid' prifile:
+### 'Mid' profile:
 
 &hellip;&times; 100 msg (100k msg total)
 
@@ -74,6 +78,24 @@ Type| Local | Remote
 QSR | 33…40 | 781…1147
 QAR1|  8…20 |   11…402
 QAR2|  8…27 |  14…fail
+
+## Linux:
+
+(Mid)
+
+note: `Default tempdir '/tmp/tmpv4p3vdhy' is not on the same filesystem with queue path '_d2sd/0000',defaulting to '_d2sd/0000'.`
+note: something strange w/ rabbit if not in `/var/lib`:
+`/usr/sbin/rabbitmqctl: строка 47: cd: /var/lib/rabbitmq: Отказано в доступе`
+
+Type| Time,s  | Note
+----|--------:|------
+QSM |       0 | stdlib
+QSD |       0 | `queuelib`
+QSD2|   45…45 | `persistqueue`, bulk read
+QSR | &infin; | `pika`
+QAM |     1…1 | stdlib
+QAR1| 352…394 | `qiomrq`
+QAR2| 360…418 | `aio-pika`
 
 ## Create queues
 
